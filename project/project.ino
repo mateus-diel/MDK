@@ -344,8 +344,6 @@ void coreTaskZero( void * pvParameters ){
     } 
 }
 
-//essa função será responsável apenas por atualizar as informações no 
-//display a cada 100ms
 void coreTaskOne( void * pvParameters ){
     String taskMessage = "Task running on core ";
     taskMessage = taskMessage + xPortGetCoreID();
