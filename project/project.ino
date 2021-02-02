@@ -33,6 +33,9 @@ volatile float tempPROG = 35.0;
 volatile float tempATUAL = 0.0;
 volatile float lastTempATUAL = 0.0;
 
+volatile boolean core_0 = false;
+volatile boolean core_1 = false;
+
 
 // GPIO where the DS18B20 is connected to
 const int oneWireBus = 15;     
@@ -237,7 +240,7 @@ void setup() {
 }
  
 void loop() {
- 
+ vTaskSuspend(NULL);
 }
 
 void coreTaskZero( void * pvParameters ){
@@ -258,6 +261,9 @@ void coreTaskZero( void * pvParameters ){
         Serial.print("Brilho -> ");
         Serial.println(potencia_1); // mostra a quantidade de brilho atual
       }
+
+      if(!core_0){
+        core_1 = false;     
       
       if (tempATUAL<tempPROG - 1.0){
               potencia_1 = 0;
@@ -287,8 +293,17 @@ void coreTaskZero( void * pvParameters ){
         lastTempATUAL = tempATUAL;
       }
       }
-     delay(1);
-    } 
+     
+    }else{
+    detachInterrupt(PINO_ZC);
+    core_1 = true;
+    while(core_0==true){
+      delay(1);
+    }
+    attachInterrupt(digitalPinToInterrupt(PINO_ZC), ISR_zeroCross, RISING);
+    }
+    delay(1);
+    }
 }
 
 void coreTaskOne( void * pvParameters ){
@@ -305,15 +320,23 @@ void coreTaskOne( void * pvParameters ){
   Serial.println(WiFi.softAPIP());
     // Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    core_0 = true;
+    while(core_1==false){delay(1);}
     request->send(SPIFFS, "/index.html", String(), false, processor);
+    delay(1);
+    core_0 = false;
   });
   
   // Route to load style.css file
   server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request){
+    core_0 = true;
+    while(core_1==false){delay(1);}
     request->send(SPIFFS, "/style.css", "text/css");
+    delay(1);
+    core_0 = false;
   });
 
-  // Route to set GPIO to HIGH
+ /* // Route to set GPIO to HIGH
   server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request){
     //digitalWrite(ledPin, HIGH);    
     request->send(SPIFFS, "/index.html", String(), false, processor);
@@ -323,13 +346,13 @@ void coreTaskOne( void * pvParameters ){
   server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request){
     //digitalWrite(ledPin, LOW);    
     request->send(SPIFFS, "/index.html", String(), false, processor);
-  });
+  });*/
 
 
   
   server.begin();
      while(true){
-      delay(500);
+      delay(1);
      /* portENTER_CRITICAL(&mux); //desliga as interrupçoes
       writeFile(String(potencia_1), "/brilho.txt");
       portEXIT_CRITICAL(&mux);// liga as interrupçoes*/
