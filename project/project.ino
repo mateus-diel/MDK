@@ -15,7 +15,11 @@ IPAddress ap_local_IP(192,168,10,1);
 IPAddress ap_gateway(192,168,10,1);
 IPAddress ap_subnet(255,255,255,0);
 
+// Set LED GPIO 
+const int ledPin = 18; 
 
+
+ 
 const char* ssid     = "ESP32";
 const char* password = "12345678";
 
@@ -25,7 +29,7 @@ AsyncWebServer server(80);
 
 short RELE_1 = 16;
 
-volatile float tempPROG = 0.0;
+volatile float tempPROG = 35.0;
 volatile float tempATUAL = 0.0;
 volatile float lastTempATUAL = 0.0;
 
@@ -41,11 +45,9 @@ DallasTemperature sensors(&oneWire);
 
  
 //variaveis globais
-int brilho = 0;
-int brilho_convertido = 0;
+int potencia_1 = 0;
+int potencia_1_convertido = 0;
 
-// Set LED GPIO
-const int ledPin = 18;
 
 
 int maxv = 0;
@@ -62,23 +64,24 @@ portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
  
 volatile bool isPinHighEnabled = false;
 volatile long currentBrightness = minBrightness;
+volatile boolean pauseInterr = false;
 
-// Replaces placeholder with LED state value
-String processor(const String& var){
-  Serial.println(var);
-  if(var == "STATE"){
-    String ledState;
-    if(digitalRead(ledPin)){
-      ledState = "ON";
-    }
-    else{
-      ledState = "OFF";
-    }
-    Serial.print(ledState);
-    return ledState;
-  }
-  return String();
-}
+// Replaces placeholder with LED state value 
+String processor(const String& var){ 
+  Serial.println(var); 
+  if(var == "STATE"){ 
+    String ledState; 
+    if(digitalRead(ledPin)){ 
+      ledState = "ON"; 
+    } 
+    else{ 
+      ledState = "OFF"; 
+    } 
+    Serial.print(ledState); 
+    return ledState; 
+  } 
+  return String(); 
+} 
 
 void ligaRELE(short pin){
   digitalWrite(pin, HIGH);
@@ -176,21 +179,7 @@ void IRAM_ATTR ISR_zeroCross()  {// funçao que é chamada ao dimmer registrar p
        setTimerPinHigh(currentBrightness); // define o brilho
     }
   portEXIT_CRITICAL_ISR(&mux); // ativa as interrupçoes novamente
-}
- 
-void turnLightOn(){ // liga o dimmer no brilho maximo
-  portENTER_CRITICAL(&mux);// desativa interrupçoes
-    currentBrightness = maxBrightness;
-    digitalWrite(PINO_DIM, HIGH);
-  portEXIT_CRITICAL(&mux);// ativa as interrupçoes novamente
-}
- 
-void turnLightOff(){// deliga o dimmer
-  portENTER_CRITICAL(&mux); // desativa interrupçoes
-    currentBrightness = IDLE;
-    digitalWrite(PINO_DIM, LOW);
-  portEXIT_CRITICAL(&mux); // ativa as interrupçoes novamente
-}
+} 
  
 void setup() {
   Serial.begin(9600);//inicia a serial
@@ -203,7 +192,7 @@ void setup() {
     if(SPIFFS.exists("/temp.txt")){
       tempPROG = readFile("/temp.txt").toFloat();
     }else{
-      if(writeFile("10.00","/temp.txt")){
+      if(writeFile("35.00","/temp.txt")){
         tempPROG = readFile("/temp.txt").toFloat();
       }
     }
@@ -216,23 +205,8 @@ void setup() {
   pinMode(RELE_1, OUTPUT);
   digitalWrite(PINO_DIM, LOW);
   digitalWrite(RELE_1, LOW);
-  pinMode(ledPin, OUTPUT);
+    pinMode(ledPin, OUTPUT); 
 
-  Serial.print("Setting AP (Access Point)…");
-  // Remove the password parameter, if you want the AP (Access Point) to be open
-  
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(ssid, password);
-  Serial.println(WiFi.softAPConfig(ap_local_IP, ap_gateway, ap_subnet)? "Configuring Soft AP" : "Error in Configuration");    
- 
-  delay(100);
-  
-  Serial.print("AP IP address: ");
-  Serial.println(WiFi.softAPIP());
-  
-  
- 
-  Serial.println("Controlando dimmer com esp32");
 
   //cria uma tarefa que será executada na função coreTaskZero, com prioridade 1 e execução no núcleo 0
   //coreTaskZero: piscar LED e contar quantas vezes
@@ -274,35 +248,6 @@ void coreTaskZero( void * pvParameters ){
     attachInterrupt(digitalPinToInterrupt(PINO_ZC), ISR_zeroCross, RISING);
  
     while(true){
-  /*if ((millis() - ultimo_millis1) > debounce_delay) { // se ja passou determinado tempo que o botao foi precionado
-    ultimo_millis1 = millis();
-      if (maxv < 100) { // e o botao estiver precionado
-        maxv++;
-        brilho++; // aumente o brilho
-        brilho = constrain(brilho, 0, 100); // limita a variavel
-        brilho_convertido = map(brilho, 100, 0, maxBrightness, minBrightness); //converte a luminosidade em microsegundos
-         portENTER_CRITICAL(&mux); //desliga as interrupçoes
-            currentBrightness = brilho_convertido; // altera o brilho
-         portEXIT_CRITICAL(&mux);// liga as interrupçoes
-    }
-  }
- 
-  if ((millis() - ultimo_millis2) > debounce_delay) { // se ja passou determinado tempo que o botao foi precionado
-    ultimo_millis2 = millis();
-      if (maxv == 100 && minv>0) {// e o botao estiver precionado
-        minv--;
-        brilho--;// diminui o brilho
-        brilho = constrain(brilho, 0, 100);// limita a variavel
-          brilho_convertido = map(brilho, 100, 0, maxBrightness, minBrightness);//converte a luminosidade em microsegundos
-         portENTER_CRITICAL(&mux); //desliga as interrupçoes
-            currentBrightness = brilho_convertido; // altera o brilho
-         portEXIT_CRITICAL(&mux);// liga as interrupçoes
-    }
-  }
-  if(maxv>=100 && minv<=0){
-    maxv = 0;
-    minv = 100;
-  }*/
 
       sensors.requestTemperatures(); 
       tempATUAL = sensors.getTempCByIndex(0);
@@ -311,34 +256,36 @@ void coreTaskZero( void * pvParameters ){
         Serial.print(tempATUAL);
         Serial.println("ºC");
         Serial.print("Brilho -> ");
-        Serial.println(brilho); // mostra a quantidade de brilho atual
+        Serial.println(potencia_1); // mostra a quantidade de brilho atual
       }
       
       if (tempATUAL<tempPROG - 1.0){
-        ligaRELE(RELE_1);
-      }else if(tempATUAL<tempPROG){
+              potencia_1 = 0;
+              potencia_1_convertido = map(0, 100, 0, maxBrightness, minBrightness); //converte a luminosidade em microsegundos
+              portENTER_CRITICAL(&mux); //desliga as interrupçoes
+              currentBrightness = potencia_1_convertido; // altera o brilho
+              portEXIT_CRITICAL(&mux);// liga as interrupçoes
+              ligaRELE(RELE_1);
+      }else{
         desligaRELE(RELE_1);
         if (tempATUAL != lastTempATUAL){
-          if(tempATUAL < lastTempATUAL){
-              brilho = brilho + 5;
-              brilho = constrain(brilho, 0, 100); // limita a variavel
-              brilho_convertido = map(brilho, 100, 0, maxBrightness, minBrightness); //converte a luminosidade em microsegundos
+          if(tempATUAL < lastTempATUAL && tempATUAL < tempPROG-0.3){
+              potencia_1 = potencia_1 + 5;
+              potencia_1 = constrain(potencia_1, 0, 100); // limita a variavel
+              potencia_1_convertido = map(potencia_1, 100, 0, maxBrightness, minBrightness); //converte a luminosidade em microsegundos
               portENTER_CRITICAL(&mux); //desliga as interrupçoes
-              currentBrightness = brilho_convertido; // altera o brilho
+              currentBrightness = potencia_1_convertido; // altera o brilho
               portEXIT_CRITICAL(&mux);// liga as interrupçoes
-          }else{
-            brilho = brilho - 5;
-            brilho = constrain(brilho, 0, 100);// limita a variavel
-            brilho_convertido = map(brilho, 100, 0, maxBrightness, minBrightness);//converte a luminosidade em microsegundos
+          }else if(tempATUAL > tempPROG || tempATUAL > tempPROG-0.3){
+            potencia_1 = potencia_1 - 5;
+            potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
+            potencia_1_convertido = map(potencia_1, 100, 0, maxBrightness, minBrightness);//converte a luminosidade em microsegundos
             portENTER_CRITICAL(&mux); //desliga as interrupçoes
-            currentBrightness = brilho_convertido; // altera o brilho
+            currentBrightness = potencia_1_convertido; // altera o brilho
             portEXIT_CRITICAL(&mux);// liga as interrupçoes
         }
         lastTempATUAL = tempATUAL;
       }
-      }else{
-        desligaRELE(RELE_1);
-        brilho = 0;
       }
      delay(1);
     } 
@@ -348,6 +295,14 @@ void coreTaskOne( void * pvParameters ){
     String taskMessage = "Task running on core ";
     taskMessage = taskMessage + xPortGetCoreID();
     Serial.println(taskMessage);
+    WiFi.mode(WIFI_AP);
+  WiFi.softAP(ssid, password);
+  Serial.println(WiFi.softAPConfig(ap_local_IP, ap_gateway, ap_subnet)? "Configuring Soft AP" : "Error in Configuration");    
+ 
+  delay(100);
+  
+  Serial.print("AP IP address: ");
+  Serial.println(WiFi.softAPIP());
     // Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html", String(), false, processor);
@@ -360,13 +315,13 @@ void coreTaskOne( void * pvParameters ){
 
   // Route to set GPIO to HIGH
   server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request){
-    digitalWrite(ledPin, HIGH);    
+    //digitalWrite(ledPin, HIGH);    
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
   
   // Route to set GPIO to LOW
   server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request){
-    digitalWrite(ledPin, LOW);    
+    //digitalWrite(ledPin, LOW);    
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
 
@@ -374,7 +329,10 @@ void coreTaskOne( void * pvParameters ){
   
   server.begin();
      while(true){
-      delay(1);
+      delay(500);
+     /* portENTER_CRITICAL(&mux); //desliga as interrupçoes
+      writeFile(String(potencia_1), "/brilho.txt");
+      portEXIT_CRITICAL(&mux);// liga as interrupçoes*/
 
   }
      
