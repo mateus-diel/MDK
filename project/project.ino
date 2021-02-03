@@ -2,7 +2,8 @@
 #include <DallasTemperature.h>
 #include "SPIFFS.h"
 #include <WiFi.h>
-#include "ESPAsyncWebServer.h"
+#include <WebServer.h>
+#include <Arduino_JSON.h>
 
 #define PINO_DIM    4
 #define PINO_ZC     2
@@ -15,16 +16,11 @@ IPAddress ap_local_IP(192,168,10,1);
 IPAddress ap_gateway(192,168,10,1);
 IPAddress ap_subnet(255,255,255,0);
 
-// Set LED GPIO 
-const int ledPin = 18; 
-
-
- 
 const char* ssid     = "ESP32";
 const char* password = "12345678";
 
 // Set web server port number to 80
-AsyncWebServer server(80);
+WebServer server(80);
 
 
 short RELE_1 = 16;
@@ -32,6 +28,7 @@ short RELE_1 = 16;
 volatile float tempPROG = 35.0;
 volatile float tempATUAL = 0.0;
 volatile float lastTempATUAL = 0.0;
+volatile JSONVar configs;
 
 volatile boolean core_0 = false;
 volatile boolean core_1 = false;
@@ -69,22 +66,59 @@ volatile bool isPinHighEnabled = false;
 volatile long currentBrightness = minBrightness;
 volatile boolean pauseInterr = false;
 
-// Replaces placeholder with LED state value 
-String processor(const String& var){ 
-  Serial.println(var); 
-  if(var == "STATE"){ 
-    String ledState; 
-    if(digitalRead(ledPin)){ 
-      ledState = "ON"; 
-    } 
-    else{ 
-      ledState = "OFF"; 
-    } 
-    Serial.print(ledState); 
-    return ledState; 
-  } 
-  return String(); 
-} 
+
+void handle_OnConnect() {
+  Serial.println("GPIO4 Status: OFF | GPIO5 Status: OFF");
+  server.send(200, "text/html", SendHTML(LOW,LOW)); 
+}
+
+void handle_led1on() {
+  Serial.println("GPIO4 Status: ON");
+  server.send(200, "text/html", SendHTML(true,HIGH)); 
+}
+
+void handle_led1off() {
+  Serial.println("GPIO4 Status: OFF");
+  server.send(200, "text/html", SendHTML(false,LOW)); 
+}
+
+
+void handle_NotFound(){
+  server.send(404, "text/plain", "Not found");
+}
+
+String SendHTML(uint8_t led1stat,uint8_t led2stat){
+  String ptr = "<!DOCTYPE html> <html>\n";
+  ptr +="<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
+  ptr +="<title>LED Control</title>\n";
+  ptr +="<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
+  ptr +="body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 50px;}\n";
+  ptr +=".button {display: block;width: 80px;background-color: #3498db;border: none;color: white;padding: 13px 30px;text-decoration: none;font-size: 25px;margin: 0px auto 35px;cursor: pointer;border-radius: 4px;}\n";
+  ptr +=".button-on {background-color: #3498db;}\n";
+  ptr +=".button-on:active {background-color: #2980b9;}\n";
+  ptr +=".button-off {background-color: #34495e;}\n";
+  ptr +=".button-off:active {background-color: #2c3e50;}\n";
+  ptr +="p {font-size: 14px;color: #888;margin-bottom: 10px;}\n";
+  ptr +="</style>\n";
+  ptr +="</head>\n";
+  ptr +="<body>\n";
+  ptr +="<h1>ESP32 Web Server</h1>\n";
+  ptr +="<h3>Using Access Point(AP) Mode</h3>\n";
+  
+   if(led1stat)
+  {ptr +="<p>LED1 Status: ON</p><a class=\"button button-off\" href=\"/led1off\">OFF</a>\n";}
+  else
+  {ptr +="<p>LED1 Status: OFF</p><a class=\"button button-on\" href=\"/led1on\">ON</a>\n";}
+
+  if(led2stat)
+  {ptr +="<p>LED2 Status: ON</p><a class=\"button button-off\" href=\"/led2off\">OFF</a>\n";}
+  else
+  {ptr +="<p>LED2 Status: OFF</p><a class=\"button button-on\" href=\"/led2on\">ON</a>\n";}
+
+  ptr +="</body>\n";
+  ptr +="</html>\n";
+  return ptr;
+}
 
 void ligaRELE(short pin){
   digitalWrite(pin, HIGH);
@@ -125,7 +159,12 @@ String readFile(String path) {
   if (!rFile) {
     Serial.println("Erro ao abrir arquivo!");
   }
-  String content = rFile.readStringUntil('\r'); //desconsidera '\r\n'
+  //String content = rFile.readStringUntil('\r'); //desconsidera '\r\n'
+  String content;
+  while (rFile.available()){
+            content += char(rFile.read());
+          }
+  rFile.close();
   Serial.print("leitura de estado: ");
   Serial.println(content);
   rFile.close();
@@ -200,6 +239,34 @@ void setup() {
       }
     }
   }
+
+
+
+      
+      JSONVar myObject = JSON.parse(readFile("/configs.json"));
+  
+      // JSON.typeof(jsonVar) can be used to get the type of the var
+      if (JSON.typeof(myObject) == "undefined") {
+        Serial.println("Parsing input failed!");
+        return;
+      }
+    
+      Serial.print("JSON object = ");
+      Serial.println(myObject);
+    
+      // myObject.keys() can be used to get an array of all the keys in the object
+      JSONVar keys = myObject.keys();
+
+      
+
+  for (int i = 0; i < keys.length(); i++) {
+        JSONVar value = myObject[keys[i]];
+        Serial.print(keys[i]);
+        Serial.print(" = ");
+        Serial.println(value);
+      }
+
+  
   Serial.print("\ntemperatura programada lida: ");
   Serial.println(tempPROG);
  
@@ -208,7 +275,6 @@ void setup() {
   pinMode(RELE_1, OUTPUT);
   digitalWrite(PINO_DIM, LOW);
   digitalWrite(RELE_1, LOW);
-    pinMode(ledPin, OUTPUT); 
 
 
   //cria uma tarefa que será executada na função coreTaskZero, com prioridade 1 e execução no núcleo 0
@@ -318,44 +384,30 @@ void coreTaskOne( void * pvParameters ){
   
   Serial.print("AP IP address: ");
   Serial.println(WiFi.softAPIP());
-    // Route for root / web page
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    core_0 = true;
-    while(core_1==false){delay(1);}
-    request->send(SPIFFS, "/index.html", String(), false, processor);
-    delay(1);
-    core_0 = false;
-  });
+    
   
-  // Route to load style.css file
+  /*// Route to load style.css file
   server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request){
     core_0 = true;
     while(core_1==false){delay(1);}
     request->send(SPIFFS, "/style.css", "text/css");
     delay(1);
     core_0 = false;
-  });
-
- /* // Route to set GPIO to HIGH
-  server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request){
-    //digitalWrite(ledPin, HIGH);    
-    request->send(SPIFFS, "/index.html", String(), false, processor);
-  });
-  
-  // Route to set GPIO to LOW
-  server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request){
-    //digitalWrite(ledPin, LOW);    
-    request->send(SPIFFS, "/index.html", String(), false, processor);
   });*/
+
+  server.on("/", handle_OnConnect);
+  server.on("/led1on", handle_led1on);
+  server.on("/led1off", handle_led1off);
+  server.onNotFound(handle_NotFound);
 
 
   
   server.begin();
+  Serial.println("HTTP server started");
      while(true){
+      server.handleClient();
       delay(1);
-     /* portENTER_CRITICAL(&mux); //desliga as interrupçoes
-      writeFile(String(potencia_1), "/brilho.txt");
-      portEXIT_CRITICAL(&mux);// liga as interrupçoes*/
+     
 
   }
      
