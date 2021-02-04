@@ -27,9 +27,11 @@ volatile float tempPROG = 35.0;
 volatile float tempATUAL = 0.0;
 volatile float lastTempATUAL = 0.0;
 JSONVar configs;
+JSONVar states;
 
 volatile boolean core_0 = false;
 volatile boolean core_1 = false;
+boolean linha_1 = true;
 
 
 // GPIO where the DS18B20 is connected to
@@ -64,6 +66,14 @@ volatile bool isPinHighEnabled = false;
 volatile long currentBrightness = minBrightness;
 volatile boolean pauseInterr = false;
 
+void responseToClient (AsyncWebServerRequest *req, String res){
+  AsyncWebServerResponse *response = req->beginResponse(200, "text/plain", res);
+    response->addHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
+    response->addHeader("Access-Control-Allow-Credentials", "true");
+    response->addHeader("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
+    response->addHeader("Access-Control-Allow-Origin", "*");  
+    req->send(response);
+}
 
 /*void handle_OnConnect() {
   Serial.println("GPIO4 Status: OFF | GPIO5 Status: OFF");
@@ -278,6 +288,7 @@ void setup() {
       Serial.println(t);
       Serial.println(configs["fgch"]);
       tempPROG = (double) configs["tempPROG_1"];
+      linha_1 = (bool) configs["linha1"];
       
 
 
@@ -339,32 +350,50 @@ void coreTaskZero( void * pvParameters ){
       if ((millis() - ultimo_millis2) > debounce_delay) { // se ja passou determinado tempo que o botao foi precionado
         ultimo_millis2 = millis();
         Serial.print(tempATUAL);
+        states["sensor1"]=tempATUAL;
+        states["linha1"]=linha_1;
+        states["tempPROG"]=tempPROG;
         Serial.println("ºC");
-        Serial.print("Brilho -> ");
+        Serial.print("Potencia -> ");
         Serial.println(potencia_1); // mostra a quantidade de brilho atual
+      }
+
+      if ((millis() - ultimo_millis1) > debounce_delay+59500) { // se ja passou determinado tempo que o botao foi precionado
+        ultimo_millis1 = millis();
+        configs["linha1"]=linha_1;
+        configs["tempPROG_1"]=tempPROG;
+        portENTER_CRITICAL(&mux); //desliga as interrupçoes
+        detachInterrupt(PINO_ZC);
+        portEXIT_CRITICAL(&mux);// liga as interrupçoes
+        delay(50);
+        writeFile(JSON.stringify(configs),"/configs.json");   
+        portENTER_CRITICAL(&mux); //desliga as interrupçoes
+        attachInterrupt(digitalPinToInterrupt(PINO_ZC), ISR_zeroCross, RISING);
+        portEXIT_CRITICAL(&mux);// liga as interrupçoes    
+        
       }
 
       if(!core_0){
         core_1 = false;     
       
-      if (tempATUAL<tempPROG - 1.0){
+      if (tempATUAL<tempPROG - 1.0 && linha_1){
               potencia_1 = 0;
               potencia_1_convertido = map(0, 100, 0, maxBrightness, minBrightness); //converte a luminosidade em microsegundos
               portENTER_CRITICAL(&mux); //desliga as interrupçoes
               currentBrightness = potencia_1_convertido; // altera o brilho
               portEXIT_CRITICAL(&mux);// liga as interrupçoes
               ligaRELE(RELE_1);
-      }else{
+      }else if(linha_1){
         desligaRELE(RELE_1);
         if (tempATUAL != lastTempATUAL){
-          if(tempATUAL < lastTempATUAL && tempATUAL < tempPROG-0.3){
+          if(tempATUAL < lastTempATUAL && tempATUAL < tempPROG-0.0){
               potencia_1 = potencia_1 + 5;
               potencia_1 = constrain(potencia_1, 0, 100); // limita a variavel
               potencia_1_convertido = map(potencia_1, 100, 0, maxBrightness, minBrightness); //converte a luminosidade em microsegundos
               portENTER_CRITICAL(&mux); //desliga as interrupçoes
               currentBrightness = potencia_1_convertido; // altera o brilho
               portEXIT_CRITICAL(&mux);// liga as interrupçoes
-          }else if(tempATUAL > tempPROG || tempATUAL > tempPROG-0.3){
+          }else if(tempATUAL > tempPROG || tempATUAL > tempPROG-0.1){
             potencia_1 = potencia_1 - 5;
             potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
             potencia_1_convertido = map(potencia_1, 100, 0, maxBrightness, minBrightness);//converte a luminosidade em microsegundos
@@ -374,6 +403,15 @@ void coreTaskZero( void * pvParameters ){
         }
         lastTempATUAL = tempATUAL;
       }
+      }else{
+        desligaRELE(RELE_1);
+        potencia_1 = 0;
+        potencia_1 = constrain(potencia_1, 0, 100); // limita a variavel
+              potencia_1_convertido = map(potencia_1, 100, 0, maxBrightness, minBrightness); //converte a luminosidade em microsegundos
+              portENTER_CRITICAL(&mux); //desliga as interrupçoes
+              currentBrightness = potencia_1_convertido; // altera o brilho
+              portEXIT_CRITICAL(&mux);// liga as interrupçoes
+              digitalWrite(PINO_DIM, LOW);
       }
      
     }else{
@@ -412,21 +450,45 @@ void coreTaskOne( void * pvParameters ){
   server.onNotFound(handle_NotFound);
 
 */
-server.on("/setconfig",HTTP_POST,[](AsyncWebServerRequest * request){}, NULL, [](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
- 
+server.on(
+    "/post",
+    HTTP_POST,
+    [](AsyncWebServerRequest * request){},
+    NULL,
+    [](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
+      String t;
       for (size_t i = 0; i < len; i++) {
-        Serial.write(data[i]);
+        t+=(char)(data[i]);
       }
  
-      Serial.println();
-      AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "Ok");
-    response->addHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
-    response->addHeader("Access-Control-Allow-Credentials", "true");
-    response->addHeader("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
-    response->addHeader("Access-Control-Allow-Origin", "*");
-    request->send(response);
-        });
-
+      Serial.println(t);
+      Serial.println("Json");
+      JSONVar jso =  JSON.parse(t);
+      if (jso.hasOwnProperty("tempPROG")){
+        tempPROG = (double) jso["tempPROG"];
+      }
+      if (jso.hasOwnProperty("linha1")){
+        linha_1 = (bool) jso["linha1"];
+      }
+    Serial.println(jso["email"]);
+  //request->send(response(request, "Ok Tigrao"));
+  responseToClient(request,"Ok Tigrao");
+      
+    
+    });
+ 
+  server.on("/put", HTTP_PUT, [](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", "Put route");
+  });
+ 
+  server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request){
+    responseToClient(request,JSON.stringify(states));
+  });
+ 
+  server.on("/any", HTTP_ANY, [](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", "Any route");
+  });
+ 
   
   
   server.begin();
