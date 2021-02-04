@@ -2,7 +2,7 @@
 #include <DallasTemperature.h>
 #include "SPIFFS.h"
 #include <WiFi.h>
-#include <WebServer.h>
+#include "ESPAsyncWebServer.h"
 #include <Arduino_JSON.h>
 
 #define PINO_DIM    4
@@ -16,11 +16,9 @@ IPAddress ap_local_IP(192,168,10,1);
 IPAddress ap_gateway(192,168,10,1);
 IPAddress ap_subnet(255,255,255,0);
 
-const char* ssid     = "ESP32";
-const char* password = "12345678";
 
 // Set web server port number to 80
-WebServer server(80);
+AsyncWebServer  server(80);
 
 
 short RELE_1 = 16;
@@ -28,7 +26,7 @@ short RELE_1 = 16;
 volatile float tempPROG = 35.0;
 volatile float tempATUAL = 0.0;
 volatile float lastTempATUAL = 0.0;
-volatile JSONVar configs;
+JSONVar configs;
 
 volatile boolean core_0 = false;
 volatile boolean core_1 = false;
@@ -67,26 +65,45 @@ volatile long currentBrightness = minBrightness;
 volatile boolean pauseInterr = false;
 
 
-void handle_OnConnect() {
+/*void handle_OnConnect() {
   Serial.println("GPIO4 Status: OFF | GPIO5 Status: OFF");
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.sendHeader("Access-Control-Allow-Credentials", "true");
+  server.sendHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
+  server.sendHeader("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
   server.send(200, "text/html", SendHTML(LOW,LOW)); 
 }
 
-void handle_led1on() {
+void handle_setConfig() {
   Serial.println("GPIO4 Status: ON");
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.sendHeader("Access-Control-Allow-Credentials", "true");
+  server.sendHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
+  server.sendHeader("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
   server.send(200, "text/html", SendHTML(true,HIGH)); 
 }
 
 void handle_led1off() {
   Serial.println("GPIO4 Status: OFF");
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.sendHeader("Access-Control-Allow-Credentials", "true");
+  server.sendHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
+  server.sendHeader("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
   server.send(200, "text/html", SendHTML(false,LOW)); 
 }
 
 
 void handle_NotFound(){
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.sendHeader("Access-Control-Allow-Credentials", "true");
+  server.sendHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
+  server.sendHeader("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
   server.send(404, "text/plain", "Not found");
 }
+*/
 
+
+  
 String SendHTML(uint8_t led1stat,uint8_t led2stat){
   String ptr = "<!DOCTYPE html> <html>\n";
   ptr +="<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
@@ -231,45 +248,44 @@ void setup() {
   sensors.begin();
   
   if (openFS()){
-    if(SPIFFS.exists("/temp.txt")){
+    /*if(SPIFFS.exists("/temp.txt")){
       tempPROG = readFile("/temp.txt").toFloat();
     }else{
       if(writeFile("35.00","/temp.txt")){
         tempPROG = readFile("/temp.txt").toFloat();
       }
-    }
+    }*/
   }
 
 
 
       
-      JSONVar myObject = JSON.parse(readFile("/configs.json"));
+      configs = JSON.parse(readFile("/configs.json"));
   
       // JSON.typeof(jsonVar) can be used to get the type of the var
-      if (JSON.typeof(myObject) == "undefined") {
+      if (JSON.typeof(configs) == "undefined") {
         Serial.println("Parsing input failed!");
         return;
       }
     
       Serial.print("JSON object = ");
-      Serial.println(myObject);
+      Serial.println(configs);
     
-      // myObject.keys() can be used to get an array of all the keys in the object
-      JSONVar keys = myObject.keys();
-
+      Serial.println("\n\n testesss \n");
+      Serial.println(configs["ssid"]);
+      Serial.println(configs["password"]);
+      float t = (double) configs["tempPROG_1"];
+      Serial.println(t);
+      Serial.println(configs["fgch"]);
+      tempPROG = (double) configs["tempPROG_1"];
       
 
-  for (int i = 0; i < keys.length(); i++) {
-        JSONVar value = myObject[keys[i]];
-        Serial.print(keys[i]);
-        Serial.print(" = ");
-        Serial.println(value);
-      }
+
 
   
   Serial.print("\ntemperatura programada lida: ");
   Serial.println(tempPROG);
- 
+
   pinMode(PINO_ZC,  INPUT_PULLUP);
   pinMode(PINO_DIM, OUTPUT);
   pinMode(RELE_1, OUTPUT);
@@ -377,35 +393,46 @@ void coreTaskOne( void * pvParameters ){
     taskMessage = taskMessage + xPortGetCoreID();
     Serial.println(taskMessage);
     WiFi.mode(WIFI_AP);
-  WiFi.softAP(ssid, password);
-  Serial.println(WiFi.softAPConfig(ap_local_IP, ap_gateway, ap_subnet)? "Configuring Soft AP" : "Error in Configuration");    
+    delay(2000); 
+  WiFi.softAP(configs["ssid"], configs["ssid"]);
+  delay(2000); 
+  //Serial.println(WiFi.softAPConfig(ap_local_IP, ap_gateway, ap_subnet)? "Configuring Soft AP" : "Error in Configuration");    
  
   delay(100);
   
   Serial.print("AP IP address: ");
-  Serial.println(WiFi.softAPIP());
+  //Serial.println(WiFi.softAPIP());
     
   
-  /*// Route to load style.css file
-  server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request){
-    core_0 = true;
-    while(core_1==false){delay(1);}
-    request->send(SPIFFS, "/style.css", "text/css");
-    delay(1);
-    core_0 = false;
-  });*/
 
-  server.on("/", handle_OnConnect);
-  server.on("/led1on", handle_led1on);
+
+  /*server.on("/", handle_OnConnect);
+  server.on("/setconfig", handle_setConfig);
   server.on("/led1off", handle_led1off);
   server.onNotFound(handle_NotFound);
 
+*/
+server.on("/setconfig",HTTP_POST,[](AsyncWebServerRequest * request){}, NULL, [](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) {
+ 
+      for (size_t i = 0; i < len; i++) {
+        Serial.write(data[i]);
+      }
+ 
+      Serial.println();
+      AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "Ok");
+    response->addHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
+    response->addHeader("Access-Control-Allow-Credentials", "true");
+    response->addHeader("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+        });
 
+  
   
   server.begin();
   Serial.println("HTTP server started");
      while(true){
-      server.handleClient();
+      //server.handleClient();
       delay(1);
      
 
