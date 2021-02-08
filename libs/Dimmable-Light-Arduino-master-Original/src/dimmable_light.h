@@ -109,13 +109,6 @@ public:
     Thyristor::begin();
   }
 
-    /**
-   * Setup the timer and the interrupt routine.
-   */
-  static void pauseStop(){
-    Thyristor::pauseStop();
-  }
-
   /**
    * Set the pin dedicated to receive the AC zero cross signal.
    */

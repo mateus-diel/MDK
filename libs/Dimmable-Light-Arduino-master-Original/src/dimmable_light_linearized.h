@@ -16,20 +16,23 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
-#ifndef DIMMABLE_LIGHT_H
-#define DIMMABLE_LIGHT_H
+#ifndef DIMMABLE_LIGHT_LINEARIZED_H
+#define DIMMABLE_LIGHT_LINEARIZED_H
 
 #include "thyristor.h"
 #include <Arduino.h>
 
 /**
- * This is the user-oriented DimmableLight class, a wrapper on Thyristor class.
- * The measurement unit is relative to the semi-period length, and it assumes values
- * in [0;255] range.
+ * This is the user-oriented DimmableLightLinearized class, 
+ * a wrapper on Thyristor class. It differs from DimmableLight
+ * "brightness" meaning: here the brightness it mapped linearly to
+ * power delivered to your devices, in DimmableLight it is linearly mapped
+ * to time point when thyristor is triggered.
+ * The computation induced by this class may affect the performance of your MCU.
  */
-class DimmableLight{
+class DimmableLightLinearized{
 public:
-  DimmableLight(int pin): thyristor(pin), brightness(0){
+  DimmableLightLinearized(int pin): thyristor(pin), brightness(0){
     if(nLights<N){   
       nLights++;
     }else{
@@ -38,33 +41,60 @@ public:
     }
   }
 
-  /**
-   * Set the brightness, 0 to turn off the lamp
-   */
-  void setBrightness(uint8_t bri){
-    brightness=bri;
+  	/**
+   	 * Set the brightness, 0 to turn off the lamp
+   	 */
+  	void setBrightness(uint8_t bri){
 #ifdef NETWORK_FREQ_FIXED_50HZ
-    uint16_t newDelay=10000-(uint16_t)(((uint32_t)bri*10000)/255);
+    double tempBrightness = -1.5034e-10*pow(bri,5)
+              +9.5843e-08*pow(bri,4)
+              -2.2953e-05*pow(bri,3)
+              +0.0025471*pow(bri,2)
+              -0.14965*bri
+              +9.9846;
 #elif defined(NETWORK_FREQ_FIXED_60HZ)
-    uint16_t newDelay=8333-(uint16_t)(((uint32_t)bri*8333)/255);
+    double tempBrightness = -1.2528e-10*pow(bri,5)
+              +7.9866e-08*pow(bri,4)
+              -1.9126e-05*pow(bri,3)
+              +0.0021225*pow(bri,2)
+              -0.12471*bri
+              +8.3201;    
 #elif defined(NETWORK_FREQ_RUNTIME)
-    uint16_t newDelay=Thyristor::getSemiPeriod()-(uint16_t)(((uint32_t)bri*Thyristor::getSemiPeriod())/255);
+  double tempBrightness;
+  if(Thyristor::getFrequency()== 50){
+    tempBrightness = -1.5034e-10*pow(bri,5)
+               +9.5843e-08*pow(bri,4)
+               -2.2953e-05*pow(bri,3)
+               +0.0025471*pow(bri,2)
+               -0.14965*bri
+               +9.9846;
+  } else if(Thyristor::getFrequency()== 60){
+    tempBrightness = -1.2528e-10*pow(bri,5)
+               +7.9866e-08*pow(bri,4)
+               -1.9126e-05*pow(bri,3)
+               +0.0021225*pow(bri,2)
+               -0.12471*bri
+               +8.3201;  
+  } else {
+    // Only on and off
+    if(bri > 0){
+      thyristor.turnOn();
+    } else {
+      thyristor.turnOff();
+    }
+    return;
+  }
 #endif
-    thyristor.setDelay(newDelay);
+    tempBrightness *= 1000;
+
+    thyristor.setDelay(tempBrightness);
   };
 
   /**
-   * Return the current brightness
+   * Return the current brightness.
    */
   uint8_t getBrightness() const{
     return brightness;
-  }
-
-  /**
-   * Turn on the light at full power.
-   */
-  void turnOn(){
-    setBrightness(255);
   }
 
   /**
@@ -98,7 +128,7 @@ public:
   }
 #endif
 
-  ~DimmableLight(){
+  ~DimmableLightLinearized(){
     nLights--;
   }
 
@@ -107,13 +137,6 @@ public:
    */
   static void begin(){
     Thyristor::begin();
-  }
-
-    /**
-   * Setup the timer and the interrupt routine.
-   */
-  static void pauseStop(){
-    Thyristor::pauseStop();
   }
 
   /**
@@ -143,4 +166,4 @@ private:
 	uint8_t brightness;
 };
 
-#endif // END DIMMABLE_LIGHT_H
+#endif // END DIMMABLE_LIGHT_LINEARIZED_H

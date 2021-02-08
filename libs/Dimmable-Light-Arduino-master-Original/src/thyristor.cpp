@@ -552,12 +552,6 @@ void Thyristor::begin(){
 #endif
 }
 
-void Thyristor::pauseStop(){
-  interruptEnabled = false;
-  detachInterrupt(digitalPinToInterrupt(Thyristor::syncPin));
-
-}
-
 float Thyristor::getFrequency(){
   if(semiPeriodLength == 0) {
     return 0;

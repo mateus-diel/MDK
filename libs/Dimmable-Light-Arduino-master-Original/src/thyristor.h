@@ -100,8 +100,6 @@ public:
    */
   static void begin();
 
-  static void pauseStop();
-
   /**
    * Return the number of instantiated thyristors.
    */
