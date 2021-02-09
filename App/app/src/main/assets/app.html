@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<head>
+    <title>ESP Control - MarcoA</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="bootstrap.4.5.2.min.css">
+
+    <link rel="stylesheet" href="style.css">
+
+
+    <script src="jquery.3.5.1.min.js"></script>
+    <script src="popper.min.js"></script>
+    <script src="bootstrap.4.5.2.min.js"></script>
+
+</head>
+<html>
+<body>
+
+<!--
+<div id="demo">
+<button type="button" onclick="loadXMLDoc()">Change Content</button>
+</div>
+-->
+
+
+<div class="container">
+    <div class="card mb-4 box-shadow" style="width: 18rem;">
+        <div class="card-header"><h5 style="display: inline;">Linha 1</h5><h5 id="status_linha_1" style="display: inline;"></h5> </p><p style="display: inline;">Temp. Programada: </p><strong><div style="display: inline;" id="tempPROG"></div><div style="display: inline;"> ºC</div></strong></p></div>
+        <div class="card-body gauge-container" id="gauge2"><div id="hora"></div></div>
+        <div class="card-footer">
+
+            <div id="footerbuttons">
+                <div>
+                    <button style="display: none;" class="btnstyle btn btn-success btn-number" id="btnliga" data-type="liga" data-field="quant[2]">Liga</button>
+                    <button style="display: none;" class="btnstyle btn btn-danger btn-number" id="btndesliga" data-type="desliga" data-field="quant[2]">Desliga</button>
+                    <button type="btnstyle button" class="btn btn-info btn-number" data-type="plus" data-field="quant[2]" style="float: right;">+</button>
+                    <input type="text" id="temp1" style="width: 20%; float: right; height: auto;" name="quant[2]" class="btn btnstyle input-number"  min="25" max="40"></input>
+                    <button type="btnstyle button" class="btn btn-info btn-number"  data-type="minus" data-field="quant[2]" style="float: right;">-</button>
+
+
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function myJavaScriptFunc(val){
+      document.getElementById("status_linha_1").innerHTML = 12151;
+    }
+  </script>
+<script src="code.js"></script>
+
+</body>
+</html>
