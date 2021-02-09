@@ -4,13 +4,12 @@
 #include <WiFi.h>
 #include "ESPAsyncWebServer.h"
 #include <Arduino_JSON.h>
+#include <dimmable_light.h>
 
-#define PINO_DIM    4
+#define PINO_DIM_1    4
 #define PINO_ZC     2
-#define maxBrightness 800 // brilho maximo em us
-#define minBrightness 7500 // brilho minimo em us
-#define TRIGGER_TRIAC_INTERVAL 20 // tempo quem que o triac fica acionado
-#define IDLE -1
+#define MAXPOT 255 
+#define MINPOT  50 
 
 IPAddress ap_local_IP(192,168,10,1);
 IPAddress ap_gateway(192,168,10,1);
@@ -31,7 +30,7 @@ JSONVar states;
 
 volatile boolean core_0 = false;
 volatile boolean core_1 = false;
-boolean linha_1 = true;
+boolean LINHA_1 = true;
 
 
 // GPIO where the DS18B20 is connected to
@@ -49,22 +48,11 @@ int potencia_1 = 0;
 int potencia_1_convertido = 0;
 
 
-
-int maxv = 0;
-int minv = 100;
  
 unsigned long ultimo_millis1 = 0; 
 unsigned long ultimo_millis2 = 0; 
 unsigned long debounce_delay = 500;
  
-hw_timer_t * timerToPinHigh;
-hw_timer_t * timerToPinLow;
- 
-portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
- 
-volatile bool isPinHighEnabled = false;
-volatile long currentBrightness = minBrightness;
-volatile boolean pauseInterr = false;
 
 void responseToClient (AsyncWebServerRequest *req, String res){
   AsyncWebServerResponse *response = req->beginResponse(200, "text/plain", res);
@@ -75,77 +63,6 @@ void responseToClient (AsyncWebServerRequest *req, String res){
     req->send(response);
 }
 
-/*void handle_OnConnect() {
-  Serial.println("GPIO4 Status: OFF | GPIO5 Status: OFF");
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Access-Control-Allow-Credentials", "true");
-  server.sendHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
-  server.sendHeader("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
-  server.send(200, "text/html", SendHTML(LOW,LOW)); 
-}
-
-void handle_setConfig() {
-  Serial.println("GPIO4 Status: ON");
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Access-Control-Allow-Credentials", "true");
-  server.sendHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
-  server.sendHeader("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
-  server.send(200, "text/html", SendHTML(true,HIGH)); 
-}
-
-void handle_led1off() {
-  Serial.println("GPIO4 Status: OFF");
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Access-Control-Allow-Credentials", "true");
-  server.sendHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
-  server.sendHeader("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
-  server.send(200, "text/html", SendHTML(false,LOW)); 
-}
-
-
-void handle_NotFound(){
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Access-Control-Allow-Credentials", "true");
-  server.sendHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
-  server.sendHeader("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
-  server.send(404, "text/plain", "Not found");
-}
-*/
-
-
-  
-String SendHTML(uint8_t led1stat,uint8_t led2stat){
-  String ptr = "<!DOCTYPE html> <html>\n";
-  ptr +="<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
-  ptr +="<title>LED Control</title>\n";
-  ptr +="<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
-  ptr +="body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 50px;}\n";
-  ptr +=".button {display: block;width: 80px;background-color: #3498db;border: none;color: white;padding: 13px 30px;text-decoration: none;font-size: 25px;margin: 0px auto 35px;cursor: pointer;border-radius: 4px;}\n";
-  ptr +=".button-on {background-color: #3498db;}\n";
-  ptr +=".button-on:active {background-color: #2980b9;}\n";
-  ptr +=".button-off {background-color: #34495e;}\n";
-  ptr +=".button-off:active {background-color: #2c3e50;}\n";
-  ptr +="p {font-size: 14px;color: #888;margin-bottom: 10px;}\n";
-  ptr +="</style>\n";
-  ptr +="</head>\n";
-  ptr +="<body>\n";
-  ptr +="<h1>ESP32 Web Server</h1>\n";
-  ptr +="<h3>Using Access Point(AP) Mode</h3>\n";
-  
-   if(led1stat)
-  {ptr +="<p>LED1 Status: ON</p><a class=\"button button-off\" href=\"/led1off\">OFF</a>\n";}
-  else
-  {ptr +="<p>LED1 Status: OFF</p><a class=\"button button-on\" href=\"/led1on\">ON</a>\n";}
-
-  if(led2stat)
-  {ptr +="<p>LED2 Status: ON</p><a class=\"button button-off\" href=\"/led2off\">OFF</a>\n";}
-  else
-  {ptr +="<p>LED2 Status: OFF</p><a class=\"button button-on\" href=\"/led2on\">ON</a>\n";}
-
-  ptr +="</body>\n";
-  ptr +="</html>\n";
-  return ptr;
-}
 
 void ligaRELE(short pin){
   digitalWrite(pin, HIGH);
@@ -212,59 +129,18 @@ boolean openFS(void){
   }
 }
  
-void IRAM_ATTR ISR_turnPinLow(){ // desliga o pino dim
-  portENTER_CRITICAL_ISR(&mux); // desativa interrupçoes
-    digitalWrite(PINO_DIM, LOW);
-    isPinHighEnabled = false;
-  portEXIT_CRITICAL_ISR(&mux); // ativa as interrupçoes novamente
-}
- 
-void IRAM_ATTR setTimerPinLow(){ // executa as configuracoes de pwm e aplica os valores da luminosidade ao dimmer no tempo em que ra ficar em low
-  timerToPinLow = timerBegin(1, 80, true);
-  timerAttachInterrupt(timerToPinLow, &ISR_turnPinLow, true);
-  timerAlarmWrite(timerToPinLow, TRIGGER_TRIAC_INTERVAL, false);
-  timerAlarmEnable(timerToPinLow);
-}
- 
-void IRAM_ATTR ISR_turnPinHigh(){ // liga o pino dim
-  portENTER_CRITICAL_ISR(&mux);  // desativa interrupçoes
-    digitalWrite(PINO_DIM, HIGH); 
-    setTimerPinLow();
-  portEXIT_CRITICAL_ISR(&mux); // ativa as interrupçoes novamente
-}
- 
-void IRAM_ATTR setTimerPinHigh(long brightness){ // executa as configuracoes de pwm e aplica os valores da luminosidade ao dimmer no tempo que ira ficar em high
-  isPinHighEnabled = true;
-  timerToPinHigh = timerBegin(1, 80, true);
-  timerAttachInterrupt(timerToPinHigh, &ISR_turnPinHigh, true);
-  timerAlarmWrite(timerToPinHigh, brightness, false);
-  timerAlarmEnable(timerToPinHigh);
-}
- 
-void IRAM_ATTR ISR_zeroCross()  {// funçao que é chamada ao dimmer registrar passagem por 0
-  if(currentBrightness == IDLE) return;
-  portENTER_CRITICAL_ISR(&mux); // desativa interrupçoes
-    if(!isPinHighEnabled){
-       setTimerPinHigh(currentBrightness); // define o brilho
-    }
-  portEXIT_CRITICAL_ISR(&mux); // ativa as interrupçoes novamente
-} 
  
 void setup() {
   Serial.begin(9600);//inicia a serial
-  currentBrightness = IDLE;
 
     // Start the DS18B20 sensor
   sensors.begin();
   
-  if (openFS()){
-    /*if(SPIFFS.exists("/temp.txt")){
-      tempPROG = readFile("/temp.txt").toFloat();
-    }else{
-      if(writeFile("35.00","/temp.txt")){
-        tempPROG = readFile("/temp.txt").toFloat();
-      }
-    }*/
+  if (!openFS()){
+    Serial.println("Erro ao abrir sistema de arquivos!");
+    delay(3000);
+    ESP.restart();
+
   }
 
 
@@ -288,7 +164,7 @@ void setup() {
       Serial.println(t);
       Serial.println(configs["fgch"]);
       tempPROG = (double) configs["tempPROG_1"];
-      linha_1 = (bool) configs["linha1"];
+      LINHA_1 = (bool) configs["linha1"];
       
 
 
@@ -297,10 +173,7 @@ void setup() {
   Serial.print("\ntemperatura programada lida: ");
   Serial.println(tempPROG);
 
-  pinMode(PINO_ZC,  INPUT_PULLUP);
-  pinMode(PINO_DIM, OUTPUT);
-  pinMode(RELE_1, OUTPUT);
-  digitalWrite(PINO_DIM, LOW);
+      pinMode(RELE_1, OUTPUT);
   digitalWrite(RELE_1, LOW);
 
 
@@ -341,7 +214,9 @@ void coreTaskZero( void * pvParameters ){
     String taskMessage = "Task running on core ";
     taskMessage = taskMessage + xPortGetCoreID();
     Serial.println(taskMessage);
-    attachInterrupt(digitalPinToInterrupt(PINO_ZC), ISR_zeroCross, RISING);
+    DimmableLight DIMMER_1(PINO_DIM_1);
+    DimmableLight::setSyncPin(PINO_ZC);
+    DimmableLight::begin();
  
     while(true){
 
@@ -351,67 +226,53 @@ void coreTaskZero( void * pvParameters ){
         ultimo_millis2 = millis();
         Serial.print(tempATUAL);
         states["sensor1"]=tempATUAL;
-        states["linha1"]=linha_1;
+        states["linha1"]=LINHA_1;
         states["tempPROG"]=tempPROG;
         Serial.println("ºC");
         Serial.print("Potencia -> ");
-        Serial.println(potencia_1); // mostra a quantidade de brilho atual
+        Serial.println(DIMMER_1.getBrightness()); // mostra a quantidade de brilho atual
       }
 
       if ((millis() - ultimo_millis1) > debounce_delay+59500) { // se ja passou determinado tempo que o botao foi precionado
         ultimo_millis1 = millis();
-        configs["linha1"]=linha_1;
+        configs["linha1"]=LINHA_1;
         configs["tempPROG_1"]=tempPROG;
-        portENTER_CRITICAL(&mux); //desliga as interrupçoes
-        detachInterrupt(PINO_ZC);
-        portEXIT_CRITICAL(&mux);// liga as interrupçoes
-        delay(50);
-        writeFile(JSON.stringify(configs),"/configs.json");   
-        portENTER_CRITICAL(&mux); //desliga as interrupçoes
-        attachInterrupt(digitalPinToInterrupt(PINO_ZC), ISR_zeroCross, RISING);
-        portEXIT_CRITICAL(&mux);// liga as interrupçoes    
+        DimmableLight::pauseStop();
+        delay(20);
+        writeFile(JSON.stringify(configs),"/configs.json"); 
+        delay(10);
+        DIMMER_1.setBrightness(10);
+        DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
+        
+        
         
       }
 
       if(!core_0){
         core_1 = false;     
       
-      if (tempATUAL<tempPROG - 1.0 && linha_1){
+      if (tempATUAL<tempPROG - 1.0 && LINHA_1){
               potencia_1 = 0;
-              potencia_1_convertido = map(0, 100, 0, maxBrightness, minBrightness); //converte a luminosidade em microsegundos
-              portENTER_CRITICAL(&mux); //desliga as interrupçoes
-              currentBrightness = potencia_1_convertido; // altera o brilho
-              portEXIT_CRITICAL(&mux);// liga as interrupçoes
+              DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
               ligaRELE(RELE_1);
-      }else if(linha_1){
+      }else if(LINHA_1){
         desligaRELE(RELE_1);
         if (tempATUAL != lastTempATUAL){
           if(tempATUAL < lastTempATUAL && tempATUAL < tempPROG-0.0){
               potencia_1 = potencia_1 + 5;
-              potencia_1 = constrain(potencia_1, 0, 100); // limita a variavel
-              potencia_1_convertido = map(potencia_1, 100, 0, maxBrightness, minBrightness); //converte a luminosidade em microsegundos
-              portENTER_CRITICAL(&mux); //desliga as interrupçoes
-              currentBrightness = potencia_1_convertido; // altera o brilho
-              portEXIT_CRITICAL(&mux);// liga as interrupçoes
+              potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
+             DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
           }else if(tempATUAL > tempPROG || tempATUAL > tempPROG-0.1){
             potencia_1 = potencia_1 - 5;
             potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
-            potencia_1_convertido = map(potencia_1, 100, 0, maxBrightness, minBrightness);//converte a luminosidade em microsegundos
-            portENTER_CRITICAL(&mux); //desliga as interrupçoes
-            currentBrightness = potencia_1_convertido; // altera o brilho
-            portEXIT_CRITICAL(&mux);// liga as interrupçoes
+            DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
         }
         lastTempATUAL = tempATUAL;
       }
       }else{
         desligaRELE(RELE_1);
         potencia_1 = 0;
-        potencia_1 = constrain(potencia_1, 0, 100); // limita a variavel
-              potencia_1_convertido = map(potencia_1, 100, 0, maxBrightness, minBrightness); //converte a luminosidade em microsegundos
-              portENTER_CRITICAL(&mux); //desliga as interrupçoes
-              currentBrightness = potencia_1_convertido; // altera o brilho
-              portEXIT_CRITICAL(&mux);// liga as interrupçoes
-              digitalWrite(PINO_DIM, LOW);
+        DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
       }
      
     }else{
@@ -420,7 +281,7 @@ void coreTaskZero( void * pvParameters ){
     while(core_0==true){
       delay(1);
     }
-    attachInterrupt(digitalPinToInterrupt(PINO_ZC), ISR_zeroCross, RISING);
+    //attachInterrupt(digitalPinToInterrupt(PINO_ZC), ISR_zeroCross, RISING);
     }
     delay(1);
     }
@@ -439,17 +300,9 @@ void coreTaskOne( void * pvParameters ){
   delay(100);
   
   Serial.print("AP IP address: ");
-  //Serial.println(WiFi.softAPIP());
+  Serial.println(WiFi.softAPIP());
     
   
-
-
-  /*server.on("/", handle_OnConnect);
-  server.on("/setconfig", handle_setConfig);
-  server.on("/led1off", handle_led1off);
-  server.onNotFound(handle_NotFound);
-
-*/
 server.on(
     "/post",
     HTTP_POST,
@@ -468,7 +321,7 @@ server.on(
         tempPROG = (double) jso["tempPROG"];
       }
       if (jso.hasOwnProperty("linha1")){
-        linha_1 = (bool) jso["linha1"];
+        LINHA_1 = (bool) jso["linha1"];
       }
     Serial.println(jso["email"]);
   //request->send(response(request, "Ok Tigrao"));
@@ -477,19 +330,10 @@ server.on(
     
     });
  
-  server.on("/put", HTTP_PUT, [](AsyncWebServerRequest *request){
-    request->send(200, "text/plain", "Put route");
-  });
- 
   server.on("/get", HTTP_GET, [](AsyncWebServerRequest *request){
     responseToClient(request,JSON.stringify(states));
   });
  
-  server.on("/any", HTTP_ANY, [](AsyncWebServerRequest *request){
-    request->send(200, "text/plain", "Any route");
-  });
- 
-  
   
   server.begin();
   Serial.println("HTTP server started");
