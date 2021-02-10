@@ -14,17 +14,16 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.DashControl">
-        <activity android:name=".ConfigureEsp">
-
-
-        </activity>
+        <activity android:name=".SetDataEsp"></activity>
+        <activity android:name=".DashLocal" />
+        <activity android:name=".Login" />
+        <activity android:name=".ConfigureEsp" />
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
     </application>
 
