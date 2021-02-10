@@ -1,5 +1,6 @@
 {
-    "ssid": "ESP32",
-    "password": "12345678",
-    "tempPROG_1": 35.00
+    "defaultPassword": "12345678",
+    "default": true,
+    "ssid": "GIGABYTE 2G",
+    "password": "giga2020a"
 }

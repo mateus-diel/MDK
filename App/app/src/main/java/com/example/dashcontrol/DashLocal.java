@@ -52,28 +52,24 @@ public class DashLocal extends AppCompatActivity {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(bonjourService -> {
                     Log.d("TAG", bonjourService.toString());
-                    if (bonjourService.isLost()) {
-                        //mServiceAdapter.remove(bonjourService);
-                        Log.d("bnjourrr",bonjourService.toString());
-                        Display display = getWindowManager().getDefaultDisplay();
-                        Point size = new Point();
-                        display.getSize(size);
-                        int width = size.x;
-                        int height = size.y;
-                        Log.d("wid",Integer.toString(size.x));
-                        Log.d("heig",Integer.toString(size.y));
-                        Log.d("TAG", bonjourService.toString());
-                        JSONObject obj = new JSONObject();
-                        Button z = new Button(getApplicationContext());
-                        z.setMinHeight(200);
-                        z.setMinWidth((size.x-50)/3);
-                        z.setText(bonjourService.getServiceName());
-                        z.setTag(bonjourService.getInet4Address().toString());
-                        z.setOnClickListener(DashLocal.this::onClick);
-                        grid.addView(z);
-                    } else {
-                        //mServiceAdapter.add(bonjourService);
-                    }
+                    //mServiceAdapter.remove(bonjourService);
+                    Log.d("bnjourrr",bonjourService.toString());
+                    Display display = getWindowManager().getDefaultDisplay();
+                    Point size = new Point();
+                    display.getSize(size);
+                    int width = size.x;
+                    int height = size.y;
+                    Log.d("wid",Integer.toString(size.x));
+                    Log.d("heig",Integer.toString(size.y));
+                    Log.d("TAG", bonjourService.toString());
+                    JSONObject obj = new JSONObject();
+                    Button z = new Button(getApplicationContext());
+                    z.setMinHeight(200);
+                    z.setMinWidth((size.x-50)/3);
+                    z.setText(bonjourService.getServiceName());
+                    z.setTag(bonjourService.getInet4Address().toString());
+                    z.setOnClickListener(DashLocal.this::onClick);
+                    grid.addView(z);
                 }, throwable -> Log.e("TAG", "error", throwable));
 
 

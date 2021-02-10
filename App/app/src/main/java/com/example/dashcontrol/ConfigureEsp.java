@@ -71,9 +71,10 @@ public class ConfigureEsp extends AppCompatActivity {
                 final String address = Formatter.formatIpAddress(dhcp.gateway);
                 Log.d("gatewayip",address);
                 try {
-                    config.put("rede", ((TextView)findViewById(R.id.txtRedeSelecionada)).getText());
-                    config.put("senha", ((EditText)findViewById(R.id.senhaWifi)).getText());
-                    config.put("nomeDispositivo", ((TextView)findViewById(R.id.nomeDispositivo)).getText());
+                    config.put("ssid", ((TextView)findViewById(R.id.txtRedeSelecionada)).getText());
+                    config.put("configNetwork", false);
+                    config.put("password", ((EditText)findViewById(R.id.senhaWifi)).getText());
+                    config.put("deviceName", ((TextView)findViewById(R.id.nomeDispositivo)).getText());
                     Log.d("jsonOb",config.toString());
                     printToast(config.toString(), Toast.LENGTH_LONG);
 
