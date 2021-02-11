@@ -26,10 +26,13 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
+import com.android.volley.VolleyLog;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
@@ -76,11 +79,14 @@ public class ConfigureEsp extends AppCompatActivity {
                     config.put("password", ((EditText)findViewById(R.id.senhaWifi)).getText());
                     config.put("deviceName", ((TextView)findViewById(R.id.nomeDispositivo)).getText());
                     Log.d("jsonOb",config.toString());
-                    printToast(config.toString(), Toast.LENGTH_LONG);
+                    queue = Volley.newRequestQueue(getApplicationContext());
+                    sendConfigEsp(queue,address,config);
 
                 }catch (Exception e){
                     Log.d("json error",e.getMessage());
                 }
+
+
 
 
 
@@ -139,6 +145,27 @@ public class ConfigureEsp extends AppCompatActivity {
         }
     }
 
+    private void sendInfo(RequestQueue q, String url) {
+
+
+        //Configura a requisicao
+        JsonObjectRequest getRequest = new JsonObjectRequest(Request.Method.POST, url, null, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                // mostra a resposta
+                Log.d("ResponseESP", response.toString());
+            }
+        },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.d("Error.Response", error.toString());
+                    }
+                });
+
+// Adiciona a Fila de requisicoes
+        q.add(getRequest);
+    }
     private void scanSuccess() {
         List<ScanResult> results = wifiManager.getScanResults();
 
@@ -151,35 +178,51 @@ public class ConfigureEsp extends AppCompatActivity {
 
     }
     private void sendConfigEsp(RequestQueue q, String url, JSONObject json){
+        String address = "http://".concat(url).concat("/post");
+        Log.d("esp endereço completo", address);
+        //String address = "https://httpbin.org/post";
 
-        StringRequest postRequest = new StringRequest(Request.Method.POST, url,
-                new Response.Listener<String>()
-                {
+        JsonObjectRequest jsonObjReq = new JsonObjectRequest(
+                Request.Method.POST,address, json,
+                new Response.Listener<JSONObject>() {
                     @Override
-                    public void onResponse(String response) {
-                        // response
-                        Log.d("Response", response);
+                    public void onResponse(JSONObject response) {
+                        try {
+                            JSONObject res = new JSONObject(response.toString());
+                            if(res.getString("request").toString().equals("ok")){
+                                printToast("Dados definidos. ESP vai reiniciar para aplicar as modificações!", Toast.LENGTH_LONG);
+                            }else{
+                                printToast("Não foi possível denifir os dados!", Toast.LENGTH_SHORT);
+                            }
+                        }catch (Exception e){
+                            Log.d("error parse json", e.getMessage());
+                            printToast("Não foi possível denifir os dados!", Toast.LENGTH_SHORT);
+
+                        }
+
+                        Log.d("onResponse", response.toString());
                     }
-                },
-                new Response.ErrorListener()
-                {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        // error
-                        Log.d("Error.Response", error.toString());
-                    }
-                }
-        ) {
+                }, new Response.ErrorListener() {
+
             @Override
-            protected Map<String, String> getParams()
-            {
-                Map<String, String>  params = new HashMap<String, String>();
-                params.put("name", "Alif");
-                params.put("domain", "http://itsalif.info");
+            public void onErrorResponse(VolleyError error) {
+                VolleyLog.d("onErrorResponse", "Error: " + error.getMessage());
+                printToast("Não foi possível comunicar-se com o ESP. Verifique sua conexão!", Toast.LENGTH_LONG);
+                Log.d("Erro volley", error.toString());
 
-                return params;
+            }
+        }) {
+
+            /**
+             * Passing some request headers
+             */
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                HashMap<String, String> headers = new HashMap<String, String>();
+                headers.put("Content-Type", "application/json; charset=utf-8");
+                return headers;
             }
         };
-        q.add(postRequest);
+        q.add(jsonObjReq);
     }
 }

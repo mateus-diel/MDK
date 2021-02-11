@@ -29,6 +29,7 @@ volatile float lastTempATUAL = 0.0;
 JSONVar configs;
 JSONVar states;
 JSONVar configurate;
+JSONVar devices;
 
 volatile boolean core_0 = false;
 volatile boolean core_1 = false;
@@ -78,7 +79,6 @@ void desligaRELE(short pin) {
 }
 
 String readFile(String path) {
-  Serial.printf("Reading file: %s\r\n", path);
 
   File rfile = LITTLEFS.open(path);
   if (!rfile || rfile.isDirectory()) {
@@ -87,7 +87,6 @@ String readFile(String path) {
   }
 
   String content;
-  Serial.println("- read from file:");
   while (rfile.available()) {
     content += char(rfile.read());
   }
@@ -118,7 +117,7 @@ boolean writeFile(String message, String path) {
 
 
 void setup() {
-  Serial.begin(9600);//inicia a serial
+  Serial.begin(115200);//inicia a serial
   Serial.println("ESP INICIADO");
 
 
@@ -154,15 +153,15 @@ void setup() {
 
     Serial.print("JSON object = ");
     Serial.println(configs);
+    devices = JSON.parse(readFile("/devices.json"));
 
     Serial.println("\n\n testesss \n");
     Serial.println(configs["ssid"]);
     Serial.println(configs["password"]);
-    float t = (double) configs["tempPROG_1"];
+    float t = (double) devices["tempPROG_1"];
     Serial.println(t);
-    Serial.println(configs["fgch"]);
-    tempPROG = (double) configs["tempPROG_1"];
-    LINHA_1 = (bool) configs["linha1"];
+    tempPROG = (double) devices["tempPROG_1"];
+    LINHA_1 = (bool) devices["linha_1"];
 
     // Start the DS18B20 sensor
     sensors.begin();
@@ -239,7 +238,7 @@ void coreTaskZero( void * pvParameters ) {
       ultimo_millis2 = millis();
       Serial.print(tempATUAL);
       states["sensor1"] = tempATUAL;
-      states["linha1"] = LINHA_1;
+      states["linha_1"] = LINHA_1;
       states["tempPROG"] = tempPROG;
       Serial.println("ºC");
       Serial.print("Potencia -> ");
@@ -248,8 +247,8 @@ void coreTaskZero( void * pvParameters ) {
 
     if ((millis() - ultimo_millis1) > debounce_delay + 59500) { // se ja passou determinado tempo que o botao foi precionado
       ultimo_millis1 = millis();
-      configs["linha1"] = LINHA_1;
-      configs["tempPROG_1"] = tempPROG;
+      devices["linha_1"] = LINHA_1;
+      devices["tempPROG_1"] = tempPROG;
       DimmableLight::pauseStop();
       delay(20);
       writeFile(JSON.stringify(configs), "/configs.json");
@@ -332,15 +331,13 @@ void coreTaskOne( void * pvParameters ) {
 
   } else {
 
-    WiFi.mode(WIFI_STA);
-    delay(2000);
+    WiFi.mode(WIFI_MODE_STA);
+    delay(1000);
     WiFi.begin(configs["ssid"], configs["ssid"]);
-    delay(2000);
+    delay(1000);
 
 
   }
-
-
 
 
   server.on(
@@ -359,23 +356,25 @@ void coreTaskOne( void * pvParameters ) {
     JSONVar jso =  JSON.parse(t);
     if (jso.hasOwnProperty("configNetwork") && defaultConfig) {
       JSONVar defineConfig;
-      defineConfig["default"] = jso["configNetwork"];
-      defineConfig["ssid"] = jso["ssid"];
-      defineConfig["password"] = jso["password"];
-      defineConfig["deviceName"] = jso["deviceName"];
+      defineConfig["default"] = (bool) jso["configNetwork"];
+      defineConfig["ssid"] = (const char*) jso["ssid"];
+      defineConfig["password"] = (const char*) jso["password"];
+      defineConfig["deviceName"] = (const char*) jso["deviceName"];
       defineConfig["defaultPassword"] = defaultPassword;
-      writeFile(JSON.stringify(defineConfig),CONFIGURATE);
-      responseToClient(request, "Ok Tigrao");
+      writeFile(JSON.stringify(defineConfig), CONFIGURATE);
+      JSONVar ok;
+      ok["request"] = "ok";
+      responseToClient(request, JSON.stringify(ok));
       delay(1000);
       ESP.restart();
-      
+
 
     } else {
       if (jso.hasOwnProperty("tempPROG")) {
         tempPROG = (double) jso["tempPROG"];
       }
-      if (jso.hasOwnProperty("linha1")) {
-        LINHA_1 = (bool) jso["linha1"];
+      if (jso.hasOwnProperty("linha_1")) {
+        LINHA_1 = (bool) jso["linha_1"];
       }
     }
     Serial.println(jso["email"]);
@@ -391,12 +390,24 @@ void coreTaskOne( void * pvParameters ) {
 
 
   server.begin();
-  if (!MDNS.begin("esp32")) {
-    Serial.println("Error setting up MDNS responder!");
-    while (1) {
-      delay(1000);
+
+
+  if (configurate.hasOwnProperty("deviceName")) {
+    if (!MDNS.begin((const char*) configurate["deviceName"])) {
+      Serial.println("Error setting up MDNS responder!");
+      while (1) {
+        delay(1000);
+      }
+    }
+  } else {
+    if (!MDNS.begin("ESP32")) {
+      Serial.println("Error setting up MDNS responder!");
+      while (1) {
+        delay(1000);
+      }
     }
   }
+
   Serial.println("mDNS responder started");
 
   // Start TCP (HTTP) server

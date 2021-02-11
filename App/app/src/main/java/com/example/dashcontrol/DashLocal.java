@@ -1,5 +1,6 @@
 package com.example.dashcontrol;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
@@ -7,6 +8,9 @@ import android.graphics.Point;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Display;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -43,6 +47,8 @@ public class DashLocal extends AppCompatActivity {
         novoESP = findViewById(R.id.btnNovoESP);
         grid = findViewById(R.id.gridLayoutforESP);
         rxdnssd = new Rx2DnssdEmbedded(this);
+
+
 
 
         Disposable browseDisposable = rxdnssd.browse("_dimmer._tcp", "local.")
@@ -124,6 +130,26 @@ public class DashLocal extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu, menu);
+        return true;
+
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()){
+            case R.id.item1:
+                String z;
+            case R.id.item2:
+
+
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     private  void onClick (View v){
