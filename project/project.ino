@@ -361,6 +361,8 @@ void coreTaskOne( void * pvParameters ) {
     for (size_t i = 0; i < len; i++) {
       t += (char)(data[i]);
     }
+    JSONVar ok;
+    ok["request"] = "error";
 
     Serial.println(t);
     Serial.println("Json");
@@ -373,7 +375,6 @@ void coreTaskOne( void * pvParameters ) {
       defineConfig["deviceName"] = (const char*) jso["deviceName"];
       defineConfig["defaultPassword"] = defaultPassword;
       writeFile(JSON.stringify(defineConfig), CONFIGURATE);
-      JSONVar ok;
       ok["request"] = "ok";
       responseToClient(request, JSON.stringify(ok));
       delay(1000);
@@ -387,10 +388,11 @@ void coreTaskOne( void * pvParameters ) {
       if (jso.hasOwnProperty("linha_1")) {
         LINHA_1 = (bool) jso["linha_1"];
       }
+      ok["request"] = "ok";
     }
     Serial.println(jso["email"]);
     //request->send(response(request, "Ok Tigrao"));
-    responseToClient(request, "Ok Tigrao");
+    responseToClient(request, JSON.stringify(ok));
 
 
   });

@@ -3,48 +3,38 @@ package com.example.dashcontrol;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Point;
-import android.net.nsd.NsdManager;
-import android.net.nsd.NsdServiceInfo;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.GridLayout;
 
-import com.github.druk.rx2dnssd.Rx2Dnssd;
-import com.github.druk.rx2dnssd.Rx2DnssdEmbedded;
-import com.github.druk.rxdnssd.BonjourService;
-import com.github.druk.rxdnssd.RxDnssd;
-import com.github.druk.rxdnssd.RxDnssdEmbedded;
+import com.android.volley.toolbox.JsonObjectRequest;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
 
-/*
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.schedulers.Schedulers;
-*/
 public class DashLocal extends AppCompatActivity {
     Button novoESP;
-    //RxDnssd rxDnssd;
-    Rx2Dnssd rxdnssd;
     GridLayout grid;
     NsdClient nsd;
+    Thread thread;
+    Handler mHandler;
+    private Object mPauseLock;
+    private boolean mPaused;
+    private boolean mFinished;
 
 
 
@@ -52,13 +42,118 @@ public class DashLocal extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dash);
+        mPauseLock = new Object();
+        mPaused = false;
+        mFinished = false;
+        mHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                Bundle bundle = msg.getData();
+
+                try {
+                    JSONObject json = new JSONObject(bundle.getString("services"));
+                    Iterator<String> iter = json.keys();
+                    while (iter.hasNext()) {
+                        String key = iter.next();
+                        try {
+                            Object value = json.get(key);
+                            JSONObject jso = new JSONObject(String.valueOf(value));
+
+                            Display display = getWindowManager().getDefaultDisplay();
+                            Point size = new Point();
+                            display.getSize(size);
+                            int width = size.x;
+                            int height = size.y;
+                            ArrayList<View> allButtons;
+                            allButtons = ((GridLayout) findViewById(R.id.gridLayoutforESP)).getTouchables();
+                            if(allButtons.size()>0){
+                                boolean contain = false;
+                                for(int i =0; i<allButtons.size(); i++){
+                                    Button b = (Button) allButtons.get(i);
+                                    if((jso.get("HostAddress").toString().equals(String.valueOf(b.getTag())))){
+
+                                        contain = true;
+                                        break;
+                                    }
+                                }
+                                if(!contain){
+                                    Button z = new Button(getApplicationContext());
+                                    z.setMinHeight(200);
+                                    z.setMinWidth((size.x-50)/3);
+                                    z.setText(jso.get("ServiceName").toString());
+                                    z.setTag(jso.get("HostAddress").toString());
+                                    z.setOnClickListener(DashLocal.this::onClick);
+                                    grid.addView(z);
+                                }
+
+                            }else{
+                                Button z = new Button(getApplicationContext());
+                                z.setMinHeight(200);
+                                z.setMinWidth((size.x-50)/3);
+                                z.setText(jso.get("ServiceName").toString());
+                                z.setTag(jso.get("HostAddress").toString());
+                                z.setOnClickListener(DashLocal.this::onClick);
+                                grid.addView(z);
+                            }
+
+                        } catch (JSONException e) {
+                            // Something went wrong!
+                        }
+                    }
+
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+        };
         novoESP = findViewById(R.id.btnNovoESP);
         grid = findViewById(R.id.gridLayoutforESP);
-        //rxdnssd = new Rx2DnssdEmbedded(this);
-        nsd = new NsdClient(this);
-        nsd. initializeNsd();
-        nsd.discoverServices();
-        if (nsd.getChosenServiceInfo().size()>0){
+
+
+        thread = new Thread(){
+            public void run(){
+                nsd = new NsdClient(getApplicationContext());
+                nsd. initializeNsd();
+                nsd.discoverServices();
+
+                while (!mFinished) {
+                    // Do stuff.
+                    try {
+                        Message msg = mHandler.obtainMessage();
+                        Bundle bundle = new Bundle();
+
+                        bundle.putString("services",nsd.getChosenServiceInfo().toString());
+                        msg.setData(bundle);
+                        mHandler.sendMessage(msg);
+                        Thread.sleep(1000);
+
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        Thread.currentThread().interrupt();
+                    }
+
+                    synchronized (mPauseLock) {
+                        while (mPaused) {
+
+                            try {
+                                mPauseLock.wait();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+
+            }
+        };
+
+        thread.start();
+
+
+
+
+
+        /*if (nsd.getChosenServiceInfo().size()>0){
             for(int i = 0; i<nsd.getChosenServiceInfo().size(); i++){
 
                 Log.d("TAG", nsd.getChosenServiceInfo().get(i).toString());
@@ -83,80 +178,7 @@ public class DashLocal extends AppCompatActivity {
                 grid.addView(z);
             }
 
-        }
-
-
-
-
-
-        /*Disposable browseDisposable = rxdnssd.browse("_dimmer._tcp", "local.")
-                .compose(rxdnssd.resolve())
-                .compose(rxdnssd.queryRecords())
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(bonjourService -> {
-                    Log.d("TAG", bonjourService.toString());
-                    //mServiceAdapter.remove(bonjourService);
-                    Log.d("bnjourrr",bonjourService.toString());
-                    Display display = getWindowManager().getDefaultDisplay();
-                    Point size = new Point();
-                    display.getSize(size);
-                    int width = size.x;
-                    int height = size.y;
-                    Log.d("wid",Integer.toString(size.x));
-                    Log.d("heig",Integer.toString(size.y));
-                    Log.d("TAG", bonjourService.toString());
-                    JSONObject obj = new JSONObject();
-                    Button z = new Button(getApplicationContext());
-                    z.setMinHeight(200);
-                    z.setMinWidth((size.x-50)/3);
-                    z.setText(bonjourService.getServiceName());
-                    z.setTag(bonjourService.getInet4Address().toString());
-                    z.setOnClickListener(DashLocal.this::onClick);
-                    grid.addView(z);
-                }, throwable -> Log.e("TAG", "error", throwable));
-
-
-*/
-
-/*
-
-                rxDnssd= new RxDnssdEmbedded(this);
-        Subscription subscription = rxDnssd.browse("_dimmer._tcp", "local.")
-                .compose(rxDnssd.resolve())
-                .compose(rxDnssd.queryRecords())
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<BonjourService>() {
-                    @Override
-                    public void call(BonjourService bonjourService) {
-                        Display display = getWindowManager().getDefaultDisplay();
-                        Point size = new Point();
-                        display.getSize(size);
-                        int width = size.x;
-                        int height = size.y;
-                        Log.d("wid",Integer.toString(size.x));
-                        Log.d("heig",Integer.toString(size.y));
-                        Log.d("TAG", bonjourService.toString());
-                        JSONObject obj = new JSONObject();
-                        Button z = new Button(getApplicationContext());
-                        z.setMinHeight(200);
-                        z.setMinWidth((size.x-50)/3);
-                        z.setText(bonjourService.getServiceName());
-                        z.setTag(bonjourService.getInet4Address().toString());
-                        z.setOnClickListener(DashLocal.this::onClick);
-                        grid.addView(z);
-
-
-                    }
-                }, new Action1<Throwable>() {
-                    @Override
-                    public void call(Throwable throwable) {
-                        Log.e("TAG", "error", throwable);
-                    }
-                });
-*/
-
+        }*/
 
         novoESP.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -165,6 +187,28 @@ public class DashLocal extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        synchronized (mPauseLock) {
+            mPaused = false;
+            mPauseLock.notifyAll();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        synchronized (mPauseLock) {
+            mPaused = true;
+        }
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
     }
 
     @Override
@@ -188,13 +232,12 @@ public class DashLocal extends AppCompatActivity {
     }
 
     private void onClick(View v) {
-        Log.d("onclickkk", v.getTag().toString());
-        Log.d("onclickkk", String.valueOf(((Button) v).getText()));
         Intent intent = new Intent(getApplicationContext(), SetDataEsp.class);
         intent.putExtra("ip", v.getTag().toString());
         intent.putExtra("nome", String.valueOf(((Button) v).getText()));
         startActivity(intent);
 
     }
+
 }
 

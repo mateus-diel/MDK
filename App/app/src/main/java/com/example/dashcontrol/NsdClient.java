@@ -5,6 +5,8 @@ import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
 import android.util.Log;
 
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,10 +22,9 @@ public class NsdClient {
     //public static final String SERVICE_TYPE = "_services._dns-sd._udp";
     public static final String TAG = "NsdClient";
 
-    private static ArrayList<NsdServiceInfo> ServicesAvailable = new ArrayList<>();
+    private static JSONObject ServicesAvailable = new JSONObject();
 
     public NsdClient(Context context) {
-        Log.d("tamanho array", String.valueOf(ServicesAvailable.size()));
         mContext = context;
         mNsdManager = (NsdManager) context.getSystemService(Context.NSD_SERVICE);
     }
@@ -53,9 +54,7 @@ public class NsdClient {
             @Override
             public void onServiceLost(NsdServiceInfo service) {
                 Log.e(TAG, "service lost" + service);
-                if (ServicesAvailable.equals(service)) {
-                    ServicesAvailable = null;
-                }
+
             }
 
             @Override
@@ -99,8 +98,10 @@ public class NsdClient {
         @Override
         public void onServiceResolved(NsdServiceInfo serviceInfo) {
             Log.e(TAG, "Resolve Succeeded. " + serviceInfo);
-            Log.d(TAG, "Achei vc safadim: " + serviceInfo.getServiceType());
-            ServicesAvailable.add(serviceInfo);
+            Log.d(TAG, "getServiceType: " + serviceInfo.getServiceType());
+            Log.d(TAG, "getServiceName: " + serviceInfo.getServiceName());
+            Log.d(TAG, "erviceInfo.getHost().getHostAddress(): " + serviceInfo.getHost().getHostAddress());
+            addServiceArray(serviceInfo);
 
         }
     }
@@ -109,7 +110,7 @@ public class NsdClient {
         mNsdManager.stopServiceDiscovery(mDiscoveryListener);
     }
 
-    public List<NsdServiceInfo> getChosenServiceInfo() {
+    public JSONObject getChosenServiceInfo() {
         return ServicesAvailable;
     }
 
@@ -119,14 +120,15 @@ public class NsdClient {
     }
 
     private void addServiceArray(NsdServiceInfo service) {
-        if(ServicesAvailable.size()>0){
-            for (int i = 0; i<ServicesAvailable.size();i++){
-                if(!(ServicesAvailable.get(i).getServiceName().equals(service.getServiceName()))){
-                    ServicesAvailable.add(service);
-                }
-            }
-        }else{
-            ServicesAvailable.add(service);
+        try{
+            JSONObject json = new JSONObject();
+            json.put("ServiceName", service.getServiceName());
+            json.put("HostAddress", service.getHost().getHostAddress());
+            ServicesAvailable.put(service.getHost().getHostAddress(),json);
+
+        }catch (Exception exception){
+            exception.printStackTrace();
         }
+
     }
 }
