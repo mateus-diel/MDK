@@ -118,6 +118,7 @@ boolean writeFile(String message, String path) {
 
 void setup() {
   Serial.begin(115200);//inicia a serial
+  while (!Serial);
   Serial.println("ESP INICIADO");
 
 
@@ -333,8 +334,18 @@ void coreTaskOne( void * pvParameters ) {
 
     WiFi.mode(WIFI_MODE_STA);
     delay(1000);
-    WiFi.begin(configs["ssid"], configs["ssid"]);
+    WiFi.begin((const char*) configs["ssid"], (const char*) configs["password"]);
+    Serial.print("Wifi e senha: ");
+    Serial.print((const char*) configs["ssid"]);
+    Serial.println((const char*) configs["password"]);
     delay(1000);
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.println("Connecting to WiFi..");
+    }
+    Serial.print("Ip->: ");
+    Serial.println(WiFi.localIP());
+
 
 
   }
@@ -399,6 +410,7 @@ void coreTaskOne( void * pvParameters ) {
         delay(1000);
       }
     }
+    Serial.println("MDNS begib successful;");
   } else {
     if (!MDNS.begin("ESP32")) {
       Serial.println("Error setting up MDNS responder!");
@@ -414,11 +426,17 @@ void coreTaskOne( void * pvParameters ) {
   server.begin();
   Serial.println("TCP server started");
 
+  if ((millis() - ultimo_millis3) > 5000) { // se ja passou determinado tempo que o botao foi precionado
+      ultimo_millis3 = millis();
+      MDNS.addService("dimmer", "tcp", 80);
+      
+    }
+
   // Add service to MDNS-SD
   MDNS.addService("dimmer", "tcp", 80);
   Serial.println("HTTP server started");
   while (true) {
-    //server.handleClient();
+    //server.handleClient();  
     delay(1);
 
 

@@ -3,8 +3,11 @@ package com.example.dashcontrol;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Point;
+import android.net.nsd.NsdManager;
+import android.net.nsd.NsdServiceInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Display;
@@ -24,6 +27,8 @@ import com.github.druk.rxdnssd.RxDnssdEmbedded;
 
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
@@ -37,8 +42,11 @@ import rx.schedulers.Schedulers;
 public class DashLocal extends AppCompatActivity {
     Button novoESP;
     //RxDnssd rxDnssd;
-    Rx2Dnssd  rxdnssd;
+    Rx2Dnssd rxdnssd;
     GridLayout grid;
+    NsdClient nsd;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,12 +54,42 @@ public class DashLocal extends AppCompatActivity {
         setContentView(R.layout.activity_dash);
         novoESP = findViewById(R.id.btnNovoESP);
         grid = findViewById(R.id.gridLayoutforESP);
-        rxdnssd = new Rx2DnssdEmbedded(this);
+        //rxdnssd = new Rx2DnssdEmbedded(this);
+        nsd = new NsdClient(this);
+        nsd. initializeNsd();
+        nsd.discoverServices();
+        if (nsd.getChosenServiceInfo().size()>0){
+            for(int i = 0; i<nsd.getChosenServiceInfo().size(); i++){
+
+                Log.d("TAG", nsd.getChosenServiceInfo().get(i).toString());
+                //mServiceAdapter.remove(bonjourService);
+                Log.d("bnjourrr",nsd.getChosenServiceInfo().get(i).toString());
+                Display display = getWindowManager().getDefaultDisplay();
+                Point size = new Point();
+                display.getSize(size);
+                int width = size.x;
+                int height = size.y;
+                Log.d("wid",Integer.toString(size.x));
+                Log.d("heig",Integer.toString(size.y));
+                Log.d("TAG", nsd.getChosenServiceInfo().get(i).toString());
+                JSONObject obj = new JSONObject();
+                Button z = new Button(getApplicationContext());
+                z.setMinHeight(200);
+                z.setMinWidth((size.x-50)/3);
+                z.setText(nsd.getChosenServiceInfo().get(i).getServiceName());
+                z.setTag(nsd.getChosenServiceInfo().get(i).getHost());
+                Log.d("hooossstttt", nsd.getChosenServiceInfo().get(i).toString());
+                z.setOnClickListener(DashLocal.this::onClick);
+                grid.addView(z);
+            }
+
+        }
 
 
 
 
-        Disposable browseDisposable = rxdnssd.browse("_dimmer._tcp", "local.")
+
+        /*Disposable browseDisposable = rxdnssd.browse("_dimmer._tcp", "local.")
                 .compose(rxdnssd.resolve())
                 .compose(rxdnssd.queryRecords())
                 .subscribeOn(Schedulers.io())
@@ -79,7 +117,7 @@ public class DashLocal extends AppCompatActivity {
                 }, throwable -> Log.e("TAG", "error", throwable));
 
 
-
+*/
 
 /*
 
@@ -120,9 +158,6 @@ public class DashLocal extends AppCompatActivity {
 */
 
 
-
-
-
         novoESP.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -142,7 +177,7 @@ public class DashLocal extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        switch (item.getItemId()){
+        switch (item.getItemId()) {
             case R.id.item1:
                 String z;
             case R.id.item2:
@@ -152,13 +187,14 @@ public class DashLocal extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private  void onClick (View v){
-        Log.d("onclickkk",v.getTag().toString());
-        Log.d("onclickkk",String.valueOf(((Button)v).getText()));
+    private void onClick(View v) {
+        Log.d("onclickkk", v.getTag().toString());
+        Log.d("onclickkk", String.valueOf(((Button) v).getText()));
         Intent intent = new Intent(getApplicationContext(), SetDataEsp.class);
-        intent.putExtra("ip",v.getTag().toString());
-        intent.putExtra("nome",String.valueOf(((Button)v).getText()));
+        intent.putExtra("ip", v.getTag().toString());
+        intent.putExtra("nome", String.valueOf(((Button) v).getText()));
         startActivity(intent);
 
     }
 }
+
