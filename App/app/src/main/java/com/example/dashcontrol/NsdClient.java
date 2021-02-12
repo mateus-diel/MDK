@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class NsdClient {
+    //estou testando o git
     private Context mContext;
 
     private NsdManager mNsdManager;
