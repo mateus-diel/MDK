@@ -149,37 +149,6 @@ public class DashLocal extends AppCompatActivity {
 
         thread.start();
 
-
-
-
-
-        /*if (nsd.getChosenServiceInfo().size()>0){
-            for(int i = 0; i<nsd.getChosenServiceInfo().size(); i++){
-
-                Log.d("TAG", nsd.getChosenServiceInfo().get(i).toString());
-                //mServiceAdapter.remove(bonjourService);
-                Log.d("bnjourrr",nsd.getChosenServiceInfo().get(i).toString());
-                Display display = getWindowManager().getDefaultDisplay();
-                Point size = new Point();
-                display.getSize(size);
-                int width = size.x;
-                int height = size.y;
-                Log.d("wid",Integer.toString(size.x));
-                Log.d("heig",Integer.toString(size.y));
-                Log.d("TAG", nsd.getChosenServiceInfo().get(i).toString());
-                JSONObject obj = new JSONObject();
-                Button z = new Button(getApplicationContext());
-                z.setMinHeight(200);
-                z.setMinWidth((size.x-50)/3);
-                z.setText(nsd.getChosenServiceInfo().get(i).getServiceName());
-                z.setTag(nsd.getChosenServiceInfo().get(i).getHost());
-                Log.d("hooossstttt", nsd.getChosenServiceInfo().get(i).toString());
-                z.setOnClickListener(DashLocal.this::onClick);
-                grid.addView(z);
-            }
-
-        }*/
-
         novoESP.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -232,6 +201,7 @@ public class DashLocal extends AppCompatActivity {
     }
 
     private void onClick(View v) {
+        Log.d("cliqueii", "saporra");
         Intent intent = new Intent(getApplicationContext(), SetDataEsp.class);
         intent.putExtra("ip", v.getTag().toString());
         intent.putExtra("nome", String.valueOf(((Button) v).getText()));
