@@ -11,9 +11,8 @@
 #define PINO_ZC     2
 #define MAXPOT 255
 #define MINPOT  50
-//#define NETWORKCONFIG "/configs.json"
+#define CONFIGURATION "/configs.json"
 
-String CONFIGURATE = "/configs.json";
 String defaultPassword;
 
 
@@ -27,8 +26,6 @@ volatile float tempPROG = 35.0;
 volatile float tempATUAL = 0.0;
 volatile float lastTempATUAL = 0.0;
 JSONVar configs;
-JSONVar states;
-JSONVar configurate;
 JSONVar devices;
 
 volatile boolean core_0 = false;
@@ -128,23 +125,23 @@ void setup() {
     ESP.restart();
   }
 
-  configurate = JSON.parse(readFile(CONFIGURATE));
+  configs = JSON.parse(readFile(CONFIGURATION));
 
-  if (JSON.typeof(configurate) == "undefined") {
+  if (JSON.typeof(configs) == "undefined") {
     Serial.println("Parsing input failed!");
     return;
   }
-  if (configurate.hasOwnProperty("default")) {
-    defaultConfig = (bool) configurate["default"];
+  if (configs.hasOwnProperty("default")) {
+    defaultConfig = (bool) configs["default"];
   }
 
-  if (configurate.hasOwnProperty("defaultPassword")) {
-    defaultPassword = configurate["defaultPassword"];
+  if (configs.hasOwnProperty("defaultPassword")) {
+    defaultPassword = configs["defaultPassword"];
   }
 
   if (!defaultConfig) {
 
-    configs = JSON.parse(readFile("/configs.json"));
+    configs = JSON.parse(readFile(CONFIGURATION));
 
     // JSON.typeof(jsonVar) can be used to get the type of the var
     if (JSON.typeof(configs) == "undefined") {
@@ -238,9 +235,9 @@ void coreTaskZero( void * pvParameters ) {
     if ((millis() - ultimo_millis2) > debounce_delay) { // se ja passou determinado tempo que o botao foi precionado
       ultimo_millis2 = millis();
       Serial.print(tempATUAL);
-      states["sensor1"] = tempATUAL;
-      states["linha_1"] = LINHA_1;
-      states["tempPROG"] = tempPROG;
+      devices["sensor1"] = tempATUAL;
+      devices["linha_1"] = LINHA_1;
+      devices["tempPROG"] = tempPROG;
       Serial.println("ºC");
       Serial.print("Potencia -> ");
       Serial.println(DIMMER_1.getBrightness()); // mostra a quantidade de brilho atual
@@ -252,7 +249,7 @@ void coreTaskZero( void * pvParameters ) {
       devices["tempPROG_1"] = tempPROG;
       DimmableLight::pauseStop();
       delay(20);
-      writeFile(JSON.stringify(configs), "/configs.json");
+      writeFile(JSON.stringify(configs), CONFIGURATION);
       delay(10);
       DIMMER_1.setBrightness(10);
       DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
@@ -374,7 +371,7 @@ void coreTaskOne( void * pvParameters ) {
       defineConfig["password"] = (const char*) jso["password"];
       defineConfig["deviceName"] = (const char*) jso["deviceName"];
       defineConfig["defaultPassword"] = defaultPassword;
-      writeFile(JSON.stringify(defineConfig), CONFIGURATE);
+      writeFile(JSON.stringify(defineConfig), CONFIGURATION);
       ok["request"] = "ok";
       responseToClient(request, JSON.stringify(ok));
       delay(1000);
@@ -386,7 +383,7 @@ void coreTaskOne( void * pvParameters ) {
         tempPROG = (double) jso["tempPROG"];
       }
       if (jso.hasOwnProperty("linha_1")) {
-        LINHA_1 = (bool) jso["linha_1"];
+        LINHA_1 = !LINHA_1;
       }
       ok["request"] = "ok";
     }
@@ -398,15 +395,15 @@ void coreTaskOne( void * pvParameters ) {
   });
 
   server.on("/get", HTTP_GET, [](AsyncWebServerRequest * request) {
-    responseToClient(request, JSON.stringify(states));
+    responseToClient(request, JSON.stringify(devices));
   });
 
 
   server.begin();
 
 
-  if (configurate.hasOwnProperty("deviceName")) {
-    if (!MDNS.begin((const char*) configurate["deviceName"])) {
+  if (configs.hasOwnProperty("deviceName")) {
+    if (!MDNS.begin((const char*) configs["deviceName"])) {
       Serial.println("Error setting up MDNS responder!");
       while (1) {
         delay(1000);
