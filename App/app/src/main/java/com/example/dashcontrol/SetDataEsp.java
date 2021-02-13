@@ -44,6 +44,7 @@ public class SetDataEsp extends AppCompatActivity {
     private Object mPauseLock;
     private boolean mPaused;
     private boolean mFinished;
+    private LoadingDialog loadingDialog;
 
     RequestQueue requestQueue;
 
@@ -51,6 +52,8 @@ public class SetDataEsp extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_set_data_esp);
+        loadingDialog = new LoadingDialog(this);
+        loadingDialog.startLoadingDialog();
         mPauseLock = new Object();
         mPaused = false;
         mFinished = false;
@@ -83,6 +86,7 @@ public class SetDataEsp extends AppCompatActivity {
                     temp.animateProgressChange(Math.round(json.getDouble("sensor1")),1000);
                     temp.setText(String.valueOf(Math.round(json.getDouble("sensor1"))).concat(" ºC"));
                     txtTempProg.setText(String.valueOf(Math.round(json.getDouble("tempPROG"))));
+                    loadingDialog.dimissDialog();
 
 
                 } catch (JSONException e) {
@@ -107,7 +111,7 @@ public class SetDataEsp extends AppCompatActivity {
                 config.put("tempPROG", Float.parseFloat(txtTempProg.getText().toString())-1);
 
                 Log.d("jsonOb",config.toString());
-                sendConfigEsp(requestQueue,address,config);
+                sendConfigEsp(btnMais, requestQueue,address,config);
 
             }catch (Exception e){
                 Log.d("json error",e.getMessage());
@@ -122,7 +126,7 @@ public class SetDataEsp extends AppCompatActivity {
                     config.put("tempPROG", Float.parseFloat(txtTempProg.getText().toString())+1);
 
                     Log.d("jsonOb",config.toString());
-                    sendConfigEsp(requestQueue,address,config);
+                    sendConfigEsp(btnMais, requestQueue,address,config);
 
                 }catch (Exception e){
                     Log.d("json error",e.getMessage());
@@ -142,7 +146,7 @@ public class SetDataEsp extends AppCompatActivity {
                     }
 
                     Log.d("jsonOb",config.toString());
-                    sendConfigEsp(requestQueue,address,config);
+                    sendConfigEsp(btnLigaDesliga, requestQueue,address,config);
 
                 }catch (Exception e){
                     Log.d("json error",e.getMessage());
@@ -200,7 +204,7 @@ public class SetDataEsp extends AppCompatActivity {
         super.onPause();
     }
 
-        private void sendConfigEsp(RequestQueue q, String url, JSONObject json){
+        private void sendConfigEsp(Button b, RequestQueue q, String url, JSONObject json){
         String address = url.replace("get","post");
         Log.d("esp endereço completo", address);
         //String address = "https://httpbin.org/post";
@@ -210,20 +214,23 @@ public class SetDataEsp extends AppCompatActivity {
                 new Response.Listener<JSONObject>() {
                     @Override
                     public void onResponse(JSONObject response) {
+                        b.setEnabled(true);
                         try {
-                            JSONObject res = new JSONObject(response.toString());
-                            if(res.getString("request").toString().equals("ok")){
-                                printToast("Dados definidos. ESP vai reiniciar para aplicar as modificações!", Toast.LENGTH_LONG);
+                            JSONObject json = new JSONObject(response.toString());
+                            Log.d("json array", json.toString());
+                            if(json.getBoolean("linha_1")){
+                                txtStatus.setText("Ligado!");
+                                btnLigaDesliga.setText("Desligar");
                             }else{
-                                printToast("Não foi possível denifir os dados!", Toast.LENGTH_SHORT);
+                                txtStatus.setText("Desligado!");
+                                btnLigaDesliga.setText("Ligar");
                             }
-                        }catch (Exception e){
-                            Log.d("error parse json", e.getMessage());
-                            printToast("Não foi possível denifir os dados!", Toast.LENGTH_SHORT);
+                            txtTempProg.setText(String.valueOf(Math.round(json.getDouble("tempPROG"))));
 
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
                         }
-
-                        Log.d("onResponse", response.toString());
                     }
                 }, new Response.ErrorListener() {
 
@@ -246,6 +253,7 @@ public class SetDataEsp extends AppCompatActivity {
                 return headers;
             }
         };
+        b.setEnabled(false);
         q.add(jsonObjReq);
     }
     private void printToast(String message, int lenght){

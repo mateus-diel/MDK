@@ -8,6 +8,7 @@ import android.graphics.Point;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.StrictMode;
 import android.util.Log;
 import android.view.Display;
 import android.view.Menu;
@@ -22,12 +23,14 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
 
 public class DashLocal extends AppCompatActivity {
-    Button novoESP;
     GridLayout grid;
     NsdClient nsd;
     Thread thread;
@@ -42,6 +45,8 @@ public class DashLocal extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dash);
+        //((GridLayout) findViewById(R.id.gridLayoutforESP)).removeAllViews();
+
         mPauseLock = new Object();
         mPaused = false;
         mFinished = false;
@@ -53,7 +58,9 @@ public class DashLocal extends AppCompatActivity {
                 try {
                     JSONObject json = new JSONObject(bundle.getString("services"));
                     Iterator<String> iter = json.keys();
+
                     while (iter.hasNext()) {
+
                         String key = iter.next();
                         try {
                             Object value = json.get(key);
@@ -106,7 +113,7 @@ public class DashLocal extends AppCompatActivity {
                 }
             }
         };
-        novoESP = findViewById(R.id.btnNovoESP);
+
         grid = findViewById(R.id.gridLayoutforESP);
 
 
@@ -148,14 +155,6 @@ public class DashLocal extends AppCompatActivity {
         };
 
         thread.start();
-
-        novoESP.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(getApplicationContext(), ConfigureEsp.class);
-                startActivity(intent);
-            }
-        });
     }
 
     @Override
@@ -191,9 +190,10 @@ public class DashLocal extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.item1:
-                String z;
-            case R.id.item2:
+            case R.id.btnNovoESP:
+                Intent intent = new Intent(getApplicationContext(), ConfigureEsp.class);
+                startActivity(intent);
+                break;
 
 
         }
@@ -201,11 +201,38 @@ public class DashLocal extends AppCompatActivity {
     }
 
     private void onClick(View v) {
-        Log.d("cliqueii", "saporra");
+        LoadingDialog dialog = new LoadingDialog(this);
+        dialog.startLoadingDialog();
         Intent intent = new Intent(getApplicationContext(), SetDataEsp.class);
         intent.putExtra("ip", v.getTag().toString());
         intent.putExtra("nome", String.valueOf(((Button) v).getText()));
-        startActivity(intent);
+
+        InetAddress in;
+        in = null;
+        Log.d("ip do tigrao","oi".concat(v.getTag().toString()));
+        // Definimos la ip de la cual haremos el ping
+        try {
+            in = InetAddress.getByName(v.getTag().toString().trim());
+        } catch (UnknownHostException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        Log.d("ip do tigrao pronto",in.toString());
+        // Definimos un tiempo en el cual ha de responder
+        try {
+            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+            StrictMode.setThreadPolicy(policy);
+            if (in.isReachable(5000)) {
+                Log.d("oook respondeu","end");
+                startActivity(intent);
+                dialog.dimissDialog();
+            } else {
+               Log.d("nao responde","end");
+            }
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+           e.printStackTrace();
+        }
 
     }
 
