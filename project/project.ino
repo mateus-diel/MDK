@@ -11,10 +11,9 @@
 #define PINO_ZC     2
 #define MAXPOT 255
 #define MINPOT  50
+#define PINORESET 13
 #define CONFIGURATION "/configs.json"
-
-String defaultPassword;
-
+#define DEVICESINFO "/devices.json"
 
 // Set web server port number to 80
 AsyncWebServer  server(80);
@@ -28,12 +27,7 @@ volatile float lastTempATUAL = 0.0;
 JSONVar configs;
 JSONVar devices;
 
-volatile boolean core_0 = false;
-volatile boolean core_1 = false;
 boolean LINHA_1 = true;
-
-volatile boolean defaultConfig = false;
-
 
 // GPIO where the DS18B20 is connected to
 const int oneWireBus = 15;
@@ -88,6 +82,8 @@ String readFile(String path) {
     content += char(rfile.read());
   }
   rfile.close();
+  Serial.print("JSON LIDO: ");
+  Serial.println(content);
   return content;
 
 }
@@ -117,8 +113,7 @@ void setup() {
   Serial.begin(115200);//inicia a serial
   while (!Serial);
   Serial.println("ESP INICIADO");
-
-
+  pinMode(PINORESET, INPUT);
 
   if (!LITTLEFS.begin(false)) {
     Serial.println("LITTLEFS Mount Failed");
@@ -127,21 +122,29 @@ void setup() {
 
   configs = JSON.parse(readFile(CONFIGURATION));
 
+  short isReset = 0;
+  if (digitalRead(PINORESET) == LOW) {
+    while (digitalRead(PINORESET) == LOW) {
+      delay(1000);
+      isReset++;
+    }
+  }
+  if (isReset > 5) {
+    configs["default"] = true;
+    writeFile(JSON.stringify(configs), CONFIGURATION);
+    Serial.println("RESET BY PIN");
+    ESP.restart();
+  }
+
+
   if (JSON.typeof(configs) == "undefined") {
     Serial.println("Parsing input failed!");
     return;
   }
-  if (configs.hasOwnProperty("default")) {
-    defaultConfig = (bool) configs["default"];
-  }
 
-  if (configs.hasOwnProperty("defaultPassword")) {
-    defaultPassword = configs["defaultPassword"];
-  }
 
-  if (!defaultConfig) {
 
-    configs = JSON.parse(readFile(CONFIGURATION));
+  if (!(bool) configs["default"]) {
 
     // JSON.typeof(jsonVar) can be used to get the type of the var
     if (JSON.typeof(configs) == "undefined") {
@@ -149,33 +152,17 @@ void setup() {
       return;
     }
 
-    Serial.print("JSON object = ");
-    Serial.println(configs);
-    devices = JSON.parse(readFile("/devices.json"));
-
-    Serial.println("\n\n testesss \n");
-    Serial.println(configs["ssid"]);
-    Serial.println(configs["password"]);
-    float t = (double) devices["tempPROG_1"];
-    Serial.println(t);
+    devices = JSON.parse(readFile(DEVICESINFO));
     tempPROG = (double) devices["tempPROG_1"];
     LINHA_1 = (bool) devices["linha_1"];
 
     // Start the DS18B20 sensor
     sensors.begin();
 
-
-
     Serial.print("\ntemperatura programada lida: ");
     Serial.println(tempPROG);
 
   }
-
-
-
-
-
-
 
   pinMode(RELE_1, OUTPUT);
   digitalWrite(RELE_1, LOW);
@@ -224,15 +211,15 @@ void coreTaskZero( void * pvParameters ) {
   DimmableLight::setSyncPin(PINO_ZC);
   DimmableLight::begin();
 
-  while (defaultConfig) {
-    delay(100);
+  while ((bool) configs["default"]) {
+    vTaskSuspend(NULL);
   }
 
   while (true) {
 
     sensors.requestTemperatures();
     tempATUAL = sensors.getTempCByIndex(0);
-    if ((millis() - ultimo_millis2) > debounce_delay) { // se ja passou determinado tempo que o botao foi precionado
+    if ((millis() - ultimo_millis2) > debounce_delay) {
       ultimo_millis2 = millis();
       Serial.print(tempATUAL);
       devices["sensor1"] = tempATUAL;
@@ -243,13 +230,13 @@ void coreTaskZero( void * pvParameters ) {
       Serial.println(DIMMER_1.getBrightness()); // mostra a quantidade de brilho atual
     }
 
-    if ((millis() - ultimo_millis1) > debounce_delay + 59500) { // se ja passou determinado tempo que o botao foi precionado
+    if ((millis() - ultimo_millis1) > debounce_delay + 59500) {
       ultimo_millis1 = millis();
       devices["linha_1"] = LINHA_1;
       devices["tempPROG_1"] = tempPROG;
       DimmableLight::pauseStop();
       delay(20);
-      writeFile(JSON.stringify(configs), CONFIGURATION);
+      writeFile(JSON.stringify(devices), DEVICESINFO);
       delay(10);
       DIMMER_1.setBrightness(10);
       DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
@@ -258,41 +245,32 @@ void coreTaskZero( void * pvParameters ) {
 
     }
 
-    if (!core_0) {
-      core_1 = false;
 
-      if (tempATUAL < tempPROG - 1.0 && LINHA_1) {
-        potencia_1 = 0;
-        DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
-        ligaRELE(RELE_1);
-      } else if (LINHA_1) {
-        desligaRELE(RELE_1);
-        if (tempATUAL != lastTempATUAL) {
-          if (tempATUAL < lastTempATUAL && tempATUAL < tempPROG - 0.0) {
-            potencia_1 = potencia_1 + 5;
-            potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
-            DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
-          } else if (tempATUAL > tempPROG || tempATUAL > tempPROG - 0.1) {
-            potencia_1 = potencia_1 - 5;
-            potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
-            DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
-          }
-          lastTempATUAL = tempATUAL;
+
+    if (tempATUAL < tempPROG - 1.0 && LINHA_1) {
+      potencia_1 = 0;
+      DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
+      ligaRELE(RELE_1);
+    } else if (LINHA_1) {
+      desligaRELE(RELE_1);
+      if (tempATUAL != lastTempATUAL) {
+        if (tempATUAL < lastTempATUAL && tempATUAL < tempPROG - 0.0) {
+          potencia_1 = potencia_1 + 5;
+          potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
+          DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
+        } else if (tempATUAL > tempPROG || tempATUAL > tempPROG - 0.1) {
+          potencia_1 = potencia_1 - 5;
+          potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
+          DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
         }
-      } else {
-        desligaRELE(RELE_1);
-        potencia_1 = 0;
-        DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
+        lastTempATUAL = tempATUAL;
       }
-
     } else {
-      detachInterrupt(PINO_ZC);
-      core_1 = true;
-      while (core_0 == true) {
-        delay(1);
-      }
-      //attachInterrupt(digitalPinToInterrupt(PINO_ZC), ISR_zeroCross, RISING);
+      desligaRELE(RELE_1);
+      potencia_1 = 0;
+      DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
     }
+
     delay(1);
   }
 }
@@ -302,7 +280,7 @@ void coreTaskOne( void * pvParameters ) {
   taskMessage = taskMessage + xPortGetCoreID();
   Serial.println(taskMessage);
 
-  if (defaultConfig) {
+  if ((bool) configs["default"]) {
     WiFi.mode(WIFI_AP);
     delay(1000);
     Serial.print("macc: ");
@@ -313,8 +291,8 @@ void coreTaskOne( void * pvParameters ) {
 
     char ssid[sizeof(mac) + 6];
     mac.toCharArray(ssid, sizeof(ssid));
-    char pass[sizeof(defaultPassword) + 1];
-    defaultPassword.toCharArray(pass, sizeof(pass));
+    char pass[sizeof((const char*)configs["defaultPassword"]) + 1];
+    String((const char*)configs["defaultPassword"]).toCharArray(pass, sizeof(pass));
 
 
     WiFi.softAP(ssid, pass);
@@ -336,6 +314,8 @@ void coreTaskOne( void * pvParameters ) {
     Serial.print((const char*) configs["ssid"]);
     Serial.println((const char*) configs["password"]);
     delay(1000);
+
+
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
       Serial.println("Connecting to WiFi..");
@@ -364,14 +344,13 @@ void coreTaskOne( void * pvParameters ) {
     Serial.println(t);
     Serial.println("Json");
     JSONVar jso =  JSON.parse(t);
-    if (jso.hasOwnProperty("configNetwork") && defaultConfig) {
-      JSONVar defineConfig;
-      defineConfig["default"] = (bool) jso["configNetwork"];
-      defineConfig["ssid"] = (const char*) jso["ssid"];
-      defineConfig["password"] = (const char*) jso["password"];
-      defineConfig["deviceName"] = (const char*) jso["deviceName"];
-      defineConfig["defaultPassword"] = defaultPassword;
-      writeFile(JSON.stringify(defineConfig), CONFIGURATION);
+    if (jso.hasOwnProperty("configNetwork") && (bool) configs["default"]) {
+      configs["default"] = (bool) jso["configNetwork"];
+      configs["ssid"] = (const char*) jso["ssid"];
+      configs["password"] = (const char*) jso["password"];
+      configs["deviceName"] = (const char*) jso["deviceName"];
+      configs["defaultPassword"] = (const char*)configs["defaultPassword"];
+      writeFile(JSON.stringify(configs), CONFIGURATION);
       ok["request"] = "ok";
       responseToClient(request, JSON.stringify(ok));
       delay(1000);
@@ -381,64 +360,52 @@ void coreTaskOne( void * pvParameters ) {
     } else {
       if (jso.hasOwnProperty("tempPROG")) {
         tempPROG = (double) jso["tempPROG"];
+        ok["tempPROG"] = tempPROG;
       }
       if (jso.hasOwnProperty("linha_1")) {
         LINHA_1 = !LINHA_1;
+        ok["linha_1"] = LINHA_1;
       }
       ok["request"] = "ok";
     }
-    Serial.println(jso["email"]);
-    //request->send(response(request, "Ok Tigrao"));
     responseToClient(request, JSON.stringify(ok));
-
-
   });
 
   server.on("/get", HTTP_GET, [](AsyncWebServerRequest * request) {
     responseToClient(request, JSON.stringify(devices));
   });
 
-
   server.begin();
-
 
   if (configs.hasOwnProperty("deviceName")) {
     if (!MDNS.begin((const char*) configs["deviceName"])) {
       Serial.println("Error setting up MDNS responder!");
-      while (1) {
-        delay(1000);
-      }
+      delay(1000);
+      ESP.restart();
     }
     Serial.println("MDNS begib successful;");
   } else {
     if (!MDNS.begin("ESP32")) {
       Serial.println("Error setting up MDNS responder!");
-      while (1) {
-        delay(1000);
-      }
+      delay(1000);
+      ESP.restart();
     }
   }
 
   Serial.println("mDNS responder started");
 
   // Start TCP (HTTP) server
-  server.begin();
   Serial.println("TCP server started");
 
   if ((millis() - ultimo_millis3) > 5000) { // se ja passou determinado tempo que o botao foi precionado
-      ultimo_millis3 = millis();
-      MDNS.addService("dimmer", "tcp", 80);
-      
-    }
+    ultimo_millis3 = millis();
+    MDNS.addService("dimmer", "tcp", 80);
+  }
 
   // Add service to MDNS-SD
   MDNS.addService("dimmer", "tcp", 80);
   Serial.println("HTTP server started");
   while (true) {
-    //server.handleClient();  
     delay(1);
-
-
   }
-
 }

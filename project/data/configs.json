@@ -1,6 +1,6 @@
 {
-    "defaultPassword": "12345678",
-    "default": true,
-    "ssid": "GIGABYTE 2G",
-    "password": "giga2020a"
-}
+    "default":false,
+    "ssid":"Mateus",
+    "password":"home1234",
+    "deviceName":"Teste",
+    "defaultPassword":"12345678"}
