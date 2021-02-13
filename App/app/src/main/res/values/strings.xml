@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">DashControl</string>
+    <string name="app_name">Controle Eletrônico</string>
     <string name="title_activity_login">FullscreenActivity</string>
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
