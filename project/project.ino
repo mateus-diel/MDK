@@ -360,12 +360,13 @@ void coreTaskOne( void * pvParameters ) {
     } else {
       if (jso.hasOwnProperty("tempPROG")) {
         tempPROG = (double) jso["tempPROG"];
-        ok["tempPROG"] = tempPROG;
       }
       if (jso.hasOwnProperty("linha_1")) {
         LINHA_1 = !LINHA_1;
-        ok["linha_1"] = LINHA_1;
       }
+
+      ok["linha_1"] = LINHA_1;
+      ok["tempPROG"] = tempPROG;
       ok["request"] = "ok";
     }
     responseToClient(request, JSON.stringify(ok));
