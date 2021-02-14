@@ -6,6 +6,8 @@
 #include <Arduino_JSON.h>
 #include <dimmable_light.h>
 #include <ESPmDNS.h>
+#include "FirebaseESP32.h"
+
 
 #define PINO_DIM_1    4
 #define PINO_ZC     2
@@ -14,6 +16,13 @@
 #define PINORESET 13
 #define CONFIGURATION "/configs.json"
 #define DEVICESINFO "/devices.json"
+
+
+FirebaseData fbdo;
+String email;
+String senha;
+String api_key;
+String host;
 
 // Set web server port number to 80
 AsyncWebServer  server(80);
@@ -27,7 +36,7 @@ volatile float lastTempATUAL = 0.0;
 JSONVar configs;
 JSONVar devices;
 
-boolean LINHA_1 = true;
+volatile boolean LINHA_1 = true;
 
 // GPIO where the DS18B20 is connected to
 const int oneWireBus = 15;
@@ -82,7 +91,7 @@ String readFile(String path) {
     content += char(rfile.read());
   }
   rfile.close();
-  Serial.print("JSON LIDO: ");
+  Serial.print("CONTEUDO LIDO: ");
   Serial.println(content);
   return content;
 
@@ -106,7 +115,6 @@ boolean writeFile(String message, String path) {
   file.close();
   return true;
 }
-
 
 
 void setup() {
@@ -136,7 +144,6 @@ void setup() {
     ESP.restart();
   }
 
-
   if (JSON.typeof(configs) == "undefined") {
     Serial.println("Parsing input failed!");
     return;
@@ -146,11 +153,11 @@ void setup() {
 
   if (!(bool) configs["default"]) {
 
-    // JSON.typeof(jsonVar) can be used to get the type of the var
-    if (JSON.typeof(configs) == "undefined") {
-      Serial.println("Parsing input failed!");
-      return;
-    }
+
+    api_key = String((const char*)configs["api_key"]);
+    email = String((const char*)configs["user_email"]);
+    senha = String((const char*)configs["user_senha"]);
+    host = String((const char*)configs["host"]);
 
     devices = JSON.parse(readFile(DEVICESINFO));
     tempPROG = (double) devices["tempPROG_1"];
@@ -221,13 +228,13 @@ void coreTaskZero( void * pvParameters ) {
     tempATUAL = sensors.getTempCByIndex(0);
     if ((millis() - ultimo_millis2) > debounce_delay) {
       ultimo_millis2 = millis();
-      Serial.print(tempATUAL);
+      //Serial.print(tempATUAL);
       devices["sensor1"] = tempATUAL;
       devices["linha_1"] = LINHA_1;
       devices["tempPROG"] = tempPROG;
-      Serial.println("ºC");
-      Serial.print("Potencia -> ");
-      Serial.println(DIMMER_1.getBrightness()); // mostra a quantidade de brilho atual
+      //Serial.println("ºC");
+      //Serial.print("Potencia -> ");
+      //Serial.println(DIMMER_1.getBrightness()); // mostra a quantidade de brilho atual
     }
 
     if ((millis() - ultimo_millis1) > debounce_delay + 59500) {
@@ -397,16 +404,82 @@ void coreTaskOne( void * pvParameters ) {
 
   // Start TCP (HTTP) server
   Serial.println("TCP server started");
-
-  if ((millis() - ultimo_millis3) > 5000) { // se ja passou determinado tempo que o botao foi precionado
-    ultimo_millis3 = millis();
-    MDNS.addService("dimmer", "tcp", 80);
-  }
+  /*
+    if ((millis() - ultimo_millis3) > 5000) { // se ja passou determinado tempo que o botao foi precionado
+      ultimo_millis3 = millis();
+      MDNS.addService("dimmer", "tcp", 80);
+    }*/
 
   // Add service to MDNS-SD
   MDNS.addService("dimmer", "tcp", 80);
   Serial.println("HTTP server started");
+
+  FirebaseAuth auth;
+
+  // Define the FirebaseConfig data for config data
+  FirebaseConfig configur;
+
+  char hostt[host.length() + 1];
+  host.toCharArray(hostt, host.length()+1);
+
+  char api_keyy[api_key.length() + 1];
+  api_key.toCharArray(api_keyy, api_key.length()+1);
+
+  char emaill[email.length() + 1];
+  email.toCharArray(emaill, email.length()+1);
+
+  char senhaa[senha.length() + 1];
+  senha.toCharArray(senhaa, senha.length()+1);
+
+  // Assign the project host and api key (required)
+  configur.host = hostt;
+
+  configur.api_key = api_keyy;
+
+  // Assign the user sign in credentials
+  auth.user.email = emaill;
+
+  auth.user.password = senhaa;
+
+  Serial.print("\napi key: ");
+  Serial.println(api_keyy);
+  Serial.print("host ");
+  Serial.println(hostt);
+  Serial.print("email: ");
+  Serial.println(emaill);
+  Serial.print("senha: ");
+  Serial.println(senhaa);
+
+  //Initialize the library with the Firebase authen and config.
+  Firebase.begin(&configur, &auth);
+  String nodo = "/cliente/" + String((const char *) configs["client_id"]) + "/" + String((const char*) configs["deviceName"]) + "/";
+
+
   while (true) {
+
+    if ((millis() - ultimo_millis3) > 5000) { // se ja passou determinado tempo que o botao foi precionado
+      ultimo_millis3 = millis();
+
+      FirebaseJson json2;
+
+      json2.set("tempPROG", tempPROG);
+      json2.set("tempATUAL", tempATUAL);
+      json2.set("LINHA_1", LINHA_1);
+
+      if (Firebase.updateNode(fbdo, nodo, json2)) {
+
+
+        Serial.println(fbdo.dataPath() + "/" + fbdo.pushName());
+
+      } else {
+        Serial.println(fbdo.errorReason());
+      }
+
+
+
+
+    }
+
     delay(1);
   }
 }
