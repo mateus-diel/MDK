@@ -8,13 +8,16 @@
 
     <com.owl93.dpb.CircularProgressView
         android:id="@+id/progessView"
-        android:layout_width="270dp"
-        android:layout_height="270dp"
-        android:layout_marginTop="100dp"
+        android:layout_width="220dp"
+        android:layout_height="220dp"
+        app:strokeColor="#476EBC"
+        app:textColor="#476EBC"
+        app:trackColor="#183878"
+        android:layout_marginTop="50dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.496"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtLigaDesliga"></com.owl93.dpb.CircularProgressView>
+        app:layout_constraintTop_toBottomOf="@+id/txtLigaDesliga" />
 
     <Button
         android:id="@+id/btnMais"
@@ -22,6 +25,7 @@
         android:layout_height="55dp"
         android:layout_margin="20dp"
         android:layout_marginEnd="16dp"
+        android:textColor="@color/white"
         android:text="+"
         android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -30,6 +34,7 @@
 
     <Button
         android:id="@+id/btnMenos"
+        android:textColor="@color/white"
         android:layout_width="61dp"
         android:layout_height="55dp"
         android:layout_margin="20dp"
@@ -46,6 +51,7 @@
         android:layout_width="135dp"
         android:layout_height="55dp"
         android:layout_margin="20dp"
+        android:textColor="@color/white"
         android:textSize="18sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/btnMenos"
@@ -58,8 +64,10 @@
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="5dp"
         android:layout_marginTop="24dp"
         android:text="Ambiente:"
+        android:textColor="@color/black"
         android:textSize="20sp"
         app:layout_constraintEnd_toStartOf="@+id/txtLocal"
         app:layout_constraintHorizontal_bias="0.744"
@@ -70,22 +78,26 @@
         android:id="@+id/textView3"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="5dp"
         android:layout_marginTop="16dp"
+        android:textColor="@color/black"
         android:text="Status:"
         android:textSize="20sp"
         app:layout_constraintEnd_toStartOf="@+id/txtLigaDesliga"
-        app:layout_constraintHorizontal_bias="0.795"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView" />
 
     <TextView
         android:id="@+id/txtLigaDesliga"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="5dp"
         android:layout_marginTop="16dp"
-        android:layout_marginEnd="224dp"
+        android:textColor="@color/black"
         android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/textView3"
         app:layout_constraintTop_toBottomOf="@+id/txtLocal" />
 
     <TextView
@@ -93,7 +105,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
-        android:text="00.00"
+        android:text="00"
+        android:textColor="#000000"
         android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/btnMais"
@@ -101,12 +114,14 @@
 
     <TextView
         android:id="@+id/txtLocal"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:textColor="@color/black"
+        android:layout_marginStart="5dp"
         android:layout_marginTop="24dp"
-        android:layout_marginEnd="192dp"
         android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/textView"
         app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

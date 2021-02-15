@@ -63,6 +63,11 @@ public class SetDataEsp extends AppCompatActivity {
         txtLocal = findViewById(R.id.txtLocal);
         txtStatus = findViewById(R.id.txtLigaDesliga);
         txtTempProg = findViewById(R.id.txtTempProg);
+        temp = findViewById(R.id.progessView);
+        temp.setMaxValue(50);
+        temp.setProgress(0);
+        temp.setTextEnabled(true);
+        temp.setText("...");
 
         Intent intent = getIntent();
         txtLocal.setText(intent.getStringExtra("nome").toUpperCase());
@@ -83,8 +88,8 @@ public class SetDataEsp extends AppCompatActivity {
                         txtStatus.setText("Desligado!");
                         btnLigaDesliga.setText("Ligar");
                     }
-                    temp.animateProgressChange(Math.round(json.getDouble("sensor1")),1000);
-                    temp.setText(String.valueOf(Math.round(json.getDouble("sensor1"))).concat(" ºC"));
+                    temp.animateProgressChange((float)json.getDouble("sensor1"),1000);
+                    temp.setText(String.format("%.1f",(float)json.getDouble("sensor1")).replace(",",".").concat(" ºC"));
                     txtTempProg.setText(String.valueOf(Math.round(json.getDouble("tempPROG"))));
                     loadingDialog.dimissDialog();
 
@@ -100,10 +105,7 @@ public class SetDataEsp extends AppCompatActivity {
             }
         });
 
-        temp = findViewById(R.id.progessView);
-        temp.setMaxValue(50);
-        temp.setProgress(0);
-        temp.setTextEnabled(true);
+
         btnMenos.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {try {

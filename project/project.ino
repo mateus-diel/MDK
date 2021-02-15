@@ -420,16 +420,16 @@ void coreTaskOne( void * pvParameters ) {
   FirebaseConfig configur;
 
   char hostt[host.length() + 1];
-  host.toCharArray(hostt, host.length()+1);
+  host.toCharArray(hostt, host.length() + 1);
 
   char api_keyy[api_key.length() + 1];
-  api_key.toCharArray(api_keyy, api_key.length()+1);
+  api_key.toCharArray(api_keyy, api_key.length() + 1);
 
   char emaill[email.length() + 1];
-  email.toCharArray(emaill, email.length()+1);
+  email.toCharArray(emaill, email.length() + 1);
 
   char senhaa[senha.length() + 1];
-  senha.toCharArray(senhaa, senha.length()+1);
+  senha.toCharArray(senhaa, senha.length() + 1);
 
   // Assign the project host and api key (required)
   configur.host = hostt;
@@ -474,6 +474,13 @@ void coreTaskOne( void * pvParameters ) {
       } else {
         Serial.println(fbdo.errorReason());
       }
+      /*Serial.println("caminho do float: ");
+      Serial.println(nodo+"tempPROG");
+      if (Firebase.getFloat(fbdo, nodo+"tempPROG")) {
+      Serial.println(fbdo.floatData());
+      } else {
+        Serial.println(fbdo.errorReason());
+      }*/
 
 
 
