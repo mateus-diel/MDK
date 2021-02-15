@@ -296,10 +296,15 @@ void coreTaskOne( void * pvParameters ) {
     Serial.print("Size of: ");
     Serial.println(sizeof(mac));
 
-    char ssid[sizeof(mac) + 6];
-    mac.toCharArray(ssid, sizeof(ssid));
-    char pass[sizeof((const char*)configs["defaultPassword"]) + 1];
-    String((const char*)configs["defaultPassword"]).toCharArray(pass, sizeof(pass));
+    char ssid[mac.length()+1];
+    mac.toCharArray(ssid, mac.length()+1);
+    
+    char pass[8 + 1];
+    String((const char*)configs["defaultPassword"]).toCharArray(pass, 8+1);
+    Serial.println("\nSSID: ");
+    Serial.print(ssid);
+    Serial.println("\nsenha: ");
+    Serial.print(pass);
 
 
     WiFi.softAP(ssid, pass);
@@ -413,6 +418,10 @@ void coreTaskOne( void * pvParameters ) {
   // Add service to MDNS-SD
   MDNS.addService("dimmer", "tcp", 80);
   Serial.println("HTTP server started");
+
+    while ((bool) configs["default"]) {
+    delay(1);
+  }
 
   FirebaseAuth auth;
 
