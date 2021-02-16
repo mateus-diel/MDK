@@ -11,8 +11,8 @@
 
 #define PINO_DIM_1    4
 #define PINO_ZC     2
-#define MAXPOT 255
-#define MINPOT  50
+#define MAXPOT 252
+#define MINPOT  65
 #define PINORESET 13
 #define CONFIGURATION "/configs.json"
 #define DEVICESINFO "/devices.json"
@@ -25,7 +25,7 @@ String api_key;
 String host;
 
 // Set web server port number to 80
-AsyncWebServer  server(80);
+AsyncWebServer  server(8090);
 
 
 short RELE_1 = 16;
@@ -49,8 +49,7 @@ DallasTemperature sensors(&oneWire);
 
 
 //variaveis globais
-int potencia_1 = 0;
-int potencia_1_convertido = 0;
+volatile int potencia_1 = 0;
 
 
 
@@ -228,13 +227,13 @@ void coreTaskZero( void * pvParameters ) {
     tempATUAL = sensors.getTempCByIndex(0);
     if ((millis() - ultimo_millis2) > debounce_delay) {
       ultimo_millis2 = millis();
-      //Serial.print(tempATUAL);
+      Serial.print(tempATUAL);
       devices["sensor1"] = tempATUAL;
       devices["linha_1"] = LINHA_1;
       devices["tempPROG"] = tempPROG;
-      //Serial.println("ºC");
-      //Serial.print("Potencia -> ");
-      //Serial.println(DIMMER_1.getBrightness()); // mostra a quantidade de brilho atual
+      Serial.println("ºC");
+      Serial.print("Potencia -> ");
+      Serial.println(DIMMER_1.getBrightness()); // mostra a quantidade de brilho atual
     }
 
     if ((millis() - ultimo_millis1) > debounce_delay + 59500) {
@@ -242,40 +241,42 @@ void coreTaskZero( void * pvParameters ) {
       devices["linha_1"] = LINHA_1;
       devices["tempPROG_1"] = tempPROG;
       DimmableLight::pauseStop();
-      delay(20);
+      delay(10);
       writeFile(JSON.stringify(devices), DEVICESINFO);
       delay(10);
       DIMMER_1.setBrightness(10);
       DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
-
-
-
+      Serial.println("passou no salva memoria");
     }
 
 
-
-    if (tempATUAL < tempPROG - 1.0 && LINHA_1) {
-      potencia_1 = 0;
+    if (tempATUAL < tempPROG - 0.5 && LINHA_1) {
+      potencia_1 = 50;
       DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
       ligaRELE(RELE_1);
+      Serial.println("rele ligado");
     } else if (LINHA_1) {
+
       desligaRELE(RELE_1);
       if (tempATUAL != lastTempATUAL) {
         if (tempATUAL < lastTempATUAL && tempATUAL < tempPROG - 0.0) {
-          potencia_1 = potencia_1 + 5;
+          potencia_1 = potencia_1 + 10;
           potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
-          DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
-        } else if (tempATUAL > tempPROG || tempATUAL > tempPROG - 0.1) {
-          potencia_1 = potencia_1 - 5;
+          DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
+        } else if (tempATUAL > tempPROG - 0.1) {
+          potencia_1 = potencia_1 - 10;
           potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
-          DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
+          DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
         }
         lastTempATUAL = tempATUAL;
       }
+      Serial.println("rele desligado");
     } else {
+
       desligaRELE(RELE_1);
       potencia_1 = 0;
       DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
+      Serial.println("desliga rele e lampada");
     }
 
     delay(1);
@@ -296,11 +297,11 @@ void coreTaskOne( void * pvParameters ) {
     Serial.print("Size of: ");
     Serial.println(sizeof(mac));
 
-    char ssid[mac.length()+1];
-    mac.toCharArray(ssid, mac.length()+1);
-    
+    char ssid[mac.length() + 1];
+    mac.toCharArray(ssid, mac.length() + 1);
+
     char pass[8 + 1];
-    String((const char*)configs["defaultPassword"]).toCharArray(pass, 8+1);
+    String((const char*)configs["defaultPassword"]).toCharArray(pass, 8 + 1);
     Serial.println("\nSSID: ");
     Serial.print(ssid);
     Serial.println("\nsenha: ");
@@ -385,7 +386,12 @@ void coreTaskOne( void * pvParameters ) {
   });
 
   server.on("/get", HTTP_GET, [](AsyncWebServerRequest * request) {
-    responseToClient(request, JSON.stringify(devices));
+    JSONVar ok;
+    ok["request"] = "success";
+    ok["sensor1"] = tempATUAL;
+    ok["linha_1"] = LINHA_1;
+    ok["tempPROG"] = tempPROG;
+    responseToClient(request, JSON.stringify(ok));
   });
 
   server.begin();
@@ -419,7 +425,7 @@ void coreTaskOne( void * pvParameters ) {
   MDNS.addService("dimmer", "tcp", 80);
   Serial.println("HTTP server started");
 
-    while ((bool) configs["default"]) {
+  while ((bool) configs["default"]) {
     delay(1);
   }
 
@@ -474,6 +480,7 @@ void coreTaskOne( void * pvParameters ) {
       json2.set("tempPROG", tempPROG);
       json2.set("tempATUAL", tempATUAL);
       json2.set("LINHA_1", LINHA_1);
+      json2.set("potencia", potencia_1);
 
       if (Firebase.updateNode(fbdo, nodo, json2)) {
 
@@ -484,12 +491,12 @@ void coreTaskOne( void * pvParameters ) {
         Serial.println(fbdo.errorReason());
       }
       /*Serial.println("caminho do float: ");
-      Serial.println(nodo+"tempPROG");
-      if (Firebase.getFloat(fbdo, nodo+"tempPROG")) {
-      Serial.println(fbdo.floatData());
-      } else {
+        Serial.println(nodo+"tempPROG");
+        if (Firebase.getFloat(fbdo, nodo+"tempPROG")) {
+        Serial.println(fbdo.floatData());
+        } else {
         Serial.println(fbdo.errorReason());
-      }*/
+        }*/
 
 
 
