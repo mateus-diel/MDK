@@ -7,12 +7,14 @@
 #include <dimmable_light.h>
 #include <ESPmDNS.h>
 #include "FirebaseESP32.h"
+#include <ESP32httpUpdate.h>
+
 
 
 #define PINO_DIM_1    4
 #define PINO_ZC     2
 #define MAXPOT 252
-#define MINPOT  65
+#define MINPOT  0
 #define PINORESET 13
 #define CONFIGURATION "/configs.json"
 #define DEVICESINFO "/devices.json"
@@ -25,7 +27,7 @@ String api_key;
 String host;
 
 // Set web server port number to 80
-AsyncWebServer  server(8090);
+AsyncWebServer  server(80);
 
 
 short RELE_1 = 16;
@@ -33,6 +35,8 @@ short RELE_1 = 16;
 volatile float tempPROG = 35.0;
 volatile float tempATUAL = 0.0;
 volatile float lastTempATUAL = 0.0;
+volatile boolean rele = false;
+volatile bool isUpgrade = false;
 JSONVar configs;
 JSONVar devices;
 
@@ -58,6 +62,52 @@ unsigned long ultimo_millis2 = 0;
 unsigned long ultimo_millis3 = 0;
 unsigned long debounce_delay = 500;
 
+void printResult(FirebaseData & data)
+{
+
+  if (data.dataType() == "int")
+    Serial.println(data.intData());
+  else if (data.dataType() == "float")
+    Serial.println(data.floatData(), 5);
+  else if (data.dataType() == "double")
+    printf("%.9lf\n", data.doubleData());
+  else if (data.dataType() == "boolean")
+    Serial.println(data.boolData() == 1 ? "true" : "false");
+  else if (data.dataType() == "string")
+    Serial.println(data.stringData());
+  else if (data.dataType() == "json")
+  {
+    Serial.println();
+    FirebaseJson &json = data.jsonObject();
+    //Print all object data
+    Serial.println("Pretty printed JSON data:");
+    String jsonStr;
+    json.toString(jsonStr, true);
+    Serial.println(jsonStr);
+    Serial.println();
+    Serial.println("Iterate JSON data:");
+    Serial.println();
+    size_t len = json.iteratorBegin();
+    String key, value = "";
+    int type = 0;
+    for (size_t i = 0; i < len; i++)
+    {
+      json.iteratorGet(i, type, key, value);
+      Serial.print(i);
+      Serial.print(", ");
+      Serial.print("Type: ");
+      Serial.print(type == FirebaseJson::JSON_OBJECT ? "object" : "array");
+      if (type == FirebaseJson::JSON_OBJECT)
+      {
+        Serial.print(", Key: ");
+        Serial.print(key);
+      }
+      Serial.print(", Value: ");
+      Serial.println(value);
+    }
+    json.iteratorEnd();
+  }
+}
 
 void responseToClient (AsyncWebServerRequest *req, String res) {
   AsyncWebServerResponse *response = req->beginResponse(200, "text/plain", res);
@@ -119,7 +169,7 @@ boolean writeFile(String message, String path) {
 void setup() {
   Serial.begin(115200);//inicia a serial
   while (!Serial);
-  Serial.println("ESP INICIADO");
+  Serial.println("ESP INICIADO com atualização");
   pinMode(PINORESET, INPUT);
 
   if (!LITTLEFS.begin(false)) {
@@ -130,12 +180,12 @@ void setup() {
   configs = JSON.parse(readFile(CONFIGURATION));
 
   short isReset = 0;
-  if (digitalRead(PINORESET) == LOW) {
+  /*if (digitalRead(PINORESET) == LOW) {
     while (digitalRead(PINORESET) == LOW) {
       delay(1000);
       isReset++;
     }
-  }
+    }*/
   if (isReset > 5) {
     configs["default"] = true;
     writeFile(JSON.stringify(configs), CONFIGURATION);
@@ -227,13 +277,13 @@ void coreTaskZero( void * pvParameters ) {
     tempATUAL = sensors.getTempCByIndex(0);
     if ((millis() - ultimo_millis2) > debounce_delay) {
       ultimo_millis2 = millis();
-      Serial.print(tempATUAL);
+      //Serial.print(tempATUAL);
       devices["sensor1"] = tempATUAL;
       devices["linha_1"] = LINHA_1;
       devices["tempPROG"] = tempPROG;
-      Serial.println("ºC");
-      Serial.print("Potencia -> ");
-      Serial.println(DIMMER_1.getBrightness()); // mostra a quantidade de brilho atual
+      //Serial.println("ºC");
+      //Serial.print("Potencia -> " + String(potencia_1) + " :");
+      //Serial.println(DIMMER_1.getBrightness()); // mostra a quantidade de brilho atual
     }
 
     if ((millis() - ultimo_millis1) > debounce_delay + 59500) {
@@ -246,7 +296,7 @@ void coreTaskZero( void * pvParameters ) {
       delay(10);
       DIMMER_1.setBrightness(10);
       DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
-      Serial.println("passou no salva memoria");
+      //Serial.println("passou no salva memoria");
     }
 
 
@@ -254,29 +304,33 @@ void coreTaskZero( void * pvParameters ) {
       potencia_1 = 50;
       DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
       ligaRELE(RELE_1);
-      Serial.println("rele ligado");
+      //Serial.println("rele ligado");
+      rele = true;
     } else if (LINHA_1) {
-
+      rele = false;
       desligaRELE(RELE_1);
       if (tempATUAL != lastTempATUAL) {
+        //Serial.println("Temp diff");
         if (tempATUAL < lastTempATUAL && tempATUAL < tempPROG - 0.0) {
           potencia_1 = potencia_1 + 10;
           potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
           DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
+          //Serial.println("aumentando potencia");
         } else if (tempATUAL > tempPROG - 0.1) {
           potencia_1 = potencia_1 - 10;
           potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
           DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
+          //Serial.println("baixando potencia");
         }
         lastTempATUAL = tempATUAL;
       }
-      Serial.println("rele desligado");
+      //Serial.println("rele desligado");
     } else {
-
+      rele = false;
       desligaRELE(RELE_1);
       potencia_1 = 0;
       DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
-      Serial.println("desliga rele e lampada");
+      //Serial.println("desliga rele e lampada");
     }
 
     delay(1);
@@ -377,6 +431,9 @@ void coreTaskOne( void * pvParameters ) {
       if (jso.hasOwnProperty("linha_1")) {
         LINHA_1 = !LINHA_1;
       }
+      if (jso.hasOwnProperty("upgrade")) {
+        isUpgrade = true;
+      }
 
       ok["linha_1"] = LINHA_1;
       ok["tempPROG"] = tempPROG;
@@ -468,41 +525,107 @@ void coreTaskOne( void * pvParameters ) {
   //Initialize the library with the Firebase authen and config.
   Firebase.begin(&configur, &auth);
   String nodo = "/cliente/" + String((const char *) configs["client_id"]) + "/" + String((const char*) configs["deviceName"]) + "/";
+  Firebase.setFloatDigits(2);
+  Firebase.setDoubleDigits(6);
+  FirebaseJson json2, json1;
+  json1.set("update", false);
+  if (!Firebase.updateNode(fbdo, nodo, json1)) {
+    Serial.println("Erro ao atualizar boolean");
+  }
 
+  if (!Firebase.beginStream(fbdo, nodo+"R/"))
+  {
+    Serial.println("------------------------------------");
+    Serial.println("Can't begin stream connection...");
+    Serial.println("REASON: " + fbdo.errorReason());
+    Serial.println("------------------------------------");
+    Serial.println();
+  }
 
   while (true) {
 
+    if (!Firebase.readStream(fbdo))
+    {
+      Serial.println("------------------------------------");
+      Serial.println("Can't read stream data...");
+      Serial.println("REASON: " + fbdo.errorReason());
+      Serial.println("------------------------------------");
+      Serial.println();
+    }
+
+    if (fbdo.streamTimeout())
+    {
+      Serial.println("Stream timeout, resume streaming...");
+      Serial.println();
+    }
+
+    if (fbdo.streamAvailable())
+    {
+      Serial.println("------------------------------------");
+      Serial.println("Stream Data available...");
+      Serial.println("STREAM PATH: " + fbdo.streamPath());
+      Serial.println("EVENT PATH: " + fbdo.dataPath());
+      Serial.println("DATA TYPE: " + fbdo.dataType());
+      Serial.println("EVENT TYPE: " + fbdo.eventType());
+      Serial.print("VALUE: ");
+      printResult(fbdo);
+      Serial.println("------------------------------------");
+      Serial.println();
+    }
     if ((millis() - ultimo_millis3) > 5000) { // se ja passou determinado tempo que o botao foi precionado
       ultimo_millis3 = millis();
 
-      FirebaseJson json2;
+
 
       json2.set("tempPROG", tempPROG);
-      json2.set("tempATUAL", tempATUAL);
+      json2.set("tempATUAL", (int) random(0, 40));//tempATUAL);
       json2.set("LINHA_1", LINHA_1);
       json2.set("potencia", potencia_1);
+      json2.set("rele", rele);
 
-      if (Firebase.updateNode(fbdo, nodo, json2)) {
+      Serial.println("caminho do float: ");
+      Serial.println(nodo + "update");
+      if (Firebase.getBool(fbdo, nodo+"/R/" + "update")) {
+        isUpgrade = fbdo.boolData();
+        Serial.println(fbdo.boolData());
+        if (isUpgrade) {
+          t_httpUpdate_return ret = ESPhttpUpdate.update("http://update.gigabyte.inf.br/update.bin");
+          switch (ret) {
+            case HTTP_UPDATE_FAILED:
+              Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+              break;
 
+            case HTTP_UPDATE_NO_UPDATES:
+              Serial.println("HTTP_UPDATE_NO_UPDATES");
+              break;
 
-        Serial.println(fbdo.dataPath() + "/" + fbdo.pushName());
-
+            case HTTP_UPDATE_OK:
+              Serial.println("HTTP_UPDATE_OK");
+              ESP.restart();
+              break;
+          }
+        }
       } else {
         Serial.println(fbdo.errorReason());
       }
-      /*Serial.println("caminho do float: ");
-        Serial.println(nodo+"tempPROG");
-        if (Firebase.getFloat(fbdo, nodo+"tempPROG")) {
-        Serial.println(fbdo.floatData());
-        } else {
+
+      if (Firebase.updateNode(fbdo, nodo+"/W/", json2)) {
+        Serial.println(fbdo.dataPath() + "/" + fbdo.pushName());
+      } else {
         Serial.println(fbdo.errorReason());
-        }*/
+      }
+      fbdo.stopWiFiClient();
 
 
 
 
     }
-
     delay(1);
   }
+
+
+
+
+
+
 }

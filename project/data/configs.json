@@ -1,10 +1,10 @@
 {
-    "default":true,
+    "default":false,
     "ssid":"GIGABYTE 2G",
     "password":"giga2020a",
     "deviceName":"Teste",
     "defaultPassword":"12345678",
-    "client_id":"producao",
+    "client_id":"01589116011",
     "host":"https://espiot-c6099-default-rtdb.firebaseio.com",
     "api_key":"AIzaSyCE-9yymf_v5mm1rPkL0IuuJ0XEcEv9A78",
     "user_email":"liesenfeldjoao@gmail.com",
