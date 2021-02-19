@@ -20,7 +20,8 @@
 #define DEVICESINFO "/devices.json"
 
 
-FirebaseData fbdo;
+FirebaseData writeData;
+FirebaseData readData;
 String email;
 String senha;
 String api_key;
@@ -36,7 +37,7 @@ volatile float tempPROG = 35.0;
 volatile float tempATUAL = 0.0;
 volatile float lastTempATUAL = 0.0;
 volatile boolean rele = false;
-volatile bool isUpgrade = false;
+volatile bool isUpdate = false;
 JSONVar configs;
 JSONVar devices;
 
@@ -62,8 +63,8 @@ unsigned long ultimo_millis2 = 0;
 unsigned long ultimo_millis3 = 0;
 unsigned long debounce_delay = 500;
 
-void printResult(FirebaseData & data)
-{
+
+void printResult(StreamData &data) {
 
   if (data.dataType() == "int")
     Serial.println(data.intData());
@@ -73,26 +74,25 @@ void printResult(FirebaseData & data)
     printf("%.9lf\n", data.doubleData());
   else if (data.dataType() == "boolean")
     Serial.println(data.boolData() == 1 ? "true" : "false");
-  else if (data.dataType() == "string")
+  else if (data.dataType() == "string" || data.dataType() == "null")
     Serial.println(data.stringData());
   else if (data.dataType() == "json")
   {
     Serial.println();
-    FirebaseJson &json = data.jsonObject();
-    //Print all object data
+    FirebaseJson *json = data.jsonObjectPtr();
     Serial.println("Pretty printed JSON data:");
     String jsonStr;
-    json.toString(jsonStr, true);
+    json->toString(jsonStr, true);
     Serial.println(jsonStr);
     Serial.println();
     Serial.println("Iterate JSON data:");
     Serial.println();
-    size_t len = json.iteratorBegin();
+    size_t len = json->iteratorBegin();
     String key, value = "";
     int type = 0;
     for (size_t i = 0; i < len; i++)
     {
-      json.iteratorGet(i, type, key, value);
+      json->iteratorGet(i, type, key, value);
       Serial.print(i);
       Serial.print(", ");
       Serial.print("Type: ");
@@ -101,11 +101,48 @@ void printResult(FirebaseData & data)
       {
         Serial.print(", Key: ");
         Serial.print(key);
+        if (key.equals("update")) {
+          value.toLowerCase();
+          if (value.equals("true")) {
+            Serial.println("Bora atualizar tigrao?");
+            isUpdate = true;
+          }
+
+        } else if (key.equals("tempPROG")) {
+          tempPROG = (float) value.toFloat();
+        } else if (key.equals("LINHA_1")) {
+          value.toLowerCase();
+          if (value.equals("true")) {
+            Serial.println("Bora ligar tigronelsa?");
+            LINHA_1 = true;
+          } else {
+            LINHA_1 = false;
+          }
+        }
       }
       Serial.print(", Value: ");
       Serial.println(value);
     }
-    json.iteratorEnd();
+    json->iteratorEnd();
+  }
+}
+
+void streamCallback(StreamData data) {
+  Serial.println("Stream Data1 available...");
+  Serial.println("STREAM PATH: " + data.streamPath());
+  Serial.println("EVENT PATH: " + data.dataPath());
+  Serial.println("DATA TYPE: " + data.dataType());
+  Serial.println("EVENT TYPE: " + data.eventType());
+  Serial.print("VALUE: ");
+  printResult(data);
+  Serial.println();
+}
+
+void streamTimeoutCallback(bool timeout) {
+  if (timeout)  {
+    Serial.println();
+    Serial.println("Stream timeout, resume streaming...");
+    Serial.println();
   }
 }
 
@@ -118,6 +155,14 @@ void responseToClient (AsyncWebServerRequest *req, String res) {
   req->send(response);
 }
 
+void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
+  Serial.println("Disconnected from WiFi access point");
+  Serial.print("WiFi lost connection. Reason: ");
+  Serial.println(info.disconnected.reason);
+  Serial.println("Trying to Reconnect");
+  WiFi.begin((const char*) configs["ssid"], (const char*) configs["password"]);
+}
+
 
 void ligaRELE(short pin) {
   digitalWrite(pin, HIGH);
@@ -128,7 +173,6 @@ void desligaRELE(short pin) {
 }
 
 String readFile(String path) {
-
   File rfile = LITTLEFS.open(path);
   if (!rfile || rfile.isDirectory()) {
     Serial.println("- failed to open file for reading");
@@ -143,7 +187,6 @@ String readFile(String path) {
   Serial.print("CONTEUDO LIDO: ");
   Serial.println(content);
   return content;
-
 }
 
 boolean writeFile(String message, String path) {
@@ -169,45 +212,30 @@ boolean writeFile(String message, String path) {
 void setup() {
   Serial.begin(115200);//inicia a serial
   while (!Serial);
-  Serial.println("ESP INICIADO com atualização");
+  Serial.println("ESP INICIADO");
   pinMode(PINORESET, INPUT);
 
   if (!LITTLEFS.begin(false)) {
-    Serial.println("LITTLEFS Mount Failed");
-    ESP.restart();
+    delay(500);
+    if (!LITTLEFS.begin(false)) {
+      Serial.println("LITTLEFS Mount Failed");
+      ESP.restart();
+    }
   }
 
   configs = JSON.parse(readFile(CONFIGURATION));
-
-  short isReset = 0;
-  /*if (digitalRead(PINORESET) == LOW) {
-    while (digitalRead(PINORESET) == LOW) {
-      delay(1000);
-      isReset++;
-    }
-    }*/
-  if (isReset > 5) {
-    configs["default"] = true;
-    writeFile(JSON.stringify(configs), CONFIGURATION);
-    Serial.println("RESET BY PIN");
-    ESP.restart();
-  }
 
   if (JSON.typeof(configs) == "undefined") {
     Serial.println("Parsing input failed!");
     return;
   }
 
-
-
   if (!(bool) configs["default"]) {
-
 
     api_key = String((const char*)configs["api_key"]);
     email = String((const char*)configs["user_email"]);
     senha = String((const char*)configs["user_senha"]);
     host = String((const char*)configs["host"]);
-
     devices = JSON.parse(readFile(DEVICESINFO));
     tempPROG = (double) devices["tempPROG_1"];
     LINHA_1 = (bool) devices["linha_1"];
@@ -217,17 +245,11 @@ void setup() {
 
     Serial.print("\ntemperatura programada lida: ");
     Serial.println(tempPROG);
-
   }
 
   pinMode(RELE_1, OUTPUT);
   digitalWrite(RELE_1, LOW);
 
-
-
-
-  //cria uma tarefa que será executada na função coreTaskZero, com prioridade 1 e execução no núcleo 0
-  //coreTaskZero: piscar LED e contar quantas vezes
   xTaskCreatePinnedToCore(
     coreTaskZero,   /* função que implementa a tarefa */
     "coreTaskZero", /* nome da tarefa */
@@ -239,8 +261,6 @@ void setup() {
 
   delay(500); //tempo para a tarefa iniciar
 
-  //cria uma tarefa que será executada na função coreTaskOne, com prioridade 2 e execução no núcleo 1
-  //coreTaskOne: atualizar as informações do display
   xTaskCreatePinnedToCore(
     coreTaskOne,   /* função que implementa a tarefa */
     "coreTaskOne", /* nome da tarefa */
@@ -251,7 +271,6 @@ void setup() {
     1);         /* Núcleo que executará a tarefa */
 
   delay(500); //tempo para a tarefa iniciar
-
 }
 
 void loop() {
@@ -272,6 +291,11 @@ void coreTaskZero( void * pvParameters ) {
   }
 
   while (true) {
+    if (isUpdate) {
+      DimmableLight::pauseStop();
+      delay(200);
+      vTaskSuspend(NULL);
+    }
 
     sensors.requestTemperatures();
     tempATUAL = sensors.getTempCByIndex(0);
@@ -286,7 +310,7 @@ void coreTaskZero( void * pvParameters ) {
       //Serial.println(DIMMER_1.getBrightness()); // mostra a quantidade de brilho atual
     }
 
-    if ((millis() - ultimo_millis1) > debounce_delay + 59500) {
+    if ((millis() - ultimo_millis1) > debounce_delay + 1800000) {
       ultimo_millis1 = millis();
       devices["linha_1"] = LINHA_1;
       devices["tempPROG_1"] = tempPROG;
@@ -333,7 +357,7 @@ void coreTaskZero( void * pvParameters ) {
       //Serial.println("desliga rele e lampada");
     }
 
-    delay(1);
+    delay(5000);
   }
 }
 
@@ -361,7 +385,6 @@ void coreTaskOne( void * pvParameters ) {
     Serial.println("\nsenha: ");
     Serial.print(pass);
 
-
     WiFi.softAP(ssid, pass);
     delay(2000);
     //Serial.println(WiFi.softAPConfig(ap_local_IP, ap_gateway, ap_subnet)? "Configuring Soft AP" : "Error in Configuration");
@@ -382,11 +405,12 @@ void coreTaskOne( void * pvParameters ) {
     Serial.println((const char*) configs["password"]);
     delay(1000);
 
-
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
       Serial.println("Connecting to WiFi..");
     }
+    WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
+    WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_LOST_IP);
     Serial.print("Ip->: ");
     Serial.println(WiFi.localIP());
 
@@ -432,7 +456,7 @@ void coreTaskOne( void * pvParameters ) {
         LINHA_1 = !LINHA_1;
       }
       if (jso.hasOwnProperty("upgrade")) {
-        isUpgrade = true;
+        isUpdate = true;
       }
 
       ok["linha_1"] = LINHA_1;
@@ -529,66 +553,58 @@ void coreTaskOne( void * pvParameters ) {
   Firebase.setDoubleDigits(6);
   FirebaseJson json2, json1;
   json1.set("update", false);
-  if (!Firebase.updateNode(fbdo, nodo, json1)) {
+  if (!Firebase.updateNode(readData, nodo + "R/", json1)) {
     Serial.println("Erro ao atualizar boolean");
   }
 
-  if (!Firebase.beginStream(fbdo, nodo+"R/"))
+  Firebase.reconnectWiFi(true);
+
+
+  if (!Firebase.beginStream(readData, nodo + "/R/"))
   {
     Serial.println("------------------------------------");
     Serial.println("Can't begin stream connection...");
-    Serial.println("REASON: " + fbdo.errorReason());
+    Serial.println("REASON: " + readData.errorReason());
     Serial.println("------------------------------------");
     Serial.println();
   }
 
+  //Set the reserved size of stack memory in bytes for internal stream callback processing RTOS task.
+  //8192 is the minimum size.
+
+  Firebase.setStreamCallback(readData, streamCallback, streamTimeoutCallback, 8192);
+  short isReset = 0;
+
   while (true) {
 
-    if (!Firebase.readStream(fbdo))
-    {
-      Serial.println("------------------------------------");
-      Serial.println("Can't read stream data...");
-      Serial.println("REASON: " + fbdo.errorReason());
-      Serial.println("------------------------------------");
-      Serial.println();
+
+    /*if (digitalRead(PINORESET) == LOW) {
+      while (digitalRead(PINORESET) == LOW) {
+        delay(1000);
+        isReset++;
+      }
+      }*/
+    if (isReset > 5) {
+      configs["default"] = true;
+      writeFile(JSON.stringify(configs), CONFIGURATION);
+      Serial.println("RESET BY PIN");
+      ESP.restart();
     }
 
-    if (fbdo.streamTimeout())
-    {
-      Serial.println("Stream timeout, resume streaming...");
-      Serial.println();
-    }
 
-    if (fbdo.streamAvailable())
-    {
-      Serial.println("------------------------------------");
-      Serial.println("Stream Data available...");
-      Serial.println("STREAM PATH: " + fbdo.streamPath());
-      Serial.println("EVENT PATH: " + fbdo.dataPath());
-      Serial.println("DATA TYPE: " + fbdo.dataType());
-      Serial.println("EVENT TYPE: " + fbdo.eventType());
-      Serial.print("VALUE: ");
-      printResult(fbdo);
-      Serial.println("------------------------------------");
-      Serial.println();
-    }
-    if ((millis() - ultimo_millis3) > 5000) { // se ja passou determinado tempo que o botao foi precionado
+    if ((millis() - ultimo_millis3) > 10000) { // se ja passou determinado tempo que o botao foi precionado
       ultimo_millis3 = millis();
 
+      if (WiFi.status() == WL_CONNECTED) {
+        json2.set("tempPROG", tempPROG);
+        json2.set("tempATUAL", tempATUAL);//(int) random(0, 40));
+        json2.set("LINHA_1", LINHA_1);
+        json2.set("potencia", potencia_1);
 
+        Serial.println("caminho do float: ");
+        Serial.println(nodo + "update");
 
-      json2.set("tempPROG", tempPROG);
-      json2.set("tempATUAL", (int) random(0, 40));//tempATUAL);
-      json2.set("LINHA_1", LINHA_1);
-      json2.set("potencia", potencia_1);
-      json2.set("rele", rele);
-
-      Serial.println("caminho do float: ");
-      Serial.println(nodo + "update");
-      if (Firebase.getBool(fbdo, nodo+"/R/" + "update")) {
-        isUpgrade = fbdo.boolData();
-        Serial.println(fbdo.boolData());
-        if (isUpgrade) {
+        if (isUpdate) {
           t_httpUpdate_return ret = ESPhttpUpdate.update("http://update.gigabyte.inf.br/update.bin");
           switch (ret) {
             case HTTP_UPDATE_FAILED:
@@ -605,27 +621,18 @@ void coreTaskOne( void * pvParameters ) {
               break;
           }
         }
-      } else {
-        Serial.println(fbdo.errorReason());
+
+        if (Firebase.updateNode(writeData, nodo + "/W/", json2)) {
+          Serial.println(writeData.dataPath() + "/" + writeData.pushName());
+          Firebase.setTimestamp(writeData, nodo + "/W/Timestamp");
+        } else {
+          Serial.println(writeData.errorReason());
+        }
+        writeData.stopWiFiClient();
+      }else{
+        WiFi.reconnect();
       }
-
-      if (Firebase.updateNode(fbdo, nodo+"/W/", json2)) {
-        Serial.println(fbdo.dataPath() + "/" + fbdo.pushName());
-      } else {
-        Serial.println(fbdo.errorReason());
-      }
-      fbdo.stopWiFiClient();
-
-
-
-
     }
     delay(1);
   }
-
-
-
-
-
-
 }
