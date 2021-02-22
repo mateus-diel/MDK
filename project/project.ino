@@ -38,6 +38,7 @@ volatile float tempATUAL = 0.0;
 volatile float lastTempATUAL = 0.0;
 volatile boolean rele = false;
 volatile bool isUpdate = false;
+volatile int numError = 0;
 JSONVar configs;
 JSONVar devices;
 
@@ -300,6 +301,9 @@ void coreTaskZero( void * pvParameters ) {
     sensors.requestTemperatures();
     tempATUAL = sensors.getTempCByIndex(0);
     delay(10);
+    if(tempATUAL <- 100){
+      numError++;
+    }
     if ((millis() - ultimo_millis2) > debounce_delay) {
       ultimo_millis2 = millis();
       //Serial.print(tempATUAL);
@@ -604,6 +608,7 @@ void coreTaskOne( void * pvParameters ) {
         json2.set("tempATUAL", tempATUAL);//(int) random(0, 40));
         json2.set("LINHA_1", LINHA_1);
         json2.set("potencia", potencia_1);
+        json2.set("erro leitura", numError);
 
         Serial.println("caminho do float: ");
         Serial.println(nodo + "update");
