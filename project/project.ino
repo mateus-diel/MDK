@@ -299,6 +299,7 @@ void coreTaskZero( void * pvParameters ) {
 
     sensors.requestTemperatures();
     tempATUAL = sensors.getTempCByIndex(0);
+    delay(10);
     if ((millis() - ultimo_millis2) > debounce_delay) {
       ultimo_millis2 = millis();
       //Serial.print(tempATUAL);
@@ -341,10 +342,13 @@ void coreTaskZero( void * pvParameters ) {
           DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
           //Serial.println("aumentando potencia");
         } else if (tempATUAL > tempPROG - 0.1) {
-          potencia_1 = potencia_1 - 10;
+          /*potencia_1 = potencia_1 - 10;
           potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
           DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
-          //Serial.println("baixando potencia");
+          //Serial.println("baixando potencia");*/
+          potencia_1 = 0;
+          potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
+          DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
         }
         lastTempATUAL = tempATUAL;
       }
@@ -550,7 +554,7 @@ void coreTaskOne( void * pvParameters ) {
   Firebase.begin(&configur, &auth);
   String nodo = "/cliente/" + String((const char *) configs["client_id"]) + "/" + String((const char*) configs["deviceName"]) + "/";
   Firebase.setFloatDigits(2);
-  Firebase.setDoubleDigits(6);
+  Firebase.setDoubleDigits(2);
   FirebaseJson json2, json1;
   json1.set("update", false);
   if (!Firebase.updateNode(readData, nodo + "R/", json1)) {

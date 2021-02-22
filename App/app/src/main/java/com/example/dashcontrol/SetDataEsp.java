@@ -69,6 +69,7 @@ public class SetDataEsp extends AppCompatActivity {
         temp.setTextEnabled(true);
         temp.setText("...");
 
+
         Intent intent = getIntent();
         txtLocal.setText(intent.getStringExtra("nome").toUpperCase());
         address = "http://".concat(intent.getStringExtra("ip")).concat("/get");

@@ -160,10 +160,13 @@ public class DashLocal extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        synchronized (mPauseLock) {
-            mPaused = false;
-            mPauseLock.notifyAll();
+        if(mPauseLock != null){
+            synchronized (mPauseLock) {
+                mPaused = false;
+                mPauseLock.notifyAll();
+            }
         }
+
     }
 
     @Override
@@ -176,6 +179,9 @@ public class DashLocal extends AppCompatActivity {
 
     @Override
     protected void onStop() {
+        synchronized (mPauseLock) {
+            mPaused = true;
+        }
         super.onStop();
     }
 

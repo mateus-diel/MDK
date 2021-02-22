@@ -12,10 +12,16 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:usesCleartextTraffic="true"
         android:supportsRtl="true"
-        android:theme="@style/Theme.DashControl">
-        <activity android:name=".SetDataEsp"></activity>
+        android:theme="@style/Theme.DashControl"
+        android:usesCleartextTraffic="true">
+        <activity
+            android:name=".DataEspWeb"
+            android:label="@string/title_activity_data_esp_web"
+            android:theme="@style/Theme.DashControl.NoActionBar"></activity>
+        <activity android:name=".DashWeb" />
+        <activity android:name=".CadastrarUsuario" />
+        <activity android:name=".SetDataEsp" />
         <activity android:name=".DashLocal" />
         <activity android:name=".Login" />
         <activity android:name=".ConfigureEsp" />
