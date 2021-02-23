@@ -56,7 +56,7 @@ unsigned long ultimo_millis2 = 0;
 unsigned long ultimo_millis3 = 0;
 unsigned long debounce_delay = 500;
 
-
+/*
 void printResult(StreamData &data) {
 
   if (data.dataType() == "int")
@@ -119,7 +119,7 @@ void printResult(StreamData &data) {
     updateValues = true;
   }
 }
-
+*/
 void streamCallback(StreamData data) {
   Serial.println("Stream Data1 available...");
   Serial.println("STREAM PATH: " + data.streamPath());
@@ -127,7 +127,26 @@ void streamCallback(StreamData data) {
   Serial.println("DATA TYPE: " + data.dataType());
   Serial.println("EVENT TYPE: " + data.eventType());
   Serial.print("VALUE: ");
-  printResult(data);
+  
+  if (data.dataPath().indexOf("update")>-1) {
+          if (data.boolData() == 1) {
+            isUpdate = true;
+          }
+
+        } else if (data.dataPath().indexOf("tempPROG")>-1) {
+          tempPROG = (float) data.intData();
+        } else if (data.dataPath().indexOf("LINHA_1")>-1) {
+          if (data.boolData()==1) {
+            Serial.println("Bora ligar tigronelsa?");
+            LINHA_1 = true;
+          } else {
+            LINHA_1 = false;
+          }
+        }
+        updateValues = true;
+        
+  //printResult(data);
+  
   Serial.println();
 }
 
@@ -252,7 +271,7 @@ void loop() {
 }
 
 void taskDim( void * pvParameters ) {
-  
+
   DimmableLight DIMMER_1(PINO_DIM_1);
   DimmableLight::setSyncPin(PINO_ZC);
   DimmableLight::begin();
@@ -340,7 +359,7 @@ void taskDim( void * pvParameters ) {
 }
 
 void taskConn( void * pvParameters ) {
-  
+
   if ((bool) configs["default"]) {
     WiFi.mode(WIFI_AP);
     delay(1000);
@@ -581,8 +600,13 @@ void taskConn( void * pvParameters ) {
         json2.set("potencia", potencia_1);
         json2.set("erro leitura", numError);
 
-        Serial.println("caminho do float: ");
-        Serial.println(nodo + "update");
+        if (Firebase.updateNode(writeData, nodo + "/W/", json2)) {
+          Serial.println(writeData.dataPath() + "/" + writeData.pushName());
+        } else {
+          Serial.println(writeData.errorReason());
+        }
+        Firebase.setTimestamp(writeData, nodo + "/W/Timestamp");
+        writeData.stopWiFiClient();
 
         if (isUpdate) {
           t_httpUpdate_return ret = ESPhttpUpdate.update("http://update.gigabyte.inf.br/update.bin");
@@ -602,13 +626,7 @@ void taskConn( void * pvParameters ) {
           }
         }
 
-        if (Firebase.updateNode(writeData, nodo + "/W/", json2)) {
-          Serial.println(writeData.dataPath() + "/" + writeData.pushName());
-          Firebase.setTimestamp(writeData, nodo + "/W/Timestamp");
-        } else {
-          Serial.println(writeData.errorReason());
-        }
-        writeData.stopWiFiClient();
+
       } else {
         WiFi.reconnect();
       }
