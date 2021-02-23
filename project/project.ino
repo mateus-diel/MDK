@@ -27,9 +27,7 @@ String senha;
 String api_key;
 String host;
 
-// Set web server port number to 80
 AsyncWebServer  server(80);
-
 
 short RELE_1 = 16;
 
@@ -39,26 +37,20 @@ volatile float lastTempATUAL = 0.0;
 volatile boolean rele = false;
 volatile bool isUpdate = false;
 volatile int numError = 0;
+volatile bool updateValues = false;
 JSONVar configs;
 JSONVar devices;
 
 volatile boolean LINHA_1 = true;
 
-// GPIO where the DS18B20 is connected to
 const int oneWireBus = 15;
 
-// Setup a oneWire instance to communicate with any OneWire devices
 OneWire oneWire(oneWireBus);
 
-// Pass our oneWire reference to Dallas Temperature sensor
 DallasTemperature sensors(&oneWire);
 
 
-//variaveis globais
 volatile int potencia_1 = 0;
-
-
-
 unsigned long ultimo_millis1 = 0;
 unsigned long ultimo_millis2 = 0;
 unsigned long ultimo_millis3 = 0;
@@ -105,7 +97,6 @@ void printResult(StreamData &data) {
         if (key.equals("update")) {
           value.toLowerCase();
           if (value.equals("true")) {
-            Serial.println("Bora atualizar tigrao?");
             isUpdate = true;
           }
 
@@ -125,6 +116,7 @@ void printResult(StreamData &data) {
       Serial.println(value);
     }
     json->iteratorEnd();
+    updateValues = true;
   }
 }
 
@@ -232,7 +224,6 @@ void setup() {
   }
 
   if (!(bool) configs["default"]) {
-
     api_key = String((const char*)configs["api_key"]);
     email = String((const char*)configs["user_email"]);
     senha = String((const char*)configs["user_senha"]);
@@ -241,7 +232,6 @@ void setup() {
     tempPROG = (double) devices["tempPROG_1"];
     LINHA_1 = (bool) devices["linha_1"];
 
-    // Start the DS18B20 sensor
     sensors.begin();
 
     Serial.print("\ntemperatura programada lida: ");
@@ -251,38 +241,18 @@ void setup() {
   pinMode(RELE_1, OUTPUT);
   digitalWrite(RELE_1, LOW);
 
-  xTaskCreatePinnedToCore(
-    coreTaskZero,   /* função que implementa a tarefa */
-    "coreTaskZero", /* nome da tarefa */
-    10000,      /* número de palavras a serem alocadas para uso com a pilha da tarefa */
-    NULL,       /* parâmetro de entrada para a tarefa (pode ser NULL) */
-    1,          /* prioridade da tarefa (0 a N) */
-    NULL,       /* referência para a tarefa (pode ser NULL) */
-    0);         /* Núcleo que executará a tarefa */
-
-  delay(500); //tempo para a tarefa iniciar
-
-  xTaskCreatePinnedToCore(
-    coreTaskOne,   /* função que implementa a tarefa */
-    "coreTaskOne", /* nome da tarefa */
-    10000,      /* número de palavras a serem alocadas para uso com a pilha da tarefa */
-    NULL,       /* parâmetro de entrada para a tarefa (pode ser NULL) */
-    2,          /* prioridade da tarefa (0 a N) */
-    NULL,       /* referência para a tarefa (pode ser NULL) */
-    1);         /* Núcleo que executará a tarefa */
-
-  delay(500); //tempo para a tarefa iniciar
+  xTaskCreatePinnedToCore( taskDim, "taskDim", 10000, NULL, 1, NULL, 0);
+  delay(500);
+  xTaskCreatePinnedToCore( taskConn, "taskConn",  10000,  NULL,  2,  NULL,  1);
+  delay(500);
 }
 
 void loop() {
   vTaskSuspend(NULL);
 }
 
-void coreTaskZero( void * pvParameters ) {
-
-  String taskMessage = "Task running on core ";
-  taskMessage = taskMessage + xPortGetCoreID();
-  Serial.println(taskMessage);
+void taskDim( void * pvParameters ) {
+  
   DimmableLight DIMMER_1(PINO_DIM_1);
   DimmableLight::setSyncPin(PINO_ZC);
   DimmableLight::begin();
@@ -301,7 +271,7 @@ void coreTaskZero( void * pvParameters ) {
     sensors.requestTemperatures();
     tempATUAL = sensors.getTempCByIndex(0);
     delay(10);
-    if(tempATUAL <- 100){
+    if (tempATUAL < - 100) {
       numError++;
     }
     if ((millis() - ultimo_millis2) > debounce_delay) {
@@ -347,9 +317,9 @@ void coreTaskZero( void * pvParameters ) {
           //Serial.println("aumentando potencia");
         } else if (tempATUAL > tempPROG - 0.1) {
           /*potencia_1 = potencia_1 - 10;
-          potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
-          DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
-          //Serial.println("baixando potencia");*/
+            potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
+            DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
+            //Serial.println("baixando potencia");*/
           potencia_1 = 0;
           potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
           DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
@@ -369,11 +339,8 @@ void coreTaskZero( void * pvParameters ) {
   }
 }
 
-void coreTaskOne( void * pvParameters ) {
-  String taskMessage = "Task running on core ";
-  taskMessage = taskMessage + xPortGetCoreID();
-  Serial.println(taskMessage);
-
+void taskConn( void * pvParameters ) {
+  
   if ((bool) configs["default"]) {
     WiFi.mode(WIFI_AP);
     delay(1000);
@@ -449,6 +416,10 @@ void coreTaskOne( void * pvParameters ) {
       configs["password"] = (const char*) jso["password"];
       configs["deviceName"] = (const char*) jso["deviceName"];
       configs["defaultPassword"] = (const char*)configs["defaultPassword"];
+      configs["client_id"] = (const char*) jso["chave"];
+      configs["user_email"] = (const char*) jso["email"];
+      configs["user_senha"] = (const char*) jso["senha"];
+
       writeFile(JSON.stringify(configs), CONFIGURATION);
       ok["request"] = "ok";
       responseToClient(request, JSON.stringify(ok));
@@ -564,6 +535,9 @@ void coreTaskOne( void * pvParameters ) {
   if (!Firebase.updateNode(readData, nodo + "R/", json1)) {
     Serial.println("Erro ao atualizar boolean");
   }
+  if (!Firebase.setTimestamp(writeData, nodo + "/W/uptime")) {
+    Serial.println("Erro ao gravar a data em nuvem");
+  }
 
   Firebase.reconnectWiFi(true);
 
@@ -576,9 +550,6 @@ void coreTaskOne( void * pvParameters ) {
     Serial.println("------------------------------------");
     Serial.println();
   }
-
-  //Set the reserved size of stack memory in bytes for internal stream callback processing RTOS task.
-  //8192 is the minimum size.
 
   Firebase.setStreamCallback(readData, streamCallback, streamTimeoutCallback, 8192);
   short isReset = 0;
@@ -600,7 +571,7 @@ void coreTaskOne( void * pvParameters ) {
     }
 
 
-    if ((millis() - ultimo_millis3) > 10000) { // se ja passou determinado tempo que o botao foi precionado
+    if ((millis() - ultimo_millis3) > 10000 || updateValues) { // se ja passou determinado tempo que o botao foi precionado
       ultimo_millis3 = millis();
 
       if (WiFi.status() == WL_CONNECTED) {
@@ -638,9 +609,11 @@ void coreTaskOne( void * pvParameters ) {
           Serial.println(writeData.errorReason());
         }
         writeData.stopWiFiClient();
-      }else{
+      } else {
         WiFi.reconnect();
       }
+
+      updateValues = false;
     }
     delay(1);
   }
