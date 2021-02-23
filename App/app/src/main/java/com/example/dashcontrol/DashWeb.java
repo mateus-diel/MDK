@@ -85,13 +85,9 @@ public class DashWeb extends AppCompatActivity {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot snapshot) {
                                 grid.removeAllViews();
-                                Log.d("snappppppppppppp", snapshot.child("marcoa").child("W").child("Timestamp").getValue().toString());
                                 for (DataSnapshot device: snapshot.getChildren()) {
-                                    Log.d("deviceee", device.child("W").child("Timestamp").getValue().toString());
-                                    Log.d("sysstem",String.valueOf(System.currentTimeMillis()));
 
                                     if ((Math.abs(Long.valueOf(device.child("W").child("Timestamp").getValue().toString())-System.currentTimeMillis())/1000)<offset){
-                                        Log.d("Se","tyrue");
                                         Point size = new Point();
                                         Button z = new Button(getApplicationContext());
                                         z.setMinHeight(200);
@@ -111,7 +107,6 @@ public class DashWeb extends AppCompatActivity {
                                         z.setTag(device.getKey());
                                         z.setOnClickListener(DashWeb.this::onClick);
                                         grid.addView(z);
-                                        Log.d("Se","false");
                                     }
                                 }
                                 if(snapshot.exists()){

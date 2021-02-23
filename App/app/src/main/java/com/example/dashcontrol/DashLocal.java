@@ -3,10 +3,12 @@ package com.example.dashcontrol;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Point;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.os.StrictMode;
 import android.util.Log;
@@ -47,9 +49,13 @@ public class DashLocal extends AppCompatActivity {
         setContentView(R.layout.activity_dash);
         //((GridLayout) findViewById(R.id.gridLayoutforESP)).removeAllViews();
 
-        mPauseLock = new Object();
-        mPaused = false;
-        mFinished = false;
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                // Your Code
+            }
+        }, 3000);
+
         mHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
@@ -114,7 +120,11 @@ public class DashLocal extends AppCompatActivity {
             }
         };
 
+
         grid = findViewById(R.id.gridLayoutforESP);
+        mPauseLock = new Object();
+        mPaused = false;
+        mFinished = false;
 
 
         thread = new Thread(){

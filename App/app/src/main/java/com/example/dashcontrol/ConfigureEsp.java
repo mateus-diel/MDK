@@ -65,7 +65,6 @@ public class ConfigureEsp extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_configure_esp);
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         queue = Volley.newRequestQueue(this);
         config = new JSONObject();
         isAutenticated = false;
@@ -73,7 +72,7 @@ public class ConfigureEsp extends AppCompatActivity {
          Log.d("email",prefs.getString("email","null"));
          Log.d("senha",prefs.getString("senha","null"));
          Log.d("chave",prefs.getString("chave","null"));
-         if(!prefs.getString("email","null").equals("null") || prefs.getString("senha","null").equals("null") || prefs.getString("chave","null").equals("null")){
+         if(prefs.getString("email","null").equals("null") || prefs.getString("senha","null").equals("null") || prefs.getString("chave","null").equals("null")){
              AlertDialog.Builder passResetDialog = new AlertDialog.Builder(this);
              passResetDialog.setTitle("Ops!");
              passResetDialog.setMessage("Para poder configurar um novo dispositivo, você precisar ter logado ao menos uma vez utilizando o seu email e senha! Clique em continuar para preencher todos os dados de forma manual, ou volte e faça login.");
