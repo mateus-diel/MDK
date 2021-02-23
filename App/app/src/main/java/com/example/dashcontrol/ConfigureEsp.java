@@ -7,21 +7,26 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.DhcpInfo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.text.InputType;
 import android.text.format.Formatter;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -52,6 +57,8 @@ public class ConfigureEsp extends AppCompatActivity {
     Button salvarConfig;
     RequestQueue queue;
     JSONObject config;
+    SharedPreferences prefs;
+    boolean isAutenticated;
 
     @SuppressLint("WifiManagerLeak")
     @Override
@@ -61,6 +68,59 @@ public class ConfigureEsp extends AppCompatActivity {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         queue = Volley.newRequestQueue(this);
         config = new JSONObject();
+        isAutenticated = false;
+         prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
+         Log.d("email",prefs.getString("email","null"));
+         Log.d("senha",prefs.getString("senha","null"));
+         Log.d("chave",prefs.getString("chave","null"));
+         if(!prefs.getString("email","null").equals("null") || prefs.getString("senha","null").equals("null") || prefs.getString("chave","null").equals("null")){
+             AlertDialog.Builder passResetDialog = new AlertDialog.Builder(this);
+             passResetDialog.setTitle("Ops!");
+             passResetDialog.setMessage("Para poder configurar um novo dispositivo, você precisar ter logado ao menos uma vez utilizando o seu email e senha! Clique em continuar para preencher todos os dados de forma manual, ou volte e faça login.");
+             passResetDialog.setCancelable(false);
+             passResetDialog.setNegativeButton("Voltar", new DialogInterface.OnClickListener() {
+                 @Override
+                 public void onClick(DialogInterface dialog, int which) {
+                     Intent intent = new Intent(getApplicationContext(), DashLocal.class);
+                     startActivity(intent);
+                     finish();
+                 }
+             }).setPositiveButton("Continuar", new DialogInterface.OnClickListener() {
+                 @Override
+                 public void onClick(DialogInterface dialog, int which) {
+                     dialog.cancel();
+                     EditText resetMail = new EditText(ConfigureEsp.this);
+                     resetMail.setHint("Email");
+                     resetMail.setInputType(InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
+                     EditText pw = new EditText(ConfigureEsp.this);
+                     pw.setHint("Senha");
+                     pw.setInputType(InputType.TYPE_TEXT_VARIATION_NORMAL);
+                     EditText key = new EditText(ConfigureEsp.this);
+                     key.setHint("Chave de ativação");
+                     key.setInputType(InputType.TYPE_TEXT_VARIATION_NORMAL);
+                     LinearLayout ll=new LinearLayout(ConfigureEsp.this);
+                     ll.setOrientation(LinearLayout.VERTICAL);
+                     ll.addView(resetMail);
+                     ll.addView(pw);
+                     ll.addView(key);
+                     AlertDialog.Builder dialogg = new AlertDialog.Builder(ConfigureEsp.this);
+                     dialogg.setTitle("Validação");
+                     dialogg.setMessage("Insira os dados de autenticação ou solicite-nos!");
+                     dialogg.setView(ll);
+                     dialogg.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                         @Override
+                         public void onClick(DialogInterface dialog, int which) {
+
+                         }
+                     });
+                     dialogg.create().show();
+
+                 }
+             });
+             passResetDialog.create().show();
+         }else{
+             isAutenticated = true;
+         }
 
 
         txtRedeSelecionada = findViewById(R.id.txtRedeSelecionada);
@@ -78,6 +138,11 @@ public class ConfigureEsp extends AppCompatActivity {
                     config.put("configNetwork", false);
                     config.put("password", ((EditText)findViewById(R.id.senhaWifi)).getText());
                     config.put("deviceName", ((TextView)findViewById(R.id.nomeDispositivo)).getText());
+                    if(isAutenticated){
+                        config.put("email", prefs.getString("email","null"));
+                        config.put("senha", prefs.getString("senha","null"));
+                        config.put("chave", prefs.getString("chave","null"));
+                    }
                     Log.d("jsonOb",config.toString());
                     queue = Volley.newRequestQueue(getApplicationContext());
                     sendConfigEsp(queue,address,config);

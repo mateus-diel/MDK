@@ -166,6 +166,7 @@ public class Login extends AppCompatActivity {
                         SharedPreferences prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
                         SharedPreferences.Editor editor = prefs.edit();
                         editor.putString("email", firebaseAuth.getCurrentUser().getEmail());
+                        editor.putString("senha", pass);
                         editor.putString("chave", firebaseAuth.getCurrentUser().getUid());
                         editor.apply();
                     }else{

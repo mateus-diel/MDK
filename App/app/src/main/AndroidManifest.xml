@@ -18,13 +18,20 @@
         <activity
             android:name=".DataEspWeb"
             android:label="@string/title_activity_data_esp_web"
-            android:theme="@style/Theme.DashControl.NoActionBar"></activity>
-        <activity android:name=".DashWeb" />
-        <activity android:name=".CadastrarUsuario" />
-        <activity android:name=".SetDataEsp" />
-        <activity android:name=".DashLocal" />
-        <activity android:name=".Login" />
-        <activity android:name=".ConfigureEsp" />
+            android:theme="@style/Theme.DashControl.NoActionBar"
+            android:screenOrientation="portrait"></activity>
+        <activity android:name=".DashWeb"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".CadastrarUsuario"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".SetDataEsp"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".DashLocal"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".Login"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".ConfigureEsp"
+            android:screenOrientation="portrait"/>
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
