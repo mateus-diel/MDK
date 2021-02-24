@@ -1,16 +1,11 @@
 package com.example.dashcontrol;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AppCompatDelegate;
-
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.text.InputType;
 import android.text.TextUtils;
@@ -22,14 +17,15 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 
 public class Login extends AppCompatActivity {
     Button btnLoginLocal, novoUsuario, loginBtn;
@@ -170,15 +166,16 @@ public class Login extends AppCompatActivity {
                         editor.putString("chave", firebaseAuth.getCurrentUser().getUid());
                         editor.apply();
                     }else{
-                        firebaseAuth.getCurrentUser().sendEmailVerification().addOnCompleteListener(new OnCompleteListener<Void>() {
+                        firebaseAuth.getCurrentUser().sendEmailVerification().addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
-                            public void onComplete(@NonNull Task<Void> task) {
-                                Toast.makeText(Login.this, "Email não verificado! Um link foi enviado para a verificação!",Toast.LENGTH_LONG).show();
+                            public void onSuccess(Void aVoid) {
+                                Toast.makeText(Login.this, "Email não verificado! Um link foi enviado para a verificação!", Toast.LENGTH_LONG).show();
                             }
                         }).addOnFailureListener(new OnFailureListener() {
                             @Override
                             public void onFailure(@NonNull Exception e) {
-                                Toast.makeText(Login.this, "Email não verificado! Não foi possível enviar um email de verificação, contate-nos!",Toast.LENGTH_LONG).show();
+                                Toast.makeText(Login.this, "Email não verificado! Não foi possível enviar um email de verificação, contate-nos!", Toast.LENGTH_LONG).show();
+                                Log.d("Exception,", e.getMessage());
                             }
                         });
                     }

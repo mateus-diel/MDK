@@ -1,8 +1,5 @@
 package com.example.dashcontrol;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
@@ -11,8 +8,10 @@ import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ProgressBar;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -20,13 +19,12 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
-import java.util.regex.PatternSyntaxException;
-
 public class CadastrarUsuario extends AppCompatActivity {
-    private EditText email, password, passwrodConfirm;
+    private EditText email, password, passwrodConfirm, nome;
     private Button bntCadastrar;
     private ProgressDialog progressDialog;
     private FirebaseAuth firebaseAuth;
@@ -46,6 +44,7 @@ public class CadastrarUsuario extends AppCompatActivity {
         password = findViewById(R.id.newUserPassword);
         passwrodConfirm = findViewById(R.id.newUserPasswordConfirm);
         bntCadastrar = findViewById(R.id.newUserButtonCad);
+        nome = findViewById(R.id.NomeUsuario);
         progressDialog = new ProgressDialog(this);
 
         bntCadastrar.setOnClickListener(new View.OnClickListener() {
@@ -60,6 +59,7 @@ public class CadastrarUsuario extends AppCompatActivity {
     private void register() {
         String mail = email.getText().toString();
         String pass = password.getText().toString();
+        String name = nome.getText().toString();
         String passConfirm = passwrodConfirm.getText().toString();
         if(mail.isEmpty()){
             email.setError("Digite seu email!");
@@ -72,9 +72,11 @@ public class CadastrarUsuario extends AppCompatActivity {
         if(mail.isEmpty()){
             passwrodConfirm.setError("Confirme sua senha!");
             return;
-        } else
-        if(!isValidEmail(mail)){
+        } else if (!isValidEmail(mail)) {
             email.setError("Email inválido!");
+            return;
+        } else if (name.isEmpty()) {
+            nome.setError("Digite o seu nome!");
             return;
         }
         progressDialog.setMessage("Por favor, aguarde...");
@@ -88,10 +90,23 @@ public class CadastrarUsuario extends AppCompatActivity {
                     myRef.child(firebaseAuth.getCurrentUser().getUid().trim()).child("ativo").setValue(false).addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
-                            Toast.makeText(CadastrarUsuario.this, "Registrado com sucesso",Toast.LENGTH_LONG).show();
-                            Intent intent = new Intent(CadastrarUsuario.this, DashWeb.class);
-                            startActivity(intent);
-                            finish();
+                            UserProfileChangeRequest profileChangeRequest = new UserProfileChangeRequest.Builder().setDisplayName(name).build();
+                            firebaseAuth.getCurrentUser().updateProfile(profileChangeRequest).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    Toast.makeText(CadastrarUsuario.this, "Registrado com sucesso!", Toast.LENGTH_LONG).show();
+                                    Intent intent = new Intent(CadastrarUsuario.this, Login.class);
+                                    startActivity(intent);
+                                    finish();
+                                }
+                            }).addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    firebaseAuth.getCurrentUser().delete();
+                                    Toast.makeText(CadastrarUsuario.this, "Não foi possível registrar seu nome de usuário, tente novamente!", Toast.LENGTH_LONG).show();
+                                }
+                            });
+
                         }
                     }).addOnFailureListener(new OnFailureListener() {
                         @Override
@@ -105,7 +120,7 @@ public class CadastrarUsuario extends AppCompatActivity {
                             }).addOnFailureListener(new OnFailureListener() {
                                 @Override
                                 public void onFailure(@NonNull Exception e) {
-                                    Toast.makeText(CadastrarUsuario.this, "Não foi possível aprovisionar!",Toast.LENGTH_LONG).show();
+                                    Toast.makeText(CadastrarUsuario.this, "Não foi possível registrar e desfazer as alterações!", Toast.LENGTH_LONG).show();
                                 }
                             });
                         }

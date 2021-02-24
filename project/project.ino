@@ -18,6 +18,7 @@
 #define PINORESET 13
 #define CONFIGURATION "/configs.json"
 #define DEVICESINFO "/devices.json"
+#define VERSION "1.01"
 
 
 FirebaseData writeData;
@@ -56,70 +57,6 @@ unsigned long ultimo_millis2 = 0;
 unsigned long ultimo_millis3 = 0;
 unsigned long debounce_delay = 500;
 
-/*
-void printResult(StreamData &data) {
-
-  if (data.dataType() == "int")
-    Serial.println(data.intData());
-  else if (data.dataType() == "float")
-    Serial.println(data.floatData(), 5);
-  else if (data.dataType() == "double")
-    printf("%.9lf\n", data.doubleData());
-  else if (data.dataType() == "boolean")
-    Serial.println(data.boolData() == 1 ? "true" : "false");
-  else if (data.dataType() == "string" || data.dataType() == "null")
-    Serial.println(data.stringData());
-  else if (data.dataType() == "json")
-  {
-    Serial.println();
-    FirebaseJson *json = data.jsonObjectPtr();
-    Serial.println("Pretty printed JSON data:");
-    String jsonStr;
-    json->toString(jsonStr, true);
-    Serial.println(jsonStr);
-    Serial.println();
-    Serial.println("Iterate JSON data:");
-    Serial.println();
-    size_t len = json->iteratorBegin();
-    String key, value = "";
-    int type = 0;
-    for (size_t i = 0; i < len; i++)
-    {
-      json->iteratorGet(i, type, key, value);
-      Serial.print(i);
-      Serial.print(", ");
-      Serial.print("Type: ");
-      Serial.print(type == FirebaseJson::JSON_OBJECT ? "object" : "array");
-      if (type == FirebaseJson::JSON_OBJECT)
-      {
-        Serial.print(", Key: ");
-        Serial.print(key);
-        if (key.equals("update")) {
-          value.toLowerCase();
-          if (value.equals("true")) {
-            isUpdate = true;
-          }
-
-        } else if (key.equals("tempPROG")) {
-          tempPROG = (float) value.toFloat();
-        } else if (key.equals("LINHA_1")) {
-          value.toLowerCase();
-          if (value.equals("true")) {
-            Serial.println("Bora ligar tigronelsa?");
-            LINHA_1 = true;
-          } else {
-            LINHA_1 = false;
-          }
-        }
-      }
-      Serial.print(", Value: ");
-      Serial.println(value);
-    }
-    json->iteratorEnd();
-    updateValues = true;
-  }
-}
-*/
 void streamCallback(StreamData data) {
   Serial.println("Stream Data1 available...");
   Serial.println("STREAM PATH: " + data.streamPath());
@@ -127,26 +64,24 @@ void streamCallback(StreamData data) {
   Serial.println("DATA TYPE: " + data.dataType());
   Serial.println("EVENT TYPE: " + data.eventType());
   Serial.print("VALUE: ");
-  
-  if (data.dataPath().indexOf("update")>-1) {
-          if (data.boolData() == 1) {
-            isUpdate = true;
-          }
 
-        } else if (data.dataPath().indexOf("tempPROG")>-1) {
-          tempPROG = (float) data.intData();
-        } else if (data.dataPath().indexOf("LINHA_1")>-1) {
-          if (data.boolData()==1) {
-            Serial.println("Bora ligar tigronelsa?");
-            LINHA_1 = true;
-          } else {
-            LINHA_1 = false;
-          }
-        }
-        updateValues = true;
-        
-  //printResult(data);
-  
+  if (data.dataPath().indexOf("update") > -1) {
+    if (data.boolData() == 1) {
+      isUpdate = true;
+    }
+
+  } else if (data.dataPath().indexOf("tempPROG") > -1) {
+    tempPROG = (float) data.intData();
+  } else if (data.dataPath().indexOf("LINHA_1") > -1) {
+    if (data.boolData() == 1) {
+      Serial.println("Bora ligar tigronelsa?");
+      LINHA_1 = true;
+    } else {
+      LINHA_1 = false;
+    }
+  }
+  updateValues = true;
+
   Serial.println();
 }
 
@@ -222,7 +157,7 @@ boolean writeFile(String message, String path) {
 
 
 void setup() {
-  Serial.begin(115200);//inicia a serial
+  Serial.begin(115200);
   while (!Serial);
   Serial.println("ESP INICIADO");
   pinMode(PINORESET, INPUT);
@@ -295,13 +230,13 @@ void taskDim( void * pvParameters ) {
     }
     if ((millis() - ultimo_millis2) > debounce_delay) {
       ultimo_millis2 = millis();
-      //Serial.print(tempATUAL);
+      Serial.print(tempATUAL);
       devices["sensor1"] = tempATUAL;
       devices["linha_1"] = LINHA_1;
       devices["tempPROG"] = tempPROG;
-      //Serial.println("ºC");
-      //Serial.print("Potencia -> " + String(potencia_1) + " :");
-      //Serial.println(DIMMER_1.getBrightness()); // mostra a quantidade de brilho atual
+      Serial.println("ºC");
+      Serial.print("Potencia -> " + String(potencia_1) + " :");
+      Serial.println(DIMMER_1.getBrightness()); // mostra a quantidade de brilho atual
     }
 
     if ((millis() - ultimo_millis1) > debounce_delay + 1800000) {
@@ -381,7 +316,6 @@ void taskConn( void * pvParameters ) {
 
     WiFi.softAP(ssid, pass);
     delay(2000);
-    //Serial.println(WiFi.softAPConfig(ap_local_IP, ap_gateway, ap_subnet)? "Configuring Soft AP" : "Error in Configuration");
 
     delay(100);
 
@@ -491,8 +425,6 @@ void taskConn( void * pvParameters ) {
   }
 
   Serial.println("mDNS responder started");
-
-  // Start TCP (HTTP) server
   Serial.println("TCP server started");
   /*
     if ((millis() - ultimo_millis3) > 5000) { // se ja passou determinado tempo que o botao foi precionado
@@ -500,7 +432,6 @@ void taskConn( void * pvParameters ) {
       MDNS.addService("dimmer", "tcp", 80);
     }*/
 
-  // Add service to MDNS-SD
   MDNS.addService("dimmer", "tcp", 80);
   Serial.println("HTTP server started");
 
@@ -509,8 +440,6 @@ void taskConn( void * pvParameters ) {
   }
 
   FirebaseAuth auth;
-
-  // Define the FirebaseConfig data for config data
   FirebaseConfig configur;
 
   char hostt[host.length() + 1];
@@ -544,7 +473,6 @@ void taskConn( void * pvParameters ) {
   Serial.print("senha: ");
   Serial.println(senhaa);
 
-  //Initialize the library with the Firebase authen and config.
   Firebase.begin(&configur, &auth);
   String nodo = "/cliente/" + String((const char *) configs["client_id"]) + "/" + String((const char*) configs["deviceName"]) + "/";
   Firebase.setFloatDigits(2);
@@ -590,7 +518,7 @@ void taskConn( void * pvParameters ) {
     }
 
 
-    if ((millis() - ultimo_millis3) > 10000 || updateValues) { // se ja passou determinado tempo que o botao foi precionado
+    if ((millis() - ultimo_millis3) > 10000 || updateValues) {
       ultimo_millis3 = millis();
 
       if (WiFi.status() == WL_CONNECTED) {

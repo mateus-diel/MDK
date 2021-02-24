@@ -1,10 +1,5 @@
 package com.example.dashcontrol;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AppCompatDelegate;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
@@ -31,6 +26,11 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -38,7 +38,6 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
 import org.json.JSONObject;
@@ -172,12 +171,14 @@ public class ConfigureEsp extends AppCompatActivity {
         wifiManager = (WifiManager)getSystemService(Context.WIFI_SERVICE);
         wifiReceiver = new WifiReceiver();
         registerReceiver(wifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-
         if(ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED){
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},0 );
+
         }else{
             scanWifiList();
         }
+
+
     }
 
     private void scanWifiList() {
@@ -230,9 +231,23 @@ public class ConfigureEsp extends AppCompatActivity {
 // Adiciona a Fila de requisicoes
         q.add(getRequest);
     }
+
     private void scanSuccess() {
         List<ScanResult> results = wifiManager.getScanResults();
 
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        Log.d("Permission", "Result");
+
+        if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(getApplicationContext(), "Infelizmente você não concedeu permisso~es para configurar a WiFi. Tente novamente!", Toast.LENGTH_LONG);
+        } else {
+            Log.d("Vou", "Escanear as wifi");
+            scanWifiList();
+        }
     }
 
     private void scanFailure() {
@@ -241,7 +256,8 @@ public class ConfigureEsp extends AppCompatActivity {
         List<ScanResult> results = wifiManager.getScanResults();
 
     }
-    private void sendConfigEsp(RequestQueue q, String url, JSONObject json){
+
+    private void sendConfigEsp(RequestQueue q, String url, JSONObject json) {
         String address = "http://".concat(url).concat("/post");
         Log.d("esp endereço completo", address);
         //String address = "https://httpbin.org/post";

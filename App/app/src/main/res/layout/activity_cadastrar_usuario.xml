@@ -14,7 +14,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Cadastrar"
-        android:textSize="40dp"
+        android:textSize="30dp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -22,8 +22,22 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
+        android:layout_marginTop="20dp"
         >
+
+        <EditText
+            android:id="@+id/NomeUsuario"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPersonName"
+            android:paddingVertical="15dp"
+            android:hint="Digite seu nome..."></EditText>
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp">
 
         <EditText
             android:id="@+id/email"
@@ -31,14 +45,13 @@
             android:layout_height="wrap_content"
             android:inputType="textEmailAddress"
             android:paddingVertical="15dp"
-            android:hint="Digite seu email..."
-            ></EditText>
+            android:hint="Digite seu email..."></EditText>
     </RelativeLayout>
+
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
-        >
+        android:layout_marginTop="20dp">
 
         <EditText
             android:id="@+id/newUserPassword"
@@ -46,14 +59,13 @@
             android:layout_height="wrap_content"
             android:inputType="textEmailAddress"
             android:paddingVertical="15dp"
-            android:hint="Digite sua senha..."
-            ></EditText>
+            android:hint="Digite sua senha..."></EditText>
     </RelativeLayout>
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
+        android:layout_marginTop="20dp"
         >
 
         <EditText
@@ -68,7 +80,7 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
+        android:layout_marginTop="20dp"
         >
 
         <Button
