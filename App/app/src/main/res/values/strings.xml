@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Controle Eletrônico</string>
     <string name="title_activity_login">FullscreenActivity</string>
+    <string name="esqueceuSenha"><u>Esqueceu a senha?</u></string>
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="title_activity_main2">MainActivity</string>

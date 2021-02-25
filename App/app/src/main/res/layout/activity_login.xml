@@ -78,14 +78,36 @@
                 android:id="@+id/senhaUsuario"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_margin="15dip"
+                android:layout_margin="15sp"
                 android:hint="Senha"
                 android:inputType="textPassword" />
         </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <CheckBox
+                android:layout_marginLeft="20sp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/checkBoxConectado"></CheckBox>
+
+
+            <TextView
+                android:id="@+id/materConectado"
+                android:layout_width="wrap_content"
+                android:textColor="@color/black"
+                android:textSize="15sp"
+                android:layout_height="wrap_content"
+                android:text="Mater-me conectado" />
+
+            >
+        </LinearLayout>
+
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_marginTop="15dp"
             android:layout_height="wrap_content"
             android:gravity="center"
             android:orientation="horizontal">
@@ -93,25 +115,35 @@
 
             <Button
                 android:id="@+id/btnLogin"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
+                android:layout_marginHorizontal="90sp"
                 android:textColor="@color/white"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical|center_horizontal"
-                android:text="Login" />
+                android:text="Entrar" />
+
+
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_marginTop="5dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
 
             <Button
                 android:id="@+id/btnCadastrar"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical|center_horizontal"
+                android:layout_marginHorizontal="90sp"
                 android:layout_marginLeft="10sp"
-                android:text="Cadastrar"
+                android:text="Não tenho cadastro"
 
                 android:textColor="@color/white" />
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_marginTop="15dp"
             android:layout_height="wrap_content"
             android:gravity="center"
             android:orientation="horizontal">
@@ -121,11 +153,15 @@
                 android:id="@+id/esqueciSenha"
                 android:layout_width="wrap_content"
                 android:textColor="@color/black"
+                android:textSize="15sp"
+                android:textStyle="italic"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical|center_horizontal"
-                android:text="Esqueceu a senha?" />
->
+                android:text="@string/esqueceuSenha" />
+
+
         </LinearLayout>
+
 
 
     </LinearLayout>
@@ -143,18 +179,20 @@
             android:layout_height="wrap_content"
             android:layout_margin="20dp"
             android:layout_marginTop="20dp"
-            android:text="Outras formas de Login:"
+            android:text="Outras formas para entrar:"
+            android:textColor="@color/black"
             android:textAlignment="center"
-            android:textSize="20sp" />
+            android:textSize="15sp" />
 
         <Button
             android:id="@+id/btnLoginLocal"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_marginHorizontal="90sp"
             android:textColor="@color/white"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical|center_horizontal"
             android:layout_centerInParent="true"
-            android:text="Login Local" />
+            android:text="Entrar Local" />
 
 
     </LinearLayout>

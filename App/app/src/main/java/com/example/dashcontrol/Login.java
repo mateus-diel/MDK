@@ -13,6 +13,7 @@ import android.util.Log;
 import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -33,12 +34,15 @@ public class Login extends AppCompatActivity {
     TextView esqueceuSenha;
     ProgressDialog progressDialog;
     FirebaseAuth firebaseAuth;
+    CheckBox  check;
+    SharedPreferences prefs;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
         loginBtn = findViewById(R.id.btnLogin);
         btnLoginLocal = findViewById(R.id.btnLoginLocal);
 
@@ -48,6 +52,7 @@ public class Login extends AppCompatActivity {
         progressDialog = new ProgressDialog(this);
         firebaseAuth = FirebaseAuth.getInstance();
         esqueceuSenha = findViewById(R.id.esqueciSenha);
+        check = findViewById(R.id.checkBoxConectado);
 
         esqueceuSenha.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -123,6 +128,13 @@ public class Login extends AppCompatActivity {
 
             }
         });
+        if(prefs.getBoolean("autoLogin",false)){
+            check.setChecked(true);
+            login.setText(prefs.getString("email","null"));
+            senha.setText(prefs.getString("senha","null"));
+            Login();
+
+        }
 
 
     }
@@ -159,11 +171,15 @@ public class Login extends AppCompatActivity {
                         Intent intent = new Intent(Login.this, DashWeb.class);
                         startActivity(intent);
                         Log.d("Usuário logado", firebaseAuth.getCurrentUser().getEmail());
-                        SharedPreferences prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
                         SharedPreferences.Editor editor = prefs.edit();
                         editor.putString("email", firebaseAuth.getCurrentUser().getEmail());
                         editor.putString("senha", pass);
                         editor.putString("chave", firebaseAuth.getCurrentUser().getUid());
+                        if(check.isChecked()){
+                            editor.putBoolean("autoLogin", true);
+                        }else{
+                            editor.putBoolean("autoLogin", false);
+                        }
                         editor.apply();
                     }else{
                         firebaseAuth.getCurrentUser().sendEmailVerification().addOnSuccessListener(new OnSuccessListener<Void>() {
