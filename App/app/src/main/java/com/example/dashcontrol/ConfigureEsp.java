@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.net.DhcpInfo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
@@ -21,6 +22,8 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.GridLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -42,6 +45,8 @@ import com.android.volley.toolbox.Volley;
 
 import org.json.JSONObject;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +63,7 @@ public class ConfigureEsp extends AppCompatActivity {
     JSONObject config;
     SharedPreferences prefs;
     boolean isAutenticated;
+    ImageView iconSelect;
 
     @SuppressLint("WifiManagerLeak")
     @Override
@@ -67,6 +73,35 @@ public class ConfigureEsp extends AppCompatActivity {
         queue = Volley.newRequestQueue(this);
         config = new JSONObject();
         isAutenticated = false;
+        iconSelect = findViewById(R.id.iconSelect);
+        iconSelect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AlertDialog.Builder icones = new AlertDialog.Builder(ConfigureEsp.this);
+                icones.setTitle("Selecione um icone");
+                icones.setCancelable(false);
+                GridLayout grid = new GridLayout(ConfigureEsp.this);
+                grid.setColumnCount(5);
+                Field[] drawablesFields = com.example.dashcontrol.R.drawable.class.getFields();
+                ArrayList<Drawable> drawables = new ArrayList<>();
+                ImageView img;
+
+                for (Field field : drawablesFields) {
+                    try {
+                        Log.i("LOG_TAG", "com.your.project.R.drawable." + field.getName());
+                        if(field.getName().contains("iconuserselect")){
+                            img = new ImageView(ConfigureEsp.this);
+                            img.setImageResource(field.getInt(null));
+                            grid.addView(img);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                icones.setView(grid);
+                icones.create().show();
+            }
+        });
          prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
          Log.d("email",prefs.getString("email","null"));
          Log.d("senha",prefs.getString("senha","null"));
