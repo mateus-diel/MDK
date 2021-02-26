@@ -12,156 +12,177 @@
         android:id="@+id/linearLayout2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:orientation="vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginTop="50dp"
-            android:layout_marginBottom="50dp"
             android:src="@drawable/logo">
 
         </ImageView>
+    </LinearLayout>
 
-        <LinearLayout
+    <LinearLayout
+        android:id="@+id/linearLayout8"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout6">
+
+        <ImageView
+            android:layout_width="73dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center_vertical"
+            android:src="@drawable/key"
+            tools:layout_editor_absoluteX="27dp"
+            tools:layout_editor_absoluteY="339dp" />
+
+        <EditText
+            android:id="@+id/senhaUsuario"
+            android:layout_width="290dp"
+            android:layout_height="58dp"
+            android:layout_margin="15sp"
+            android:hint="Senha"
+            android:inputType="textPassword"
+            tools:layout_editor_absoluteX="121dp"
+            tools:layout_editor_absoluteY="313dp" />
+
+
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:id="@+id/linearLayout6"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout2">
+
+        <ImageView
+            android:layout_width="73dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center_vertical"
+            android:src="@drawable/user"
+            tools:layout_editor_absoluteX="10dp"
+            tools:layout_editor_absoluteY="289dp" />
+
+        <EditText
+            android:id="@+id/loginUsuario"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="15dip"
+            android:hint="E-mail"
+            android:inputType="textEmailAddress"
+            tools:layout_editor_absoluteX="62dp"
+            tools:layout_editor_absoluteY="413dp" />
+
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/linearLayout11"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout8">
+
+        <CheckBox
+            android:id="@+id/checkBoxConectado"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="20sp"></CheckBox>
+
+
+        <TextView
+            android:id="@+id/materConectado"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Mater-me conectado"
+            android:textColor="@color/black"
+            android:textSize="15sp" />
+
+
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:id="@+id/linearLayout9"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout11">
+
+
+        <Button
+            android:id="@+id/btnLogin"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_gravity="center_vertical|center_horizontal"
+            android:layout_marginHorizontal="90sp"
+            android:text="Entrar"
+            android:textColor="@color/white" />
 
 
-            <RelativeLayout
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_centerVertical="true"
-                >
+    </LinearLayout>
 
-                <ImageView
-                    android:layout_width="73dp"
-                    android:layout_gravity="center_vertical"
-                    android:layout_centerVertical="true"
-                    android:layout_height="40dp"
-                    android:src="@drawable/user"
-                    />
-            </RelativeLayout>
+    <LinearLayout
+        android:id="@+id/linearLayout4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout9">
 
-            <EditText
-                android:id="@+id/loginUsuario"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="15dip"
-                android:hint="E-mail"
-                android:inputType="textEmailAddress" />
-        </LinearLayout>
-
-        <LinearLayout
+        <Button
+            android:id="@+id/btnCadastrar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            <RelativeLayout
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_centerVertical="true"
-                >
+            android:layout_gravity="center_vertical|center_horizontal"
+            android:layout_marginHorizontal="90sp"
+            android:layout_marginLeft="10sp"
+            android:text="Não tenho cadastro"
 
-                <ImageView
-                    android:layout_width="73dp"
-                    android:layout_gravity="center_vertical"
-                    android:layout_centerVertical="true"
-                    android:layout_height="40dp"
-                    android:src="@drawable/key"
-                    />
-            </RelativeLayout>
+            android:textColor="@color/white" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/linearLayout10"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout4">
 
 
-            <EditText
-                android:id="@+id/senhaUsuario"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="15sp"
-                android:hint="Senha"
-                android:inputType="textPassword" />
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/esqueciSenha"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <CheckBox
-                android:layout_marginLeft="20sp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/checkBoxConectado"></CheckBox>
-
-
-            <TextView
-                android:id="@+id/materConectado"
-                android:layout_width="wrap_content"
-                android:textColor="@color/black"
-                android:textSize="15sp"
-                android:layout_height="wrap_content"
-                android:text="Mater-me conectado" />
-
-            >
-        </LinearLayout>
-
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-
-            <Button
-                android:id="@+id/btnLogin"
-                android:layout_width="match_parent"
-                android:layout_marginHorizontal="90sp"
-                android:textColor="@color/white"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical|center_horizontal"
-                android:text="Entrar" />
-
-
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_marginTop="5dp"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btnCadastrar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical|center_horizontal"
-                android:layout_marginHorizontal="90sp"
-                android:layout_marginLeft="10sp"
-                android:text="Não tenho cadastro"
-
-                android:textColor="@color/white" />
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-
-            <TextView
-                android:id="@+id/esqueciSenha"
-                android:layout_width="wrap_content"
-                android:textColor="@color/black"
-                android:textSize="15sp"
-                android:textStyle="italic"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical|center_horizontal"
-                android:text="@string/esqueceuSenha" />
-
-
-        </LinearLayout>
-
+            android:layout_gravity="center_vertical|center_horizontal"
+            android:text="@string/esqueceuSenha"
+            android:textColor="@color/black"
+            android:textSize="15sp"
+            android:textStyle="italic" />
 
 
     </LinearLayout>
@@ -169,32 +190,33 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/linearLayout2"
-        app:layout_constraintVertical_bias="1.0"
-        android:orientation="vertical">
-        tools:layout_editor_absoluteX="0dp">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout10"
+        app:layout_constraintVertical_bias="0.995">
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="20dp"
             android:layout_marginTop="20dp"
             android:text="Outras formas para entrar:"
-            android:textColor="@color/black"
             android:textAlignment="center"
+            android:textColor="@color/black"
             android:textSize="15sp" />
 
         <Button
             android:id="@+id/btnLoginLocal"
             android:layout_width="match_parent"
-            android:layout_marginHorizontal="90sp"
-            android:textColor="@color/white"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical|center_horizontal"
-            android:layout_centerInParent="true"
-            android:text="Entrar Local" />
+            android:layout_marginHorizontal="90sp"
+            android:text="Entrar Local"
+            android:textColor="@color/white" />
 
 
     </LinearLayout>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -15,25 +15,31 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DashControl"
         android:usesCleartextTraffic="true">
+        <activity android:name=".AcitivityTestes"></activity>
         <activity
             android:name=".DataEspWeb"
             android:label="@string/title_activity_data_esp_web"
-            android:theme="@style/Theme.DashControl.NoActionBar"
-            android:screenOrientation="portrait"></activity>
-        <activity android:name=".DashWeb"
-            android:screenOrientation="portrait"/>
-        <activity android:name=".CadastrarUsuario"
-            android:screenOrientation="portrait"/>
-        <activity android:name=".SetDataEsp"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.DashControl.NoActionBar" />
+        <activity
+            android:name=".DashWeb"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".CadastrarUsuario"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".SetDataEsp"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".DashLocal"
-            android:screenOrientation="portrait"
-            android:launchMode="singleInstance" />
-        <activity android:name=".Login"
-            android:screenOrientation="portrait"/>
-        <activity android:name=".ConfigureEsp"
-            android:screenOrientation="portrait"/>
+            android:launchMode="singleInstance"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".Login"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ConfigureEsp"
+            android:screenOrientation="portrait" />
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

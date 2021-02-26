@@ -10,7 +10,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.drawable.Drawable;
 import android.net.DhcpInfo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
@@ -46,7 +45,6 @@ import com.android.volley.toolbox.Volley;
 import org.json.JSONObject;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +61,9 @@ public class ConfigureEsp extends AppCompatActivity {
     JSONObject config;
     SharedPreferences prefs;
     boolean isAutenticated;
-    ImageView iconSelect;
+    static ImageView iconSelect;
+    static AlertDialog show;
+    static String dirDrawable;
 
     @SuppressLint("WifiManagerLeak")
     @Override
@@ -83,23 +83,29 @@ public class ConfigureEsp extends AppCompatActivity {
                 GridLayout grid = new GridLayout(ConfigureEsp.this);
                 grid.setColumnCount(5);
                 Field[] drawablesFields = com.example.dashcontrol.R.drawable.class.getFields();
-                ArrayList<Drawable> drawables = new ArrayList<>();
                 ImageView img;
 
                 for (Field field : drawablesFields) {
                     try {
                         Log.i("LOG_TAG", "com.your.project.R.drawable." + field.getName());
-                        if(field.getName().contains("iconuserselect")){
+                        if(field.getName().contains("iconuserselect")) {
                             img = new ImageView(ConfigureEsp.this);
                             img.setImageResource(field.getInt(null));
+                            img.setTag(field.getName());
+                            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(100, 100);
+                            layoutParams.setMargins(10, 10, 10, 10);
+                            img.setLayoutParams(layoutParams);
+                            img.setOnClickListener(ConfigureEsp::onClicIconSelect);
                             grid.addView(img);
+                            //img.requestLayout();
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
+
                 icones.setView(grid);
-                icones.create().show();
+                show = icones.show();
             }
         });
          prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
@@ -161,22 +167,20 @@ public class ConfigureEsp extends AppCompatActivity {
         salvarConfig.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.d("cliquei","salva config agora");
                 final WifiManager manager = (WifiManager) getSystemService(WIFI_SERVICE);
                 final DhcpInfo dhcp = manager.getDhcpInfo();
                 final String address = Formatter.formatIpAddress(dhcp.gateway);
-                Log.d("gatewayip",address);
                 try {
                     config.put("ssid", ((TextView)findViewById(R.id.txtRedeSelecionada)).getText());
                     config.put("configNetwork", false);
-                    config.put("password", ((EditText)findViewById(R.id.senhaWifi)).getText());
-                    config.put("deviceName", ((TextView)findViewById(R.id.nomeDispositivo)).getText());
+                    config.put("password", ((EditText) findViewById(R.id.senhaWifi)).getText());
+                    config.put("icon", dirDrawable);
+                    config.put("deviceName", ((TextView) findViewById(R.id.nomeDispositivo)).getText());
                     if(isAutenticated){
                         config.put("email", prefs.getString("email","null"));
                         config.put("senha", prefs.getString("senha","null"));
                         config.put("chave", prefs.getString("chave","null"));
                     }
-                    Log.d("jsonOb",config.toString());
                     queue = Volley.newRequestQueue(getApplicationContext());
                     sendConfigEsp(queue,address,config);
 
@@ -196,7 +200,6 @@ public class ConfigureEsp extends AppCompatActivity {
         wifiList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Log.d("Touchon", ((List<ScanResult>)myWifiList).get(position).SSID);
                 txtRedeSelecionada.setText(((List<ScanResult>)myWifiList).get(position).SSID);
 
             }
@@ -206,28 +209,43 @@ public class ConfigureEsp extends AppCompatActivity {
         wifiManager = (WifiManager)getSystemService(Context.WIFI_SERVICE);
         wifiReceiver = new WifiReceiver();
         registerReceiver(wifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-        if(ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION)!= PackageManager.PERMISSION_GRANTED){
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},0 );
+        if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 0);
 
-        }else{
+        } else {
             scanWifiList();
         }
 
 
     }
 
+    private static void onClicIconSelect(View view) {
+        Field[] drawablesFields = com.example.dashcontrol.R.drawable.class.getFields();
+
+        for (Field field : drawablesFields) {
+            try {
+                Log.i("LOG_TAG", "com.your.project.R.drawable." + field.getName());
+                if (field.getName().contains(view.getTag().toString())) {
+                    iconSelect.setImageResource(field.getInt(null));
+                    dirDrawable = field.getName();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        show.dismiss();
+
+    }
+
     private void scanWifiList() {
         boolean ok = wifiManager.startScan();
         myWifiList = wifiManager.getScanResults();
-        Log.d("deucerto", Boolean.toString(ok));
-        Log.d("Resultssss",Integer.toString(myWifiList.size())) ;
         setAdapter();
     }
 
 
     private void setAdapter() {
         listAdapter = new ListAdapter(getApplicationContext(), myWifiList);
-        Log.d("Adapterrr",listAdapter.toString());
         wifiList.setAdapter(listAdapter);
     }
 
@@ -241,7 +259,6 @@ public class ConfigureEsp extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             boolean success = intent.getBooleanExtra(
                     WifiManager.EXTRA_RESULTS_UPDATED, false);
-            Log.d("sucessoooo", Boolean.toString(success));
         }
     }
 
@@ -253,7 +270,6 @@ public class ConfigureEsp extends AppCompatActivity {
             @Override
             public void onResponse(JSONObject response) {
                 // mostra a resposta
-                Log.d("ResponseESP", response.toString());
             }
         },
                 new Response.ErrorListener() {
@@ -275,12 +291,10 @@ public class ConfigureEsp extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        Log.d("Permission", "Result");
 
         if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(getApplicationContext(), "Infelizmente você não concedeu permisso~es para configurar a WiFi. Tente novamente!", Toast.LENGTH_LONG);
         } else {
-            Log.d("Vou", "Escanear as wifi");
             scanWifiList();
         }
     }
@@ -294,7 +308,6 @@ public class ConfigureEsp extends AppCompatActivity {
 
     private void sendConfigEsp(RequestQueue q, String url, JSONObject json) {
         String address = "http://".concat(url).concat("/post");
-        Log.d("esp endereço completo", address);
         //String address = "https://httpbin.org/post";
 
         JsonObjectRequest jsonObjReq = new JsonObjectRequest(
@@ -315,7 +328,6 @@ public class ConfigureEsp extends AppCompatActivity {
 
                         }
 
-                        Log.d("onResponse", response.toString());
                     }
                 }, new Response.ErrorListener() {
 

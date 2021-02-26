@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Point;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -16,6 +17,8 @@ import android.widget.GridLayout;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.graphics.drawable.DrawableCompat;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -78,23 +81,30 @@ public class DashWeb extends AppCompatActivity {
                                 grid.removeAllViews();
                                 for (DataSnapshot device: snapshot.getChildren()) {
 
-                                    if ((Math.abs(Long.valueOf(device.child("W").child("Timestamp").getValue().toString())-System.currentTimeMillis())/1000)<offset){
-                                        Point size = new Point();
+                                    if ((Math.abs(Long.valueOf(device.child("W").child("Timestamp").getValue().toString())-System.currentTimeMillis())/1000)<offset) {
+                                        //Point size = new Point();
                                         Button z = new Button(getApplicationContext());
-                                        z.setMinHeight(200);
-                                        z.setMinWidth((size.x-50)/3);
+                                        //z.setMinHeight(200);
+                                        z.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_chuveiro_iconuserselect, 0, 0);
+                                        //z.setMinWidth((size.x-50)/3);
                                         z.setText(device.getKey());
-                                        z.setBackgroundColor(Color.GREEN);
+                                        z.setBackgroundColor(Color.TRANSPARENT);
                                         z.setTag(device.getKey());
                                         z.setOnClickListener(DashWeb.this::onClick);
                                         grid.addView(z);
                                     } else {
                                         Point size = new Point();
                                         Button z = new Button(getApplicationContext());
-                                        z.setMinHeight(200);
-                                        z.setMinWidth((size.x-50)/3);
+                                        //z.setMinHeight(200);
+                                        Drawable unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, R.drawable.ic_chuveiro_iconuserselect);
+                                        unwrappedDrawable.setBounds(0, 0, 120, 120);
+                                        Drawable wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
+                                        DrawableCompat.setTint(wrappedDrawable, Color.RED);
+
+                                        z.setCompoundDrawables(null, unwrappedDrawable, null, null);
+                                        // z.setMinWidth((size.x-50)/3);
+                                        z.setBackgroundColor(Color.TRANSPARENT);
                                         z.setText(device.getKey());
-                                        z.setBackgroundColor(Color.RED);
                                         z.setTag(device.getKey());
                                         z.setOnClickListener(DashWeb.this::onClick);
                                         grid.addView(z);
