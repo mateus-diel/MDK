@@ -2,6 +2,7 @@ package com.example.dashcontrol;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 
 import android.app.AlertDialog;
@@ -48,7 +49,6 @@ public class PersonalizarIcones extends AppCompatActivity {
                 pos = position;
                 AlertDialog.Builder icones = new AlertDialog.Builder(PersonalizarIcones.this);
                 icones.setTitle("Selecione um icone");
-                icones.setCancelable(false);
                 GridLayout grid = new GridLayout(PersonalizarIcones.this);
                 grid.setColumnCount(5);
                 Field[] drawablesFields = com.example.dashcontrol.R.drawable.class.getFields();
@@ -60,6 +60,7 @@ public class PersonalizarIcones extends AppCompatActivity {
                         if(field.getName().contains("iconuserselect")) {
                             img = new ImageView(PersonalizarIcones.this);
                             img.setImageResource(field.getInt(null));
+                            img.setColorFilter(ContextCompat.getColor(context, R.color.black), android.graphics.PorterDuff.Mode.SRC_IN);
                             img.setTag(field.getName());
                             LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(100, 100);
                             layoutParams.setMargins(10, 10, 10, 10);

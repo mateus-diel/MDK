@@ -21,7 +21,6 @@ public class NovaProgramacao extends AppCompatActivity {
     int t1Hour, t1Minute, t2Hour, t2Minute;
     ListView listView;
     ArrayAdapter<String> adapter;
-    String[] dispositivos = {"um","dois", "tres","dois", "tres","dois", "tres","dois", "tres","dois", "tres","dois", "tres"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +30,7 @@ public class NovaProgramacao extends AppCompatActivity {
         tv2  = findViewById(R.id.txtDesligaHora);
         listView = findViewById(R.id.listViewDispositivos);
         adapter  = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_multiple_choice, DashWeb.getDispositivos());
+        Log.d(" Dash get dispositivos ", Integer.toString(DashWeb.getDispositivos().size()));
         listView.setAdapter(adapter);
         seekBar = findViewById(R.id.seekBarAgendamento);
         tempProgAgendamento = findViewById(R.id.tempAgendada);

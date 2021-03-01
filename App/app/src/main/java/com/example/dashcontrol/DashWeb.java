@@ -112,7 +112,7 @@ public class DashWeb extends AppCompatActivity {
                                 for (DataSnapshot device: snapshot.getChildren()) {
                                     Drawable unwrappedDrawable;
                                     Drawable wrappedDrawable;
-                                    unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, R.drawable.ic_chuveiro_iconuserselect);
+                                    unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, R.drawable.ic_home_iconuserselect);
                                     wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
 
                                     Log.d(" o caminho do cara e ", prefs.getString(prefs.getString("email","null").concat(device.getKey().concat("/IconUser")),"null"));
@@ -219,6 +219,16 @@ public class DashWeb extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         //super.onBackPressed();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(draw != null){
+            if(draw.size()>0){
+
+            }
+        }
     }
 
     public static ArrayList<String> getDispositivos() {
