@@ -15,7 +15,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DashControl"
         android:usesCleartextTraffic="true">
-        <activity android:name=".AcitivityTestes"></activity>
+        <activity android:name=".PersonalizarIcones"></activity>
+        <activity android:name=".NovaProgramacao" />
         <activity
             android:name=".DataEspWeb"
             android:label="@string/title_activity_data_esp_web"

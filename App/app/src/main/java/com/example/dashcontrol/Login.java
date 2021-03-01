@@ -136,6 +136,11 @@ public class Login extends AppCompatActivity {
 
         }
 
+        if(!prefs.getString("email","null").equals("null")||!prefs.getString("senha","null").equals("null")){
+            login.setText(prefs.getString("email","null"));
+            senha.setText(prefs.getString("senha","null"));
+        }
+
 
     }
 

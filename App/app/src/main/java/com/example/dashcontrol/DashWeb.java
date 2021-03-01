@@ -11,9 +11,14 @@ import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.GridLayout;
+import android.widget.GridView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -26,11 +31,22 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+
 public class DashWeb extends AppCompatActivity {
     private FirebaseDatabase database;
     private DatabaseReference ref, ref1;
-    GridLayout grid;
     private long offset = 60 * 5;
+    public static ArrayList<String> names;
+    public static  ArrayList <Drawable> draw;
+    int pos =  0;
+    private static ArrayList<String> dispositivos;
+    static GridView gridView;
+    GridAdapter adapter;
+    SharedPreferences prefs;
+
 
     ProgressDialog progressDialog;
 
@@ -39,9 +55,24 @@ public class DashWeb extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dash_web);
         database = FirebaseDatabase.getInstance();
+        gridView = findViewById(R.id.grid_view_dash_web);
+        dispositivos = new ArrayList<>();
+        names = new ArrayList<>();
+        draw = new ArrayList<>();
+        prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
+
+        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent intent = new Intent(getApplicationContext(), DataEspWeb.class);
+                intent.putExtra("deviceName", names.get(position));
+                startActivity(intent);
+            }
+        });
+
+
 
         SharedPreferences prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
-        grid = findViewById(R.id.gridLayoutforWebESP);
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Por favor, aguarde...");
 
@@ -78,42 +109,56 @@ public class DashWeb extends AppCompatActivity {
                         ref1.addValueEventListener(new ValueEventListener() {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                grid.removeAllViews();
                                 for (DataSnapshot device: snapshot.getChildren()) {
+                                    Drawable unwrappedDrawable;
+                                    Drawable wrappedDrawable;
+                                    unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, R.drawable.ic_chuveiro_iconuserselect);
+                                    wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
+
+                                    Log.d(" o caminho do cara e ", prefs.getString(prefs.getString("email","null").concat(device.getKey().concat("/IconUser")),"null"));
+
+                                    if(!prefs.getString(prefs.getString("email","null").concat(device.getKey().concat("/IconUser")),"null").equals("null")){
+                                        Log.d(" o cara tem icone ", "null");
+
+                                        Field[] drawablesFields = com.example.dashcontrol.R.drawable.class.getFields();
+
+                                        for (Field field : drawablesFields) {
+                                            try {
+                                                Log.i("LOG_TAG", "my drawww." + field.getName());
+                                                if (field.getName().contains(prefs.getString(prefs.getString("email","null").concat(device.getKey().concat("/IconUser")),"null"))) {
+                                                    Log.d("É esse aquii", field.getName());
+
+                                                     unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, field.getInt(null));
+                                                     wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
+                                                }
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }
+                                        }
+                                    }
+
+
 
                                     if ((Math.abs(Long.valueOf(device.child("W").child("Timestamp").getValue().toString())-System.currentTimeMillis())/1000)<offset) {
-                                        //Point size = new Point();
-                                        Button z = new Button(getApplicationContext());
-                                        //z.setMinHeight(200);
-                                        z.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_chuveiro_iconuserselect, 0, 0);
-                                        //z.setMinWidth((size.x-50)/3);
-                                        z.setText(device.getKey());
-                                        z.setBackgroundColor(Color.TRANSPARENT);
-                                        z.setTag(device.getKey());
-                                        z.setOnClickListener(DashWeb.this::onClick);
-                                        grid.addView(z);
-                                    } else {
-                                        Point size = new Point();
-                                        Button z = new Button(getApplicationContext());
-                                        //z.setMinHeight(200);
-                                        Drawable unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, R.drawable.ic_chuveiro_iconuserselect);
-                                        unwrappedDrawable.setBounds(0, 0, 120, 120);
-                                        Drawable wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
-                                        DrawableCompat.setTint(wrappedDrawable, Color.RED);
 
-                                        z.setCompoundDrawables(null, unwrappedDrawable, null, null);
-                                        // z.setMinWidth((size.x-50)/3);
-                                        z.setBackgroundColor(Color.TRANSPARENT);
-                                        z.setText(device.getKey());
-                                        z.setTag(device.getKey());
-                                        z.setOnClickListener(DashWeb.this::onClick);
-                                        grid.addView(z);
+                                        DrawableCompat.setTint(wrappedDrawable, 0xFF01579B);
+                                        names.add(device.getKey());
+                                        draw.add(wrappedDrawable);
+                                        dispositivos.add(device.getKey());
+
+                                    } else {
+                                        DrawableCompat.setTint(wrappedDrawable, Color.RED);
+                                        names.add(device.getKey());
+                                        draw.add(wrappedDrawable);
                                     }
                                 }
                                 if(snapshot.exists()){
                                     Log.d("snapppp", snapshot.toString());
                                 }
                                 ref1.removeEventListener(this);
+                                adapter = new GridAdapter(DashWeb.this, names,draw);
+                                gridView.setAdapter(adapter);
+                                Log.d("tamanghoo",Integer.toString(draw.size()));
                                 progressDialog.dismiss();
                             }
 
@@ -136,9 +181,47 @@ public class DashWeb extends AppCompatActivity {
         });
     }
 
-    private void onClick(View v) {
-        Intent intent = new Intent(getApplicationContext(), DataEspWeb.class);
-        intent.putExtra("deviceName", v.getTag().toString());
-        startActivity(intent);
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menuweb, menu);
+        return true;
+
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.btnSairWeb:
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putBoolean("autoLogin", false);
+                editor.apply();
+                Intent intent = new Intent(getApplicationContext(), Login.class);
+                startActivity(intent);
+                finish();
+                break;
+
+            case R.id.programacoesWeb:
+                Intent i = new Intent(getApplicationContext(), NovaProgramacao.class);
+                startActivity(i);
+                break;
+
+            case R.id.btnPersonalizarIcones:
+                Intent a = new Intent(getApplicationContext(), PersonalizarIcones.class);
+                startActivity(a);
+                break;
+
+
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        //super.onBackPressed();
+    }
+
+    public static ArrayList<String> getDispositivos() {
+        return dispositivos;
     }
 }

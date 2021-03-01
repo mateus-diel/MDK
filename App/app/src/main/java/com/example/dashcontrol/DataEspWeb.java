@@ -18,6 +18,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.owl93.dpb.CircularProgressView;
+import com.owl93.dpb.TextFormat;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -27,14 +28,13 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import java.util.EventListener;
 
 public class DataEspWeb extends AppCompatActivity {
     CircularProgressView temp;
-    Button btnMenos;
-    Button btnMais;
     Button btnLigaDesliga;
     TextView txtLocal;
     TextView txtStatus;
@@ -43,11 +43,19 @@ public class DataEspWeb extends AppCompatActivity {
     private DatabaseReference ref;
     private ValueEventListener listener;
     ProgressDialog progressDialog;
+    SeekBar seekBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data_esp_web);
+        seekBar = findViewById(R.id.seekBar);
+
+        Intent intent = getIntent();
+
+
+
+
 
         database = FirebaseDatabase.getInstance();
 
@@ -58,8 +66,6 @@ public class DataEspWeb extends AppCompatActivity {
         progressDialog.setCanceledOnTouchOutside(false);
         progressDialog.show();
 
-        btnMenos = findViewById(R.id.btnMenosWEB);
-        btnMais = findViewById(R.id.btnMaisWEB);
         btnLigaDesliga = findViewById(R.id.bntLigaDesligaWEB);
         txtLocal = findViewById(R.id.txtLocalWEB);
         txtStatus = findViewById(R.id.txtLigaDesligaWEB);
@@ -69,7 +75,6 @@ public class DataEspWeb extends AppCompatActivity {
         temp.setProgress(0);
         temp.setTextEnabled(true);
         temp.setText("...");
-        Intent intent = getIntent();
         txtLocal.setText(intent.getStringExtra("deviceName").toUpperCase());
         Log.d("nome do dispositivo", intent.getStringExtra("deviceName"));
         listener =  new ValueEventListener() {
@@ -88,8 +93,10 @@ public class DataEspWeb extends AppCompatActivity {
                     }else if(device.getKey().equals("tempATUAL")){
                         temp.animateProgressChange(Float.valueOf(device.getValue().toString()),1000);
                         temp.setText(String.format("%.1f",Float.valueOf(device.getValue().toString())).replace(",",".").concat(" ºC"));
+
                     }else if(device.getKey().equals("tempPROG")){
                         txtTempProg.setText(String.valueOf(Math.round(Double.valueOf(device.getValue().toString()))));
+                        seekBar.setProgress(Integer.parseInt(device.getValue().toString()));
                     }
 
 
@@ -139,7 +146,37 @@ public class DataEspWeb extends AppCompatActivity {
             }
         });
 
-        btnMais.setOnClickListener(new View.OnClickListener() {
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                txtTempProg.setText(Integer.toString(progress));
+
+            };
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                progressDialog.setMessage("Definindo temperatura, aguarde...");
+                progressDialog.show();
+                database.getReference("cliente/".concat(prefs.getString("chave","null")).concat("/").concat(intent.getStringExtra("deviceName")).concat("/R/tempPROG")).setValue(Integer.valueOf(txtTempProg.getText().toString())).addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        progressDialog.dismiss();
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+
+                    }
+                });
+            }
+        });
+
+        /*btnMais.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 database.getReference("cliente/".concat(prefs.getString("chave","null")).concat("/").concat(intent.getStringExtra("deviceName")).concat("/R/tempPROG")).setValue(Integer.valueOf(txtTempProg.getText().toString())+1).addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -173,7 +210,7 @@ public class DataEspWeb extends AppCompatActivity {
                 });
 
             }
-        });
+        });*/
     }
 
     @Override
