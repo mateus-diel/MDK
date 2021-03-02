@@ -1,7 +1,9 @@
 package com.example.dashcontrol;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -44,6 +46,8 @@ public class DataEspWeb extends AppCompatActivity {
     private ValueEventListener listener;
     ProgressDialog progressDialog;
     SeekBar seekBar;
+    private volatile int lastTempProg;
+    Thread t;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,10 +90,12 @@ public class DataEspWeb extends AppCompatActivity {
 
                     if(device.getKey().equals("LINHA_1") && Boolean.valueOf(device.getValue().toString().toLowerCase())){
                         txtStatus.setText("Ligado!");
+                        seekBar.setEnabled(true);
                         btnLigaDesliga.setText("Desligar");
                     }else if(device.getKey().equals("LINHA_1") && !Boolean.valueOf(device.getValue().toString().toLowerCase())){
                         txtStatus.setText("Desligado!");
                         btnLigaDesliga.setText("Ligar");
+                        seekBar.setEnabled(false);
                     }else if(device.getKey().equals("tempATUAL")){
                         temp.animateProgressChange(Float.valueOf(device.getValue().toString()),1000);
                         temp.setText(String.format("%.1f",Float.valueOf(device.getValue().toString())).replace(",",".").concat(" ºC"));
@@ -97,6 +103,7 @@ public class DataEspWeb extends AppCompatActivity {
                     }else if(device.getKey().equals("tempPROG")){
                         txtTempProg.setText(String.valueOf(Math.round(Double.valueOf(device.getValue().toString()))));
                         seekBar.setProgress(Integer.parseInt(device.getValue().toString()));
+                        lastTempProg = Integer.parseInt(txtTempProg.getText().toString());
                     }
 
 
@@ -155,7 +162,7 @@ public class DataEspWeb extends AppCompatActivity {
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-
+                lastTempProg = Integer.parseInt(txtTempProg.getText().toString());
             }
 
             @Override
@@ -163,14 +170,53 @@ public class DataEspWeb extends AppCompatActivity {
                 progressDialog.setMessage("Definindo temperatura, aguarde...");
                 progressDialog.show();
                 database.getReference("cliente/".concat(prefs.getString("chave","null")).concat("/").concat(intent.getStringExtra("deviceName")).concat("/R/tempPROG")).setValue(Integer.valueOf(txtTempProg.getText().toString())).addOnSuccessListener(new OnSuccessListener<Void>() {
+                    volatile int time = 0;
+                    volatile int timeout = 100;//10 segundos
                     @Override
                     public void onSuccess(Void aVoid) {
-                        progressDialog.dismiss();
+                        t = new Thread() {
+                            public void run() {
+                                while (lastTempProg != Integer.parseInt(txtTempProg.getText().toString())){
+                                    if(time > timeout){
+                                        AlertDialog.Builder dialog = new AlertDialog.Builder(DataEspWeb.this);
+                                        dialog.setTitle("Aviso");
+                                        dialog.setMessage("Parece que o dispositivo não respondeu. Verfique a conexão!");
+                                        dialog.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface dialog, int which) {
+                                                dialog.dismiss();
+                                            }
+                                        });
+                                        break;
+                                    }
+                                    try {
+                                        Thread.sleep(100);
+                                    }catch (Exception e){
+                                        e.printStackTrace();
+                                    }
+                                    time++;
+                                }
+                                progressDialog.dismiss();
+                                this.interrupt();
+                            }
+                        };
+                        t.setDaemon(true);
+                        t.start();
+
+
                     }
                 }).addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-
+                        AlertDialog.Builder dialog = new AlertDialog.Builder(DataEspWeb.this);
+                        dialog.setTitle("Aviso");
+                        dialog.setMessage("Houve uma falha ao enviaras informações. Verfique a conexão do seu celular!");
+                        dialog.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        });
                     }
                 });
             }
@@ -219,5 +265,12 @@ public class DataEspWeb extends AppCompatActivity {
             ref.removeEventListener(listener);
         }
         super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        temp.invalidate();
+        temp.refreshDrawableState();
+        super.onResume();
     }
 }

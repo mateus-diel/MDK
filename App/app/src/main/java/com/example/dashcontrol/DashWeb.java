@@ -150,6 +150,7 @@ public class DashWeb extends AppCompatActivity {
                                         DrawableCompat.setTint(wrappedDrawable, Color.RED);
                                         names.add(device.getKey());
                                         draw.add(wrappedDrawable);
+                                        dispositivos.add(device.getKey());
                                     }
                                 }
                                 if(snapshot.exists()){
