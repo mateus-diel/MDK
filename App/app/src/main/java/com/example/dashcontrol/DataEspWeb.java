@@ -28,6 +28,7 @@ import androidx.appcompat.widget.Toolbar;
 
 import android.os.Handler;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.SeekBar;
@@ -53,6 +54,13 @@ public class DataEspWeb extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data_esp_web);
+       androidx.appcompat.app.ActionBar actionBar = getSupportActionBar();
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
+
+        actionBar.setDisplayShowCustomEnabled(true);
+        LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View view = inflater.inflate(R.layout.custom_bar, null);
+        actionBar.setCustomView(view);
         seekBar = findViewById(R.id.seekBar);
 
         Intent intent = getIntent();
@@ -117,7 +125,7 @@ public class DataEspWeb extends AppCompatActivity {
             }
         };
 
-        ref = database.getReference("cliente/".concat(prefs.getString("chave","null")).concat("/").concat(intent.getStringExtra("deviceName")).concat("/W"));
+        ref = database.getReference("cliente/".concat(prefs.getString("chave","null")).concat("/").concat(intent.getStringExtra("deviceName").toLowerCase()).concat("/W"));
         Log.d("Caminho do cliente","cliente/".concat(prefs.getString("chave","null")).concat("/").concat(intent.getStringExtra("deviceName")).concat("/W") );
         ref.addValueEventListener(listener);
 

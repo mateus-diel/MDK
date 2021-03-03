@@ -13,6 +13,8 @@
         android:layout_height="wrap_content"
         android:layout_columnWeight="1"
         android:layout_rowWeight="1"
+        android:backgroundTint="@color/cinzaBackground"
+        android:background="@color/cinzaBackground"
         android:layout_margin="5dp"
         app:cardElevation="8dp"
         app:cardCornerRadius="8dp"

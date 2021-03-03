@@ -10,6 +10,9 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.format.DateFormat;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -57,6 +60,13 @@ public class NovaProgramacao extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_nova_programacao);
+        androidx.appcompat.app.ActionBar actionBar = getSupportActionBar();
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
+
+        actionBar.setDisplayShowCustomEnabled(true);
+        LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View view = inflater.inflate(R.layout.custom_bar_right, null);
+        actionBar.setCustomView(view);
         database = FirebaseDatabase.getInstance();
         tv1 = findViewById(R.id.txtLigaHora);
         tv2  = findViewById(R.id.txtDesligaHora);
@@ -181,12 +191,12 @@ public class NovaProgramacao extends AppCompatActivity {
                 Log.d(" hora selecionada ini ", tv1.getText().toString());
                 Log.d(" hora selecionada out ", tv2.getText().toString());
                 Log.d(" temp prog agend ", tempProgAgendamento.getText().toString());
-                ref.updateChildren(jsonMap).addOnSuccessListener(new OnSuccessListener<Void>() {
+                /*ref.updateChildren(jsonMap).addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
                         Toast.makeText(NovaProgramacao.this,"Sucesso",Toast.LENGTH_LONG);
                     }
-                });
+                });*/
 
 
 
@@ -266,5 +276,24 @@ public class NovaProgramacao extends AppCompatActivity {
         });
         dialog.show();
 
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // R.menu.mymenu is a reference to an xml file named mymenu.xml which should be inside your res/menu directory.
+        // If you don't have res/menu, just create a directory named "menu" inside res
+        getMenuInflater().inflate(R.menu.menu_save, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    // handle button activities
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.btnSaveProgram) {
+            // do something here
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

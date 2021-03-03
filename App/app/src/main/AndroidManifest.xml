@@ -22,7 +22,7 @@
             android:name=".DataEspWeb"
             android:label="@string/title_activity_data_esp_web"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.DashControl.NoActionBar" />
+             />
         <activity
             android:name=".DashWeb"
             android:screenOrientation="portrait" />
@@ -38,7 +38,8 @@
             android:screenOrientation="portrait" />
         <activity
             android:name=".Login"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.DashControl.NoActionBar"/>
         <activity
             android:name=".ConfigureEsp"
             android:screenOrientation="portrait" />

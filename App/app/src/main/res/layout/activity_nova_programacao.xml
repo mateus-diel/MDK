@@ -4,6 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:backgroundTint="@color/cinzaBackground"
+    android:background="@color/cinzaBackground"
     android:fadeScrollbars="false"
     tools:context=".NovaProgramacao">
 
@@ -20,6 +22,7 @@
             android:layout_marginStart="5dp"
             android:layout_marginTop="5dp"
             android:text="Selecione os dias da semana:"
+            android:textColor="@color/black"
             app:layout_constraintEnd_toEndOf="parent"
             android:textSize="20sp"
             app:layout_constraintStart_toStartOf="parent"
@@ -29,14 +32,25 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
+                android:layout_gravity="center"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
+                <CheckBox
+                    android:id="@+id/checkTodos"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:text="Todos"
+                    android:drawablePadding="0dp"
+                    android:singleLine="true"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/textView7" />
                 <CheckBox
                     android:id="@+id/checkBoxSeg"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="5dp"
                     android:text="Seg"
                     android:drawablePadding="0dp"
                     android:singleLine="true"
@@ -47,7 +61,7 @@
                     android:id="@+id/checkBoxTer"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="5dp"
                     android:text="Ter"
                     app:layout_constraintStart_toEndOf="@+id/checkBox"
                     app:layout_constraintTop_toBottomOf="@+id/textView7" />
@@ -56,16 +70,28 @@
                     android:id="@+id/checkBoxQua"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="5dp"
                     android:text="Qua"
                     app:layout_constraintStart_toEndOf="@+id/checkBox2"
                     app:layout_constraintTop_toBottomOf="@+id/textView7" />
+
+
+
+            </LinearLayout>
+        </HorizontalScrollView>
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="horizontal">
 
                 <CheckBox
                     android:id="@+id/checkBoxQui"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
                     android:text="Qui"
                     app:layout_constraintStart_toEndOf="@+id/checkBox3"
                     app:layout_constraintTop_toBottomOf="@+id/textView7" />
@@ -74,7 +100,6 @@
                     android:id="@+id/checkBoxSex"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
                     android:text="Sex"
                     app:layout_constraintStart_toEndOf="@+id/checkBox4"
                     app:layout_constraintTop_toBottomOf="@+id/textView7" />
@@ -83,7 +108,6 @@
                     android:id="@+id/checkBoxSab"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
                     android:text="Sab"
                     app:layout_constraintStart_toEndOf="@+id/checkBox5"
                     app:layout_constraintTop_toBottomOf="@+id/textView7" />
@@ -92,7 +116,6 @@
                     android:id="@+id/checkBoxDom"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
                     android:text="Dom"
                     app:layout_constraintStart_toEndOf="@+id/checkBox6"
                     app:layout_constraintTop_toBottomOf="@+id/textView7" />
@@ -102,12 +125,14 @@
 
         <LinearLayout
             android:layout_width="match_parent"
+            android:layout_marginTop="5dp"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
             <TextView
                 android:id="@+id/textView10"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/black"
                 android:layout_marginStart="5dp"
                 android:layout_marginTop="5dp"
                 android:text="Temperatura:"
@@ -119,6 +144,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="5dp"
                 android:layout_marginTop="5dp"
+                android:textColor="@color/black"
                 android:text="30"
                 android:textSize="20sp" />
 
@@ -128,6 +154,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="5dp"
                 android:layout_marginTop="5dp"
+                android:textColor="@color/black"
                 android:textSize="20sp"
                 android:text="ºC" />
         </LinearLayout>
@@ -147,6 +174,7 @@
             android:id="@+id/textView8"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:textColor="@color/black"
             android:layout_marginStart="5dp"
             android:layout_marginTop="5dp"
             android:text="Liga as:"
@@ -156,6 +184,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="5dp"
+            android:textColor="@color/black"
             android:layout_marginTop="10dp"
             android:drawableTop="@drawable/ic_time"
             android:drawablePadding="10dp"
@@ -168,6 +197,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="5dp"
+            android:textColor="@color/black"
             android:layout_marginTop="20dp"
             android:text="Desliga as:"
             android:textSize="20sp" />
@@ -176,6 +206,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="5dp"
+            android:textColor="@color/black"
             android:layout_marginTop="10dp"
             android:drawableTop="@drawable/ic_time"
             android:drawablePadding="10dp"
@@ -191,22 +222,22 @@
             android:layout_marginStart="5dp"
             android:layout_marginTop="5dp"
             android:text="Selecione os Ambientes:"
+            android:textColor="@color/black"
             android:textSize="20sp" />
 
         <ListView
             android:id="@+id/listViewDispositivos"
             android:layout_width="match_parent"
-            android:layout_height="150dp"
+            android:layout_height="200dp"
             android:layout_marginTop="5dp"
             android:choiceMode="multipleChoice" />
-
         <Button
-            android:id="@+id/buttonSalvarProgramacao"
-            android:textColor="@color/white"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Salvar"
-            android:layout_gravity="center"/>
+            android:id="@+id/buttonSalvarProgramacao"
+            android:visibility="invisible"></Button>
+
+
 
     </LinearLayout>
 

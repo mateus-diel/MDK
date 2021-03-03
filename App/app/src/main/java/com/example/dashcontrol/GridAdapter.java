@@ -11,6 +11,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 
 import java.util.ArrayList;
@@ -54,6 +55,7 @@ public class GridAdapter extends BaseAdapter {
         TextView textView = convertView.findViewById(R.id.text_view);
         //imageView.setImageResource(numImg[position]);
         imageView.setImageDrawable(numImg.get(position));
+        imageView.setBackgroundColor(ContextCompat.getColor(context, R.color.cinzaBackground));
         textView.setText(number.get(position));
         return convertView;
     }

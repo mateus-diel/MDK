@@ -3,7 +3,7 @@
 <item android:gravity="center_vertical">
     <shape android:shape="rectangle">
         <gradient
-            android:endColor="@android:color/holo_red_light"
+            android:endColor="@color/laranjalogo"
             android:startColor="@android:color/holo_blue_light" />
         <size android:height="20dp"/>
         <corners android:radius="5dp"/>

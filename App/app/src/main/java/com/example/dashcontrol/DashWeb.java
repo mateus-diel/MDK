@@ -11,6 +11,7 @@ import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -23,6 +24,7 @@ import android.widget.GridView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 
 import com.google.firebase.database.DataSnapshot;
@@ -36,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DashWeb extends AppCompatActivity {
+
     private FirebaseDatabase database;
     private DatabaseReference ref, ref1;
     private long offset = 60 * 5;
@@ -54,6 +57,13 @@ public class DashWeb extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dash_web);
+        androidx.appcompat.app.ActionBar actionBar = getSupportActionBar();
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
+
+        actionBar.setDisplayShowCustomEnabled(true);
+        LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View view = inflater.inflate(R.layout.custom_bar, null);
+        actionBar.setCustomView(view);
         database = FirebaseDatabase.getInstance();
         gridView = findViewById(R.id.grid_view_dash_web);
         dispositivos = new ArrayList<>();
@@ -65,7 +75,7 @@ public class DashWeb extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Intent intent = new Intent(getApplicationContext(), DataEspWeb.class);
-                intent.putExtra("deviceName", names.get(position));
+                intent.putExtra("deviceName", names.get(position).toLowerCase());
                 startActivity(intent);
             }
         });
@@ -141,16 +151,17 @@ public class DashWeb extends AppCompatActivity {
 
                                     if ((Math.abs(Long.valueOf(device.child("W").child("Timestamp").getValue().toString())-System.currentTimeMillis())/1000)<offset) {
 
-                                        DrawableCompat.setTint(wrappedDrawable, 0xFF01579B);
-                                        names.add(device.getKey());
+                                        DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.laranjalogo));
+                                        names.add(device.getKey().toUpperCase());
                                         draw.add(wrappedDrawable);
-                                        dispositivos.add(device.getKey());
+                                        dispositivos.add(device.getKey().toUpperCase());
 
                                     } else {
-                                        DrawableCompat.setTint(wrappedDrawable, Color.RED);
-                                        names.add(device.getKey());
+                                        DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.azulonline));
+                                        //DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.azulonline));
+                                        names.add(device.getKey().toUpperCase());
                                         draw.add(wrappedDrawable);
-                                        dispositivos.add(device.getKey());
+                                        dispositivos.add(device.getKey().toUpperCase());
                                     }
                                 }
                                 if(snapshot.exists()){
