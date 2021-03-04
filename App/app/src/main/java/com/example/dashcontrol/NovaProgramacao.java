@@ -1,5 +1,7 @@
 package com.example.dashcontrol;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.AlertDialog;
@@ -23,10 +25,16 @@ import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.MutableData;
+import com.google.firebase.database.Transaction;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONException;
@@ -37,7 +45,9 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.function.ToDoubleBiFunction;
 
 import io.reactivex.internal.operators.observable.ObservableRange;
 
@@ -47,7 +57,7 @@ public class NovaProgramacao extends AppCompatActivity {
     Button salvarProgramacao;
     int t1Hour, t1Minute, t2Hour, t2Minute;
     ListView listView;
-    CheckBox cSeg, cTer, cQua, cQui, cSex, cSab, cDom;
+    CheckBox cSeg, cTer, cQua, cQui, cSex, cSab, cDom, cTodos;
     ArrayAdapter<String> adapter;
     ArrayList<String> ambientesSelecionados;
     ArrayList<Integer> diasSelecionados;
@@ -77,6 +87,8 @@ public class NovaProgramacao extends AppCompatActivity {
         cSex = findViewById(R.id.checkBoxSex);
         cSab = findViewById(R.id.checkBoxSab);
         cDom = findViewById(R.id.checkBoxDom);
+        cTodos = findViewById(R.id.checkTodos);
+
         listView = findViewById(R.id.listViewDispositivos);
         salvarProgramacao = findViewById(R.id.buttonSalvarProgramacao);
         adapter  = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_multiple_choice, DashWeb.getDispositivos());
@@ -87,6 +99,28 @@ public class NovaProgramacao extends AppCompatActivity {
         tempProgAgendamento = findViewById(R.id.tempAgendada);
 
         SharedPreferences prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
+        cTodos.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(((CheckBox)v).isChecked()){
+                    cSeg.setChecked(true);
+                    cTer.setChecked(true);
+                    cQua.setChecked(true);
+                    cQui.setChecked(true);
+                    cSex.setChecked(true);
+                    cSab.setChecked(true);
+                    cDom.setChecked(true);
+                }else{
+                    cSeg.setChecked(false);
+                    cTer.setChecked(false);
+                    cQua.setChecked(false);
+                    cQui.setChecked(false);
+                    cSex.setChecked(false);
+                    cSab.setChecked(false);
+                    cDom.setChecked(false);
+                }
+            }
+        });
 
         ref = database.getReference("cliente/").child(prefs.getString("chave","null"));
         salvarProgramacao.setOnClickListener(new View.OnClickListener() {
@@ -149,57 +183,100 @@ public class NovaProgramacao extends AppCompatActivity {
                     return;
                 }
 
+                HashMap<String, Object> hrs = new HashMap<>();
+                hrs.put("liga", tv1.getText().toString());
+                hrs.put("desliga", tv2.getText().toString());
+                hrs.put("tempPROG", tempProgAgendamento.getText().toString());
 
-                JSONObject root;
-                JSONObject programacoes = new JSONObject();
-                JSONObject rand;
-                JSONObject semanas = new JSONObject();
-                JSONObject horas = new JSONObject();
-                try {
-                    horas.put("liga",tv1.getText().toString());
-                    horas.put("desliga",tv2.getText().toString());
-                    horas.put("tempPROG", tempProgAgendamento.getText().toString());
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
 
-                for(int z = 0; z < diasSelecionados.size(); z++){
-                    try {
-                        rand = new JSONObject();
-                        rand.put(String.valueOf(System.currentTimeMillis()),horas);
-                        semanas.put(diasSelecionados.get(z).toString(),rand);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                for(int i = 0; i<ambientesSelecionados.size(); i++){
-                    try {
-                        root = new JSONObject();
-                        root.put("programacoes",semanas);
-                        programacoes.put(ambientesSelecionados.get(i).toString(),root);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-
-                }
-
-                Map<String, Object> jsonMap = new Gson().fromJson(programacoes.toString(), new TypeToken<HashMap<String, Object>>() {}.getType());
-
-                Log.d(" json print ", programacoes.toString());
-
-                Log.d(" hora selecionada ini ", tv1.getText().toString());
-                Log.d(" hora selecionada out ", tv2.getText().toString());
-                Log.d(" temp prog agend ", tempProgAgendamento.getText().toString());
-                /*ref.updateChildren(jsonMap).addOnSuccessListener(new OnSuccessListener<Void>() {
+                database.getReference("cliente/").child(prefs.getString("chave","null")).child("/").runTransaction(new Transaction.Handler() {
                     @Override
-                    public void onSuccess(Void aVoid) {
-                        Toast.makeText(NovaProgramacao.this,"Sucesso",Toast.LENGTH_LONG);
+                    public Transaction.Result doTransaction(MutableData mutableData) {
+                        Log.d("mutable string",                        mutableData.toString());
+                    Log.d("child count",Long.toString(mutableData.getChildrenCount()));
+
+                        for(int i = 0; i<ambientesSelecionados.size(); i++) {
+                            if(mutableData.hasChild(ambientesSelecionados.get(i))){
+                                Log.d("tem o ambinete", "selecionado");
+                                for(int z = 0; z < diasSelecionados.size(); z++){
+                                    if(mutableData.child(ambientesSelecionados.get(i)).child("programacoes").hasChild(String.valueOf(diasSelecionados.get(z)))){
+                                        Log.d("tem o dia  selecionei", "na mutabler");
+                                        Log.d("valor e",  mutableData.child(ambientesSelecionados.get(i)).child("programacoes").child(String.valueOf(diasSelecionados.get(z))).getValue().toString());
+                                        for (MutableData child : mutableData.child(ambientesSelecionados.get(i)).child("programacoes").child(String.valueOf(diasSelecionados.get(z))).getChildren()){
+                                            Log.d("childdd", child.getKey());
+                                            Log.d("liga", child.child("liga").getValue().toString());
+                                            Log.d("ddesliga", child.child("desliga").getValue().toString());
+                                            Log.d("temp", child.child("tempPROG").getValue().toString());
+
+                                            SimpleDateFormat df = new SimpleDateFormat("HH:mm");
+                                            try {
+                                                Date bancoLiga = df.parse(child.child("liga").getValue().toString());
+                                                Date bancoDesliga = df.parse(child.child("desliga").getValue().toString());
+                                                Date vaiLigar = df.parse(tv1.getText().toString());
+                                                Date vaiDesligar = df.parse(tv2.getText().toString());
+
+                                                if(vaiLigar.after(bancoLiga)&&vaiLigar.before(bancoDesliga)){
+                                                    Log.d("abortou","no primeiro");
+                                                    Transaction.abort();
+                                                    break;
+                                                }
+
+                                                if(vaiDesligar.after(bancoLiga)&& vaiDesligar.before(bancoDesliga)){
+                                                    Log.d("abortou","no segundo");
+                                                    Transaction.abort();
+                                                    break;
+                                                }
+                                                Log.d("passou","no segundo");
+
+
+                                            } catch (Exception e) {
+                                            }
+
+
+                                        }
+
+                                    }
+                                }
+
+                            }else{
+                                Log.d("Aqui da pra add", " de boias pq nao tem no banco ainda");
+                            }
+
+                        }
+
+
+                        return Transaction.success(mutableData);
                     }
-                });*/
+
+                    @Override
+                    public void onComplete(@Nullable DatabaseError error, boolean committed, @Nullable DataSnapshot currentData) {
+                        Log.d("on complete", currentData.toString());
+
+                    }
+
+
+                });
 
 
 
+                /*for(int i = 0; i<ambientesSelecionados.size(); i++){
+
+                    for(int z = 0; z < diasSelecionados.size(); z++){
+                        ref.child(ambientesSelecionados.get(i)).child("progamacoes").child(diasSelecionados.get(z).toString()).push().setValue(hrs).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                Toast.makeText(NovaProgramacao.this,"Dados salvos com sucesso!", Toast.LENGTH_LONG).show();
+                                //Log.d("ssalvei os dados","no banco fire");
+                            }
+                        }).addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Toast.makeText(NovaProgramacao.this,"Não foi possível salvar os dados!", Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    }
+
+                }*/
             }
         });
 
@@ -278,22 +355,5 @@ public class NovaProgramacao extends AppCompatActivity {
 
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // R.menu.mymenu is a reference to an xml file named mymenu.xml which should be inside your res/menu directory.
-        // If you don't have res/menu, just create a directory named "menu" inside res
-        getMenuInflater().inflate(R.menu.menu_save, menu);
-        return super.onCreateOptionsMenu(menu);
-    }
 
-    // handle button activities
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-
-        if (id == R.id.btnSaveProgram) {
-            // do something here
-        }
-        return super.onOptionsItemSelected(item);
-    }
 }

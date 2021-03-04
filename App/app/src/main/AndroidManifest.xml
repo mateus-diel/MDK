@@ -16,8 +16,12 @@
         android:theme="@style/Theme.DashControl"
         android:usesCleartextTraffic="true">
         <activity android:name=".Teste"></activity>
-        <activity android:name=".PersonalizarIcones" />
-        <activity android:name=".NovaProgramacao" />
+        <activity android:name=".PersonalizarIcones">
+
+        </activity>
+        <activity android:name=".NovaProgramacao">
+
+        </activity>
         <activity
             android:name=".DataEspWeb"
             android:label="@string/title_activity_data_esp_web"

@@ -6,7 +6,7 @@
     android:gravity="center"
     android:orientation="vertical"
     android:layout_height="match_parent"
-    android:background="@drawable/bg"
+    android:background="@drawable/gradientebackground"
     tools:context=".DashLocal">
 
 <TextView

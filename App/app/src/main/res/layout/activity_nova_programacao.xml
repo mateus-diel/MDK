@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:backgroundTint="@color/cinzaBackground"
+    android:fillViewport="true"
     android:background="@color/cinzaBackground"
     android:fadeScrollbars="false"
     tools:context=".NovaProgramacao">
@@ -38,6 +38,7 @@
                 android:orientation="horizontal">
                 <CheckBox
                     android:id="@+id/checkTodos"
+                    android:buttonTint="@color/colorPrimary"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="5dp"
@@ -49,6 +50,7 @@
                 <CheckBox
                     android:id="@+id/checkBoxSeg"
                     android:layout_width="wrap_content"
+                    android:buttonTint="@color/colorPrimary"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="5dp"
                     android:text="Seg"
@@ -62,6 +64,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="5dp"
+                    android:buttonTint="@color/colorPrimary"
                     android:text="Ter"
                     app:layout_constraintStart_toEndOf="@+id/checkBox"
                     app:layout_constraintTop_toBottomOf="@+id/textView7" />
@@ -70,6 +73,7 @@
                     android:id="@+id/checkBoxQua"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:buttonTint="@color/colorPrimary"
                     android:layout_marginTop="5dp"
                     android:text="Qua"
                     app:layout_constraintStart_toEndOf="@+id/checkBox2"
@@ -92,6 +96,7 @@
                     android:id="@+id/checkBoxQui"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:buttonTint="@color/colorPrimary"
                     android:text="Qui"
                     app:layout_constraintStart_toEndOf="@+id/checkBox3"
                     app:layout_constraintTop_toBottomOf="@+id/textView7" />
@@ -101,12 +106,14 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Sex"
+                    android:buttonTint="@color/colorPrimary"
                     app:layout_constraintStart_toEndOf="@+id/checkBox4"
                     app:layout_constraintTop_toBottomOf="@+id/textView7" />
 
                 <CheckBox
                     android:id="@+id/checkBoxSab"
                     android:layout_width="wrap_content"
+                    android:buttonTint="@color/colorPrimary"
                     android:layout_height="wrap_content"
                     android:text="Sab"
                     app:layout_constraintStart_toEndOf="@+id/checkBox5"
@@ -116,6 +123,7 @@
                     android:id="@+id/checkBoxDom"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:buttonTint="@color/colorPrimary"
                     android:text="Dom"
                     app:layout_constraintStart_toEndOf="@+id/checkBox6"
                     app:layout_constraintTop_toBottomOf="@+id/textView7" />
@@ -228,14 +236,10 @@
         <ListView
             android:id="@+id/listViewDispositivos"
             android:layout_width="match_parent"
-            android:layout_height="200dp"
+            android:layout_height="match_parent"
             android:layout_marginTop="5dp"
             android:choiceMode="multipleChoice" />
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/buttonSalvarProgramacao"
-            android:visibility="invisible"></Button>
+
 
 
 
