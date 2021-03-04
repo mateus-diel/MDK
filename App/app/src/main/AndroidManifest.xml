@@ -24,8 +24,6 @@
         </activity>
         <activity
             android:name=".DataEspWeb"
-            android:label="@string/title_activity_data_esp_web"
-            android:screenOrientation="portrait"
              />
         <activity
             android:name=".DashWeb"

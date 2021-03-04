@@ -31,7 +31,7 @@ import com.google.firebase.auth.FirebaseAuth;
 public class Login extends AppCompatActivity {
     Button btnLoginLocal, novoUsuario, loginBtn;
     EditText login, senha;
-    TextView esqueceuSenha;
+    TextView esqueceuSenha, manterCon;
     ProgressDialog progressDialog;
     FirebaseAuth firebaseAuth;
     CheckBox  check;
@@ -45,6 +45,8 @@ public class Login extends AppCompatActivity {
         prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
         loginBtn = findViewById(R.id.btnLogin);
         btnLoginLocal = findViewById(R.id.btnLoginLocal);
+
+        manterCon = findViewById(R.id.materConectado);
 
         login = findViewById(R.id.loginUsuario);
         senha = findViewById(R.id.senhaUsuario);
@@ -126,6 +128,17 @@ public class Login extends AppCompatActivity {
                 }*/
                 Login();
 
+            }
+        });
+
+        manterCon.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(check.isChecked()){
+                    check.setChecked(false);
+                }else{
+                    check.setChecked(true);
+                }
             }
         });
         if(prefs.getBoolean("autoLogin",false)){

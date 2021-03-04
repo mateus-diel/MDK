@@ -54,6 +54,7 @@ public class DataEspWeb extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data_esp_web);
+
        androidx.appcompat.app.ActionBar actionBar = getSupportActionBar();
         getSupportActionBar().setDisplayShowTitleEnabled(false);
 
