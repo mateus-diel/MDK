@@ -44,7 +44,6 @@ public class DashWeb extends AppCompatActivity {
     private long offset = 60 * 5;
     public static ArrayList<String> names;
     public static  ArrayList <Drawable> draw;
-    int pos =  0;
     private static ArrayList<String> dispositivos;
     static GridView gridView;
     GridAdapter adapter;

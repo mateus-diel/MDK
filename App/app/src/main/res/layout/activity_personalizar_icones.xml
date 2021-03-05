@@ -6,12 +6,13 @@
     android:gravity="center"
     android:orientation="vertical"
     android:layout_height="match_parent"
-    android:background="@drawable/bg"
+    android:background="@drawable/gradientebackground"
     tools:context=".PersonalizarIcones">
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Personalizar Icones"
+        android:textColor="@color/white"
         android:textSize="20sp"
         android:textStyle="bold"
         android:layout_marginVertical="5dp"/>
@@ -19,6 +20,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Clique no ambiente e selecione o novo icone!"
+        android:textColor="@color/white"
         android:textSize="17sp"
         android:layout_gravity="start"
         android:layout_marginStart="5sp"

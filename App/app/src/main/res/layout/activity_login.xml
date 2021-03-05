@@ -52,6 +52,7 @@
             android:layout_margin="15sp"
             android:hint="Senha"
             android:textColor="@color/white"
+            android:textColorHint="@color/white"
             android:inputType="textPassword"
             tools:layout_editor_absoluteX="121dp"
             tools:layout_editor_absoluteY="313dp" />
@@ -84,6 +85,7 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_margin="15dip"
+            android:textColorHint="@color/white"
             android:textColor="@color/white"
             android:hint="E-mail"
             android:inputType="textEmailAddress"

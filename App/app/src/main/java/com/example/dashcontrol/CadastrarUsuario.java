@@ -1,6 +1,8 @@
 package com.example.dashcontrol;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -61,6 +63,11 @@ public class CadastrarUsuario extends AppCompatActivity {
         String pass = password.getText().toString();
         String name = nome.getText().toString();
         String passConfirm = passwrodConfirm.getText().toString();
+
+        if(name.isEmpty()){
+            nome.setError("Digite seu nome!");
+            return;
+        }else
         if(mail.isEmpty()){
             email.setError("Digite seu email!");
             return;
@@ -69,23 +76,19 @@ public class CadastrarUsuario extends AppCompatActivity {
             password.setError("Digite sua senha!");
             return;
         } else
-        if(mail.isEmpty()){
+        if(passConfirm.isEmpty()){
             passwrodConfirm.setError("Confirme sua senha!");
             return;
         } else if (!isValidEmail(mail)) {
             email.setError("Email inválido!");
             return;
-        } else if (name.isEmpty()) {
-            nome.setError("Digite o seu nome!");
-            return;
         }
         progressDialog.setMessage("Por favor, aguarde...");
         progressDialog.show();
         progressDialog.setCanceledOnTouchOutside(false);
-        firebaseAuth.createUserWithEmailAndPassword(mail,pass).addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+        firebaseAuth.createUserWithEmailAndPassword(mail,pass).addOnSuccessListener(this, new OnSuccessListener<AuthResult>() {
             @Override
-            public void onComplete(@NonNull Task<AuthResult> task) {
-                if(task.isSuccessful()){
+            public void onSuccess(AuthResult authResult) {
                     myRef = database.getReference("chaves");
                     myRef.child(firebaseAuth.getCurrentUser().getUid().trim()).child("ativo").setValue(false).addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
@@ -94,41 +97,75 @@ public class CadastrarUsuario extends AppCompatActivity {
                             firebaseAuth.getCurrentUser().updateProfile(profileChangeRequest).addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {
-                                    Toast.makeText(CadastrarUsuario.this, "Registrado com sucesso!", Toast.LENGTH_LONG).show();
-                                    Intent intent = new Intent(CadastrarUsuario.this, Login.class);
-                                    startActivity(intent);
-                                    finish();
+                                    AlertDialog.Builder dial = new AlertDialog.Builder(CadastrarUsuario.this);
+                                    dial.setTitle("Aviso");
+                                    dial.setCancelable(false);
+                                    dial.setMessage("Cadastrado com sucesso!");
+                                    dial.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            Intent intent = new Intent(CadastrarUsuario.this, Login.class);
+                                            startActivity(intent);
+                                            finish();
+                                        }
+                                    });
+                                    dial.create().show();
                                 }
                             }).addOnFailureListener(new OnFailureListener() {
                                 @Override
                                 public void onFailure(@NonNull Exception e) {
-                                    firebaseAuth.getCurrentUser().delete();
-                                    Toast.makeText(CadastrarUsuario.this, "Não foi possível registrar seu nome de usuário, tente novamente!", Toast.LENGTH_LONG).show();
-                                }
+                                    firebaseAuth.getCurrentUser().delete();AlertDialog.Builder dial = new AlertDialog.Builder(CadastrarUsuario.this);
+                                    dial.setTitle("Aviso");
+                                    dial.setCancelable(false);
+                                    dial.setMessage("Não foi possível registrar seu nome, tente novamente!");
+                                    dial.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            dialog.dismiss();
+                                        }
+                                    });
+                                    dial.create().show();}
                             });
 
                         }
                     }).addOnFailureListener(new OnFailureListener() {
                         @Override
                         public void onFailure(@NonNull Exception e) {
-                            Toast.makeText(CadastrarUsuario.this, "Não foi possível aprovisionar!",Toast.LENGTH_LONG).show();
                             firebaseAuth.getCurrentUser().delete().addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {
-                                    Toast.makeText(CadastrarUsuario.this, "Não foi possível registrar, tente novamente!",Toast.LENGTH_LONG).show();
+                                    AlertDialog.Builder dial = new AlertDialog.Builder(CadastrarUsuario.this);
+                                    dial.setTitle("Aviso");
+                                    dial.setCancelable(false);
+                                    dial.setMessage("Não foi possível gerar sua inscrição, tente novamente mais tarde!");
+                                    dial.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            dialog.dismiss();
+                                        }
+                                    });
+                                    dial.create().show();
                                 }
                             }).addOnFailureListener(new OnFailureListener() {
                                 @Override
                                 public void onFailure(@NonNull Exception e) {
-                                    Toast.makeText(CadastrarUsuario.this, "Não foi possível registrar e desfazer as alterações!", Toast.LENGTH_LONG).show();
+                                    AlertDialog.Builder dial = new AlertDialog.Builder(CadastrarUsuario.this);
+                                    dial.setTitle("Aviso");
+                                    dial.setCancelable(false);
+                                    dial.setMessage("Cadastro realizado com sucesso. Entre em contato para ativação do seu cadastro!");
+                                    dial.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            Intent intent = new Intent(CadastrarUsuario.this, Login.class);
+                                            startActivity(intent);
+                                            finish();
+                                        }
+                                    });
+                                    dial.create().show();
                                 }
                             });
                         }
                     });
-
-                }else{
-                    Toast.makeText(CadastrarUsuario.this, "Erro ao Registrar!",Toast.LENGTH_LONG).show();
-                }
                 progressDialog.dismiss();
             }
         });

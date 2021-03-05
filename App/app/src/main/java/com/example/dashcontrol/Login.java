@@ -180,10 +180,9 @@ public class Login extends AppCompatActivity {
         progressDialog.setMessage("Por favor, aguarde...");
         progressDialog.show();
         progressDialog.setCanceledOnTouchOutside(false);
-        firebaseAuth.signInWithEmailAndPassword(mail,pass).addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+        firebaseAuth.signInWithEmailAndPassword(mail,pass).addOnSuccessListener(this, new OnSuccessListener<AuthResult>() {
             @Override
-            public void onComplete(@NonNull Task<AuthResult> task) {
-                if(task.isSuccessful()){
+            public void onSuccess(AuthResult authResult) {
                     if(firebaseAuth.getCurrentUser().isEmailVerified()){
                         Toast.makeText(Login.this, "Bem vindo!",Toast.LENGTH_LONG).show();
                         Intent intent = new Intent(Login.this, DashWeb.class);
@@ -199,24 +198,73 @@ public class Login extends AppCompatActivity {
                             editor.putBoolean("autoLogin", false);
                         }
                         editor.apply();
-                    }else{
+                }else{
                         firebaseAuth.getCurrentUser().sendEmailVerification().addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
-                                Toast.makeText(Login.this, "Email não verificado! Um link foi enviado para a verificação!", Toast.LENGTH_LONG).show();
+                                AlertDialog.Builder dial = new AlertDialog.Builder(Login.this);
+                                dial.setTitle("Aviso");
+                                dial.setCancelable(true);
+                                dial.setMessage("Seu email ainda não foi verificado, verifique sua caixa de entrada e confirme seu endereço email!");
+                                dial.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                    }
+                                });
+                                dial.create().show();
                             }
                         }).addOnFailureListener(new OnFailureListener() {
                             @Override
                             public void onFailure(@NonNull Exception e) {
-                                Toast.makeText(Login.this, "Email não verificado! Não foi possível enviar um email de verificação, contate-nos!", Toast.LENGTH_LONG).show();
-                                Log.d("Exception,", e.getMessage());
+                                AlertDialog.Builder dial = new AlertDialog.Builder(Login.this);
+                                dial.setTitle("Aviso");
+                                dial.setCancelable(true);
+                                dial.setMessage("Houve muitas tentativas de acesso, aguarde alguns instantes e tente novamente!");
+                                dial.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                    }
+                                });
+                                dial.create().show();Log.d("on failure send email,", e.getMessage());
                             }
                         });
                     }
-                }else{
-                    Toast.makeText(Login.this, "Erro ao entrar!",Toast.LENGTH_LONG).show();
-                }
+
                 progressDialog.dismiss();
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Log.d("Erro failue", e.getMessage());
+                Log.d("Erro localized", e.getLocalizedMessage());
+                progressDialog.dismiss();
+                if(e.getMessage().contains("The password is invalid or the user does not have a password")){
+                    AlertDialog.Builder dial = new AlertDialog.Builder(Login.this);
+                    dial.setTitle("Aviso");
+                    dial.setCancelable(true);
+                    dial.setMessage("Usuário e/ou senha inválidos!");
+                    dial.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+                    dial.create().show();
+                }else if(e.getMessage().contains("We have blocked all requests from this device due to unusual activity")) {
+                    AlertDialog.Builder dial = new AlertDialog.Builder(Login.this);
+                    dial.setTitle("Aviso");
+                    dial.setCancelable(true);
+                    dial.setMessage("Sua conta foi bloqueada temporariamente. Redefina sua senha ou tente novamente dentro de alguns minutos!");
+                    dial.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+                    dial.create().show();
+                }
             }
         });
     }
