@@ -38,7 +38,7 @@ import java.util.EventListener;
 
 public class DataEspWeb extends AppCompatActivity {
     CircularProgressView temp;
-    Button btnLigaDesliga;
+    Button btnLigaDesliga, btnVerProg;
     TextView txtLocal;
     TextView txtStatus;
     TextView txtTempProg;
@@ -63,6 +63,7 @@ public class DataEspWeb extends AppCompatActivity {
         View view = inflater.inflate(R.layout.custom_bar, null);
         actionBar.setCustomView(view);
         seekBar = findViewById(R.id.seekBar);
+        btnVerProg = findViewById(R.id.btnVerProg);
 
         Intent intent = getIntent();
 
@@ -266,6 +267,15 @@ public class DataEspWeb extends AppCompatActivity {
 
             }
         });*/
+
+        btnVerProg.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i =  new Intent(DataEspWeb.this, VerProgramacoesWeb.class);
+                i.putExtra("deviceName", txtLocal.getText().toString());
+                startActivity(i);
+            }
+        });
     }
 
     @Override
