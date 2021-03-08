@@ -38,10 +38,10 @@ public class VerProgramacoesWeb extends AppCompatActivity {
     ExpandableListView expandableListView;
     ExpandableListAdapter expandableListAdapter;
     private FirebaseDatabase database;
-    private DatabaseReference ref, ref1;
     SharedPreferences prefs;
     Intent intent;
     TextView nomeDisp;
+    String dispositivo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,16 +63,28 @@ public class VerProgramacoesWeb extends AppCompatActivity {
 
 
         prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
-        String dispositivo = intent.getStringExtra("deviceName").toUpperCase();
+        dispositivo = intent.getStringExtra("deviceName").toLowerCase();
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("deviceNameForAdapter", dispositivo.toLowerCase());
         editor.apply();
         database = FirebaseDatabase.getInstance();
-        nomeDisp.setText(dispositivo);
+        nomeDisp.setText(dispositivo.toUpperCase());
 
-        ref = database.getReference("cliente").child(prefs.getString("chave","null")).child(dispositivo).child("programacoes");
+        updateList();
 
-        ref.addValueEventListener(new ValueEventListener() {
+
+        //criarGrupos();
+        //criarColecoes();
+
+
+
+
+
+
+    }
+
+    private void updateList() {
+        database.getReference("cliente").child(prefs.getString("chave","null")).child(dispositivo).child("R").child("programacoes").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if(snapshot.exists()) {
@@ -80,7 +92,7 @@ public class VerProgramacoesWeb extends AppCompatActivity {
                     for(DataSnapshot data : snapshot.getChildren()){
                         Log.d("Keeey", data.getKey());
                         Log.d("sxdfsdfsdfsdf", data.toString());
-                        grupos.add(diaSemana(Integer.parseInt(data.getKey())));
+                        grupos.add(diaSemana(data.getKey()));
                         List<String> hr =  new ArrayList<>();
                         for(DataSnapshot d : data.getChildren()){
 
@@ -91,12 +103,10 @@ public class VerProgramacoesWeb extends AppCompatActivity {
                             Log.d("desliga", d.child("desliga").getValue().toString());
                             Log.d("tempPROG", d.child("tempPROG").getValue().toString());
                         }
-                        Log.d("dia da semana", diaSemana(Integer.parseInt(data.getKey())));
+                        Log.d("dia da semana", diaSemana(data.getKey()));
                         Log.d("HRRRRR",hr.toString());
-                        colecao.put(diaSemana(Integer.parseInt(data.getKey())),hr);
+                        colecao.put(diaSemana(data.getKey()),hr);
                     }
-
-                    ref.removeEventListener(this);
                 }
                 expandableListView=findViewById(R.id.listViewProgramacoesDispositivos);
                 expandableListAdapter= new MyExpandableListAdapter(VerProgramacoesWeb.this,  grupos, colecao);
@@ -126,33 +136,23 @@ public class VerProgramacoesWeb extends AppCompatActivity {
 
             }
         });
-
-        //criarGrupos();
-        //criarColecoes();
-
-
-
-
-
-
     }
 
-    private String diaSemana(int num){
-        switch (num){
-            case  1:
-                return "Segunda";
-            case 2:
-                return "Terça";
-            case 3:
-                return "Quarta";
-            case 4 :
-                return "Quinta";
-            case 5:
-                return "Sexta";
-            case 6:
-                return "Sábado";
-            case 7:
-                return "Domingo";
+    private String diaSemana(String num){
+        if(num.contains("1a")){
+            return "Segunda";
+        }else if(num.contains("2a")){
+            return "Terça";
+        }else if(num.contains("3a")){
+            return "Quarta";
+        }else if(num.contains("4a")){
+            return "Quinta";
+        }else if(num.contains("5a")){
+            return "Sexta";
+        }else if(num.contains("6a")){
+            return "Sábado";
+        }else if(num.contains("7a")){
+            return "Domingo";
         }
     return "";
     }
@@ -194,4 +194,13 @@ public class VerProgramacoesWeb extends AppCompatActivity {
         grupos.add("grupo 5");
     }*/
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(expandableListView == null){
+            Log.d("A epandable é nulaa"," ave marinaha");
+        }else{
+            updateList();
+        }
+    }
 }

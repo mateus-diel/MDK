@@ -39,8 +39,12 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.text.RandomStringGenerator;
 import org.json.JSONException;
 import org.json.JSONObject;
+import static org.apache.commons.text.CharacterPredicates.DIGITS;
+import static org.apache.commons.text.CharacterPredicates.LETTERS;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -81,11 +85,17 @@ public class NovaProgramacao extends AppCompatActivity {
         androidx.appcompat.app.ActionBar actionBar = getSupportActionBar();
         getSupportActionBar().setDisplayShowTitleEnabled(false);
 
+
         actionBar.setDisplayShowCustomEnabled(true);
         LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         View view = inflater.inflate(R.layout.custom_bar_right, null);
         actionBar.setCustomView(view);
         database = FirebaseDatabase.getInstance();
+
+        RandomStringGenerator generator = new RandomStringGenerator.Builder()
+                .withinRange('0', 'Z')
+                .filteredBy(LETTERS, DIGITS)
+                .build();
         tv1 = findViewById(R.id.txtLigaHora);
         tv2  = findViewById(R.id.txtDesligaHora);
         cSeg = findViewById(R.id.checkBoxSeg);
@@ -145,7 +155,7 @@ public class NovaProgramacao extends AppCompatActivity {
                 hrs.put("tempPROG", tempProgAgendamento.getText().toString());
 
                 if (intent.getIntExtra("op", -1) == 1) {
-                    database.getReference().child("cliente").child(prefs.getString("chave","null")).child(prefs.getString("deviceNameForAdapter","null").toUpperCase()).child("programacoes").child(String.valueOf(intent.getIntExtra("numSemana",-1)))
+                    database.getReference().child("cliente").child(prefs.getString("chave","null")).child(prefs.getString("deviceNameForAdapter","null").toLowerCase()).child("R").child("programacoes").child(intent.getStringExtra("numSemana"))
                             .child(intent.getStringExtra("chaveHora")).updateChildren(hrs).addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
@@ -224,13 +234,12 @@ public class NovaProgramacao extends AppCompatActivity {
                         Log.d("child count", Long.toString(mutableData.getChildrenCount()));
 
                         for (int i = 0; i < ambientesSelecionados.size(); i++) {
-                            if (mutableData.hasChild(ambientesSelecionados.get(i))) {
+                            if (mutableData.hasChild(ambientesSelecionados.get(i).toLowerCase())) {
                                 Log.d("tem o ambinete", "selecionado");
                                 for (int z = 0; z < diasSelecionados.size(); z++) {
-                                    if (mutableData.child(ambientesSelecionados.get(i)).child("programacoes").hasChild(String.valueOf(diasSelecionados.get(z)))) {
-                                        Log.d("tem o dia  selecionei", "na mutabler");
-                                        Log.d("valor e", mutableData.child(ambientesSelecionados.get(i)).child("programacoes").child(String.valueOf(diasSelecionados.get(z))).getValue().toString());
-                                        for (MutableData child : mutableData.child(ambientesSelecionados.get(i)).child("programacoes").child(String.valueOf(diasSelecionados.get(z))).getChildren()) {
+                                    if (mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").hasChild(String.valueOf(diasSelecionados.get(z)))) {
+
+                                        for (MutableData child : mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(String.valueOf(diasSelecionados.get(z))).getChildren()) {
                                             Log.d("childdd", child.getKey());
                                             Log.d("liga", child.child("liga").getValue().toString());
                                             Log.d("ddesliga", child.child("desliga").getValue().toString());
@@ -293,7 +302,9 @@ public class NovaProgramacao extends AppCompatActivity {
                                 for (int z = 0; z < diasSelecionados.size(); z++) {
                                     if (!conflito.contains(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))))) {
                                         // mutableData.child(ambientesSelecionados.get(i)).child("programacoes").child(diasSelecionados.get(z).toString()).child(UUID.randomUUID().toString()).child("liga").setValue("");
-                                        mutableData.child(ambientesSelecionados.get(i)).child("programacoes").child(diasSelecionados.get(z).toString()).child(UUID.randomUUID().toString()).setValue(hrs);
+
+                                        //mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(diasSelecionados.get(z).toString()).child(UUID.randomUUID().toString()).setValue(hrs);
+                                        mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(diasSelecionados.get(z).toString().concat("a")).child(generator.generate(10)).setValue(hrs);
                                     }
                                 }
 
@@ -380,9 +391,9 @@ public class NovaProgramacao extends AppCompatActivity {
         });
 
         if(intent.getIntExtra("op",-1)==1){
-            activateCheck(intent.getIntExtra("numSemana",-1));
+            activateCheck(intent.getStringExtra("numSemana"));
 
-            database.getReference().child("cliente").child(prefs.getString("chave","null")).child(prefs.getString("deviceNameForAdapter","null").toUpperCase()).child("programacoes").child(String.valueOf(intent.getIntExtra("numSemana",-1)))
+            database.getReference().child("cliente").child(prefs.getString("chave","null")).child(prefs.getString("deviceNameForAdapter","null").toLowerCase()).child("R").child("programacoes").child(String.valueOf(intent.getStringExtra("numSemana")))
                     .child(intent.getStringExtra("chaveHora")).addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -419,31 +430,24 @@ public class NovaProgramacao extends AppCompatActivity {
 
     }
 
-    private  void activateCheck(int num){
+    private  void activateCheck(String num){
         disableAllChecks();
-            switch (num){
-                case  1:
-                    cSeg.setChecked(true);
-                    break;
-                case 2:
-                    cTer.setChecked(true);
-                    break;
-                case 3:
-                    cQua.setChecked(true);
-                    break;
-                case 4 :
-                    cQui.setChecked(true);
-                    break;
-                case 5:
-                    cSex.setChecked(true);
-                    break;
-                case 6:
-                    cSab.setChecked(true);
-                    break;
-                case 7:
-                    cDom.setChecked(true);
-                    break;
-            }
+        if(num.contains("1a")){
+            cSeg.setChecked(true);
+        }else if(num.contains("2a")){
+            cTer.setChecked(true);
+        }else if(num.contains("3a")){
+            cQua.setChecked(true);
+        }else if(num.contains("4a")){
+            cQui.setChecked(true);
+        }else if(num.contains("5a")){
+            cSex.setChecked(true);
+        }else if(num.contains("6a")){
+            cSab.setChecked(true);
+        }else if(num.contains("7a")){
+            cDom.setChecked(true);
+        }
+
     }
 
     private void disableAllChecks() {

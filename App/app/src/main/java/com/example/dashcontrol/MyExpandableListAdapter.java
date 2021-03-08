@@ -122,10 +122,9 @@ public class MyExpandableListAdapter extends BaseExpandableListAdapter {
                         database = FirebaseDatabase.getInstance();
                         prefs = context.getSharedPreferences("preferencias", Context.MODE_PRIVATE);
                         Log.d("chave na adapt", prefs.getString("chave","null"));
-                        String dsp = prefs.getString("deviceNameForAdapter","null").toUpperCase();
-                        Log.d("Pathh","cliente/"+prefs.getString("chave","null")+"/"+dsp+"/programacoes/"+String.valueOf(getNumericSemana(groupList.get(groupPosition).toString()))+"/"+((Button)v).getTag().toString());
+                        String dsp = prefs.getString("deviceNameForAdapter","null").toLowerCase();
 
-                        database.getReference().child("cliente").child(prefs.getString("chave","null")).child(dsp).child("programacoes").child(String.valueOf(getNumericSemana(groupList.get(groupPosition).toString()))).child(((Button)v).getTag().toString()).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
+                        database.getReference().child("cliente").child(prefs.getString("chave","null")).child(dsp).child("R").child("programacoes").child(getNumericSemana(groupList.get(groupPosition).toString())).child(((Button)v).getTag().toString()).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
                                 Log.d("groupPosition", String.valueOf(groupPosition));
@@ -180,22 +179,22 @@ public class MyExpandableListAdapter extends BaseExpandableListAdapter {
     }
 
 
-    private int getNumericSemana(String str){
+    private String getNumericSemana(String str){
         if(str.contains("Segunda")){
-            return 1;
+            return "1a";
         } else if(str.contains("Terça")){
-            return 2;
+            return "2a";
         }else if(str.contains("Quarta")){
-            return 3;
+            return "3a";
         }else if(str.contains("Quinta")){
-            return 4;
+            return "4a";
         }else if(str.contains("Sexta")){
-            return 5;
+            return "5a";
         }else if(str.contains("Sábado")){
-            return 6;
+            return "6a";
         }else if(str.contains("Domingo")){
-            return 7;
+            return "7a";
         }
-            return  0;
+            return  "0a";
     }
 }

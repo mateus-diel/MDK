@@ -1,5 +1,6 @@
 package com.example.dashcontrol;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -38,22 +39,28 @@ import java.util.EventListener;
 
 public class DataEspWeb extends AppCompatActivity {
     CircularProgressView temp;
-    Button btnLigaDesliga, btnVerProg;
+    Button btnLigaDesliga, btnVerProg, btnManualWeb, btnAutoWeb;
     TextView txtLocal;
-    TextView txtStatus;
+    TextView txtStatus, modoWeb;
     TextView txtTempProg;
     private FirebaseDatabase database;
     private DatabaseReference ref;
     private ValueEventListener listener;
     ProgressDialog progressDialog;
     SeekBar seekBar;
-    private volatile int lastTempProg;
     Thread t;
+    Intent intent;
+    SharedPreferences prefs;
+    volatile int lastTempProg;
+    volatile boolean lastLigaDesliga, ligaDesliga;
+    volatile boolean modo, lastModo;
+    Activity activity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data_esp_web);
+        activity = this;
 
        androidx.appcompat.app.ActionBar actionBar = getSupportActionBar();
         getSupportActionBar().setDisplayShowTitleEnabled(false);
@@ -64,8 +71,11 @@ public class DataEspWeb extends AppCompatActivity {
         actionBar.setCustomView(view);
         seekBar = findViewById(R.id.seekBar);
         btnVerProg = findViewById(R.id.btnVerProg);
+        btnAutoWeb = findViewById(R.id.btnAutoWeb);
+        btnManualWeb = findViewById(R.id.btnManualWeb);
+        modoWeb = findViewById(R.id.txtModoWeb);
 
-        Intent intent = getIntent();
+        intent = getIntent();
 
 
 
@@ -73,7 +83,7 @@ public class DataEspWeb extends AppCompatActivity {
 
         database = FirebaseDatabase.getInstance();
 
-        SharedPreferences prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
+         prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Por favor, aguarde...");
 
@@ -102,10 +112,12 @@ public class DataEspWeb extends AppCompatActivity {
                         txtStatus.setText("Ligado!");
                         seekBar.setEnabled(true);
                         btnLigaDesliga.setText("Desligar");
+                        ligaDesliga = false;
                     }else if(device.getKey().equals("LINHA_1") && !Boolean.valueOf(device.getValue().toString().toLowerCase())){
                         txtStatus.setText("Desligado!");
                         btnLigaDesliga.setText("Ligar");
                         seekBar.setEnabled(false);
+                        ligaDesliga = true;
                     }else if(device.getKey().equals("tempATUAL")){
                         temp.animateProgressChange(Float.valueOf(device.getValue().toString()),1000);
                         temp.setText(String.format("%.1f",Float.valueOf(device.getValue().toString())).replace(",",".").concat(" ºC"));
@@ -113,7 +125,21 @@ public class DataEspWeb extends AppCompatActivity {
                     }else if(device.getKey().equals("tempPROG")){
                         txtTempProg.setText(String.valueOf(Math.round(Double.valueOf(device.getValue().toString()))));
                         seekBar.setProgress(Integer.parseInt(device.getValue().toString()));
-                        lastTempProg = Integer.parseInt(txtTempProg.getText().toString());
+                        lastTempProg = Integer.parseInt(device.getValue().toString());
+                    }else if(device.getKey().equals("auto") && Boolean.valueOf(device.getValue().toString().toLowerCase())){
+                        btnManualWeb.setEnabled(true);
+                        btnAutoWeb.setEnabled(false);
+                        btnLigaDesliga.setEnabled(false);
+                        seekBar.setEnabled(false);
+                        modoWeb.setText("Automático");
+                        modo = false;
+                    }else if(device.getKey().equals("auto") && !Boolean.valueOf(device.getValue().toString().toLowerCase())){
+                        btnManualWeb.setEnabled(false);
+                        btnAutoWeb.setEnabled(true);
+                        seekBar.setEnabled(true);
+                        btnLigaDesliga.setEnabled(true);
+                        modoWeb.setText("Manual");
+                        modo=true;
                     }
 
 
@@ -135,31 +161,34 @@ public class DataEspWeb extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if(btnLigaDesliga.getText().toString().toLowerCase().equals("desligar")){
-                    database.getReference("cliente/".concat(prefs.getString("chave","null")).concat("/").concat(intent.getStringExtra("deviceName")).concat("/R/LINHA_1")).setValue(false).addOnSuccessListener(new OnSuccessListener<Void>() {
-                        @Override
-                        public void onSuccess(Void aVoid) {
-
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-
-                        }
-                    });
+                    sendDataEsp("LINHA_1",false, null);
+                    ligaDesliga = false;
+                    lastLigaDesliga = true;
 
                 }else{
-                    database.getReference("cliente/".concat(prefs.getString("chave","null")).concat("/").concat(intent.getStringExtra("deviceName")).concat("/R/LINHA_1")).setValue(true).addOnSuccessListener(new OnSuccessListener<Void>() {
-                        @Override
-                        public void onSuccess(Void aVoid) {
-
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-
-                        }
-                    });
+                    sendDataEsp("LINHA_1",true, null);
+                    lastLigaDesliga = false;
+                    ligaDesliga = true;
                 }
+            }
+        });
+
+        btnManualWeb.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                lastModo = true;
+                modo = false;
+                sendDataEsp("auto",false, null);
+            }
+        });
+
+        btnAutoWeb.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                lastModo = false;
+                modo = true;
+                sendDataEsp("auto", true, null);
+
             }
         });
 
@@ -178,57 +207,7 @@ public class DataEspWeb extends AppCompatActivity {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 progressDialog.setMessage("Definindo temperatura, aguarde...");
-                progressDialog.show();
-                database.getReference("cliente/".concat(prefs.getString("chave","null")).concat("/").concat(intent.getStringExtra("deviceName")).concat("/R/tempPROG")).setValue(Integer.valueOf(txtTempProg.getText().toString())).addOnSuccessListener(new OnSuccessListener<Void>() {
-                    volatile int time = 0;
-                    volatile int timeout = 100;//10 segundos
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        t = new Thread() {
-                            public void run() {
-                                while (lastTempProg != Integer.parseInt(txtTempProg.getText().toString())){
-                                    if(time > timeout){
-                                        AlertDialog.Builder dialog = new AlertDialog.Builder(DataEspWeb.this);
-                                        dialog.setTitle("Aviso");
-                                        dialog.setMessage("Parece que o dispositivo não respondeu. Verfique a conexão!");
-                                        dialog.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                                            @Override
-                                            public void onClick(DialogInterface dialog, int which) {
-                                                dialog.dismiss();
-                                            }
-                                        });
-                                        break;
-                                    }
-                                    try {
-                                        Thread.sleep(100);
-                                    }catch (Exception e){
-                                        e.printStackTrace();
-                                    }
-                                    time++;
-                                }
-                                progressDialog.dismiss();
-                                this.interrupt();
-                            }
-                        };
-                        t.setDaemon(true);
-                        t.start();
-
-
-                    }
-                }).addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        AlertDialog.Builder dialog = new AlertDialog.Builder(DataEspWeb.this);
-                        dialog.setTitle("Aviso");
-                        dialog.setMessage("Houve uma falha ao enviaras informações. Verfique a conexão do seu celular!");
-                        dialog.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        });
-                    }
-                });
+                sendDataEsp("tempPROG",Float.parseFloat(txtTempProg.getText().toString()), null);
             }
         });
 
@@ -278,6 +257,83 @@ public class DataEspWeb extends AppCompatActivity {
         });
     }
 
+    private void sendDataEsp(String nodo, Object object, String src) {
+        ProgressDialog dial = new ProgressDialog(this);
+        dial.setMessage("Por favor aguarde, estamos contatanto o dispositivo...");
+        dial.setCanceledOnTouchOutside(false);
+        dial.show();
+
+        database.getReference().child("cliente").child(prefs.getString("chave","null")).child(intent.getStringExtra("deviceName")).child("R").child("info").child(nodo).setValue(object).addOnSuccessListener(new OnSuccessListener<Void>() {
+
+            volatile int time = 0;
+            volatile int timeout = 150;//15 segundos
+            @Override
+            public void onSuccess(Void aVoid) {
+                    t = new Thread() {
+                        public void run() {
+                            Log.d("Last temp progh", String.valueOf(lastTempProg));
+                            Log.d("temp prog", String.valueOf(txtTempProg.getText().toString()));
+                            Log.d("liga desliga", String.valueOf(ligaDesliga));
+                            Log.d("last liga desliga", String.valueOf(lastLigaDesliga));
+                            Log.d("modo", String.valueOf(modo));
+                            Log.d("last modo", String.valueOf(lastModo));
+                            while (lastTempProg != Integer.parseInt(txtTempProg.getText().toString()) || lastLigaDesliga != ligaDesliga || lastModo != modo){
+                                if(time > timeout){
+                                    activity.runOnUiThread(new Runnable()
+                                    {
+                                        public void run()
+                                        {
+                                            AlertDialog.Builder dialog = new AlertDialog.Builder(DataEspWeb.this);
+                                            dialog.setTitle("Aviso");
+                                            dialog.setMessage("Parece que o dispositivo não respondeu a tempo. Verfique a conexão!");
+                                            dialog.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                                @Override
+                                                public void onClick(DialogInterface dialog, int which) {
+                                                    dialog.dismiss();
+                                                }
+                                            });
+                                            dialog.create().show();
+                                        }
+                                    });
+
+                                    break;
+                                }
+                                try {
+                                    Thread.sleep(100);
+                                }catch (Exception e){
+                                    e.printStackTrace();
+                                }
+                                time++;
+                            }
+                            dial.dismiss();
+                            this.interrupt();
+                        }
+                    };
+                    t.setDaemon(true);
+                    t.start();
+                //dial.dismiss();
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                dial.dismiss();
+                message("Houve um erro, não foi possível contatar o dispositivo!");
+            }
+        });
+    }
+
+    private void message(String msg) {
+        AlertDialog.Builder dialog = new AlertDialog.Builder(DataEspWeb.this);
+        dialog.setTitle("Aviso");
+        dialog.setMessage(msg);
+        dialog.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+    }
+
     @Override
     protected void onPause() {
         if(listener!=null){
@@ -288,8 +344,11 @@ public class DataEspWeb extends AppCompatActivity {
 
     @Override
     protected void onResume() {
-        temp.invalidate();
-        temp.refreshDrawableState();
         super.onResume();
+        if(temp != null){
+            temp.invalidate();
+            temp.postInvalidate();
+            temp.refreshDrawableState();
+        }
     }
 }

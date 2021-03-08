@@ -1,5 +1,6 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <ArduinoJson.h>
 #include <LITTLEFS.h>
 #include <WiFi.h>
 #include "ESPAsyncWebServer.h"
@@ -8,6 +9,15 @@
 #include <ESPmDNS.h>
 #include "FirebaseESP32.h"
 #include <ESP32httpUpdate.h>
+#include <ThreeWire.h>
+#include <RtcDS1302.h>
+
+ThreeWire myWire(21, 22, 23); // IO, SCLK, CE
+RtcDS1302<ThreeWire> Rtc(myWire);
+
+String childPath[2] = {"/programacoes", "/info"};
+size_t childPathSize = 2;
+
 
 
 
@@ -39,8 +49,10 @@ volatile boolean rele = false;
 volatile bool isUpdate = false;
 volatile int numError = 0;
 volatile bool updateValues = false;
+volatile bool automaticMode = false;
 JSONVar configs;
 JSONVar devices;
+JSONVar times;
 
 volatile boolean LINHA_1 = true;
 
@@ -57,32 +69,80 @@ unsigned long ultimo_millis2 = 0;
 unsigned long ultimo_millis3 = 0;
 unsigned long debounce_delay = 500;
 
-void streamCallback(StreamData data) {
+void streamCallback(MultiPathStreamData stream)
+{
+  Serial.println();
   Serial.println("Stream Data1 available...");
-  Serial.println("STREAM PATH: " + data.streamPath());
-  Serial.println("EVENT PATH: " + data.dataPath());
-  Serial.println("DATA TYPE: " + data.dataType());
-  Serial.println("EVENT TYPE: " + data.eventType());
-  Serial.print("VALUE: ");
+  Serial.println("path: " + stream.dataPath);
+  Serial.println("valuie: " + stream.value);
 
-  if (data.dataPath().indexOf("update") > -1) {
-    if (data.boolData() == 1) {
-      isUpdate = true;
-    }
+  size_t numChild = sizeof(childPath) / sizeof(childPath[0]);
 
-  } else if (data.dataPath().indexOf("tempPROG") > -1) {
-    tempPROG = (float) data.intData();
-  } else if (data.dataPath().indexOf("LINHA_1") > -1) {
-    if (data.boolData() == 1) {
-      Serial.println("Bora ligar tigronelsa?");
-      LINHA_1 = true;
-    } else {
-      LINHA_1 = false;
+  for (size_t i = 0; i < numChild; i++)
+  {
+    if (stream.get(childPath[i]))
+    {
+      Serial.println("path: " + stream.dataPath + ", type: " + stream.type + ", value: " + stream.value);
+      if (stream.dataPath.indexOf(childPath[1]) > -1 && stream.type.indexOf("json") > -1) {
+        JSONVar infos = JSON.parse(stream.value);
+        if (infos.hasOwnProperty("update")) {
+          isUpdate = (bool) infos["update"];
+        }
+        if (infos.hasOwnProperty("LINHA_1")) {
+          LINHA_1 = (bool) infos["LINHA_1"];
+        }
+        if (infos.hasOwnProperty("auto")) {
+          automaticMode = (bool) infos["auto"];
+        }
+        if (infos.hasOwnProperty("tempPROG")) {
+          tempPROG = (double) infos["tempPROG"];
+        }
+        updateValues = true;
+      } else if (stream.dataPath.indexOf(childPath[0]) > -1 && stream.type.indexOf("json") > -1) {
+        DynamicJsonBuffer jsonBuffer;
+        JsonObject& root = jsonBuffer.parseObject(stream.value);
+        Serial.println("json certo");
+
+        // using C++11 syntax (preferred):
+        for (auto kv : root) {
+          //Serial.println(kv.key);
+          //Serial.println(root.get<String>(kv.key));
+          for(auto k : (root.get<JsonVariant>(kv.key)).as<JsonObject>()){
+            //Serial.println("key do caraio");
+            //Serial.println(k.key);
+            //Serial.println(k.value.as<String>());
+            Serial.println("\n");
+              Serial.print("Semana: ");
+              Serial.println(kv.key);
+              Serial.print("temp: ");              
+              Serial.println((((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<float>("tempPROG"));
+              Serial.print("liga: ");              
+              Serial.println((((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<String>("liga"));
+              Serial.print("desliga: ");              
+              Serial.println((((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<String>("desliga"));
+//              Serial.println(key.value.as<String>());
+            /*for(auto key: ((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()){
+              Serial.println("\n");
+              Serial.print("Semana: ");
+              Serial.println(kv.key);
+              Serial.print("key: ");
+              Serial.print(key.key);
+              Serial.print(", valor: ");
+              Serial.println(key.value.as<String>());
+            }*/
+            
+          }
+        }
+        Serial.println();
+
+        
+      }
     }
   }
-  updateValues = true;
 
   Serial.println();
+
+
 }
 
 void streamTimeoutCallback(bool timeout) {
@@ -210,6 +270,18 @@ void taskDim( void * pvParameters ) {
   DimmableLight DIMMER_1(PINO_DIM_1);
   DimmableLight::setSyncPin(PINO_ZC);
   DimmableLight::begin();
+  Rtc.Begin();
+  if (Rtc.GetIsWriteProtected())
+  {
+    Serial.println("RTC was write protected, enabling writing now");
+    Rtc.SetIsWriteProtected(false);
+  }
+
+  if (!Rtc.GetIsRunning())
+  {
+    Serial.println("RTC was not actively running, starting now");
+    Rtc.SetIsRunning(true);
+  }
 
   while ((bool) configs["default"]) {
     vTaskSuspend(NULL);
@@ -479,7 +551,7 @@ void taskConn( void * pvParameters ) {
   Firebase.setDoubleDigits(2);
   FirebaseJson json2, json1;
   json1.set("update", false);
-  if (!Firebase.updateNode(readData, nodo + "R/", json1)) {
+  if (!Firebase.updateNode(readData, nodo + "R/info/", json1)) {
     Serial.println("Erro ao atualizar boolean");
   }
   if (!Firebase.setTimestamp(writeData, nodo + "/W/uptime")) {
@@ -488,8 +560,7 @@ void taskConn( void * pvParameters ) {
 
   Firebase.reconnectWiFi(true);
 
-
-  if (!Firebase.beginStream(readData, nodo + "/R/"))
+  if (!Firebase.beginMultiPathStream(readData, nodo + "R/", childPath, childPathSize))
   {
     Serial.println("------------------------------------");
     Serial.println("Can't begin stream connection...");
@@ -498,7 +569,9 @@ void taskConn( void * pvParameters ) {
     Serial.println();
   }
 
-  Firebase.setStreamCallback(readData, streamCallback, streamTimeoutCallback, 8192);
+  //Set the reserved size of stack memory in bytes for internal stream callback processing RTOS task.
+  //8192 is the minimum size.
+  Firebase.setMultiPathStreamCallback(readData, streamCallback, streamTimeoutCallback, 8192);
   short isReset = 0;
 
   while (true) {
@@ -527,6 +600,7 @@ void taskConn( void * pvParameters ) {
         json2.set("LINHA_1", LINHA_1);
         json2.set("potencia", potencia_1);
         json2.set("erro leitura", numError);
+        json2.set("auto", automaticMode);
 
         if (Firebase.updateNode(writeData, nodo + "/W/", json2)) {
           Serial.println(writeData.dataPath() + "/" + writeData.pushName());
