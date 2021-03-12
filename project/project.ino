@@ -103,6 +103,7 @@ void streamCallback(MultiPathStreamData stream)
         // using C++11 syntax (preferred):
         for (auto kv : root) {
           //Serial.println(kv.key);
+          
           //Serial.println(root.get<String>(kv.key));
           for (auto k : (root.get<JsonVariant>(kv.key)).as<JsonObject>()) {
             //Serial.println("key do caraio");
