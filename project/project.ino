@@ -18,6 +18,14 @@ RtcDS1302<ThreeWire> Rtc(myWire);
 String childPath[2] = {"/programacoes", "/info"};
 size_t childPathSize = 2;
 
+typedef struct
+{
+  String semana;
+  int temp;
+  String liga;
+  String desliga;
+} Horarios;
+
 #define PINO_DIM_1    4
 #define PINO_ZC     2
 #define MAXPOT 252
@@ -26,6 +34,10 @@ size_t childPathSize = 2;
 #define CONFIGURATION "/configs.json"
 #define DEVICESINFO "/devices.json"
 #define VERSION "1.01"
+#define NSEMANAS 35
+
+Horarios hrs[NSEMANAS];
+SemaphoreHandle_t myMutex;
 
 
 FirebaseData writeData;
@@ -96,6 +108,7 @@ void streamCallback(MultiPathStreamData stream)
         }
         updateValues = true;
       } else if (stream.dataPath.indexOf(childPath[0]) > -1 && stream.type.indexOf("json") > -1) {
+        int i = 0;
         DynamicJsonBuffer jsonBuffer;
         JsonObject& root = jsonBuffer.parseObject(stream.value);
         Serial.println("json certo");
@@ -103,7 +116,7 @@ void streamCallback(MultiPathStreamData stream)
         // using C++11 syntax (preferred):
         for (auto kv : root) {
           //Serial.println(kv.key);
-          
+
           //Serial.println(root.get<String>(kv.key));
           for (auto k : (root.get<JsonVariant>(kv.key)).as<JsonObject>()) {
             //Serial.println("key do caraio");
@@ -123,6 +136,14 @@ void streamCallback(MultiPathStreamData stream)
               Serial.println((((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<String>("liga"));
               Serial.print("desliga: ");
               Serial.println((((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<String>("desliga"));
+              xSemaphoreTake(myMutex, portMAX_DELAY);
+              hrs[i].semana = String(kv.key);
+              hrs[i].temp = (((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<int>("tempPROG");
+              hrs[i].liga = (((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<String>("liga");
+              hrs[i].desliga = (((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<String>("desliga");
+              xSemaphoreGive(myMutex);
+              i++;
+
             }
 
             //              Serial.println(key.value.as<String>());
@@ -141,11 +162,13 @@ void streamCallback(MultiPathStreamData stream)
         Serial.println();
 
 
+
       }
     }
   }
 
   Serial.println();
+
 
 
 }
@@ -260,10 +283,16 @@ void setup() {
   pinMode(RELE_1, OUTPUT);
   digitalWrite(RELE_1, LOW);
 
-  xTaskCreatePinnedToCore( taskDim, "taskDim", 10000, NULL, 1, NULL, 0);
-  delay(500);
-  xTaskCreatePinnedToCore( taskConn, "taskConn",  10000,  NULL,  2,  NULL,  1);
-  delay(500);
+  myMutex = xSemaphoreCreateMutex();
+  if (myMutex != NULL) {
+    xTaskCreatePinnedToCore( taskDim, "taskDim", 10000, NULL, 1, NULL, 0);
+    delay(500);
+    xTaskCreatePinnedToCore( taskConn, "taskConn",  10000,  NULL,  2,  NULL,  1);
+    delay(500);
+
+  }
+
+
 }
 
 void loop() {
@@ -327,6 +356,8 @@ void taskDim( void * pvParameters ) {
       delay(10);
       writeFile(JSON.stringify(devices), DEVICESINFO);
       delay(10);
+      xSemaphoreTake(myMutex, portMAX_DELAY);
+      xSemaphoreGive(myMutex);
       DIMMER_1.setBrightness(10);
       DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
       //Serial.println("passou no salva memoria");
