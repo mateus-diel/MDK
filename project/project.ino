@@ -18,9 +18,6 @@ RtcDS1302<ThreeWire> Rtc(myWire);
 String childPath[2] = {"/programacoes", "/info"};
 size_t childPathSize = 2;
 
-
-
-
 #define PINO_DIM_1    4
 #define PINO_ZC     2
 #define MAXPOT 252
@@ -107,20 +104,27 @@ void streamCallback(MultiPathStreamData stream)
         for (auto kv : root) {
           //Serial.println(kv.key);
           //Serial.println(root.get<String>(kv.key));
-          for(auto k : (root.get<JsonVariant>(kv.key)).as<JsonObject>()){
+          for (auto k : (root.get<JsonVariant>(kv.key)).as<JsonObject>()) {
             //Serial.println("key do caraio");
             //Serial.println(k.key);
             //Serial.println(k.value.as<String>());
-            Serial.println("\n");
+
+            if (String(kv.key).length() > 3) {
+
+            } else {
+
+              Serial.println("\n");
               Serial.print("Semana: ");
               Serial.println(kv.key);
-              Serial.print("temp: ");              
+              Serial.print("temp: ");
               Serial.println((((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<float>("tempPROG"));
-              Serial.print("liga: ");              
+              Serial.print("liga: ");
               Serial.println((((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<String>("liga"));
-              Serial.print("desliga: ");              
+              Serial.print("desliga: ");
               Serial.println((((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<String>("desliga"));
-//              Serial.println(key.value.as<String>());
+            }
+
+            //              Serial.println(key.value.as<String>());
             /*for(auto key: ((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()){
               Serial.println("\n");
               Serial.print("Semana: ");
@@ -129,13 +133,13 @@ void streamCallback(MultiPathStreamData stream)
               Serial.print(key.key);
               Serial.print(", valor: ");
               Serial.println(key.value.as<String>());
-            }*/
-            
+              }*/
+
           }
         }
         Serial.println();
 
-        
+
       }
     }
   }
@@ -262,7 +266,7 @@ void setup() {
 }
 
 void loop() {
-  vTaskSuspend(NULL);
+  vTaskDelete(NULL);
 }
 
 void taskDim( void * pvParameters ) {
@@ -284,7 +288,7 @@ void taskDim( void * pvParameters ) {
   }
 
   while ((bool) configs["default"]) {
-    vTaskSuspend(NULL);
+    vTaskDelete(NULL);
   }
 
   while (true) {
@@ -297,8 +301,11 @@ void taskDim( void * pvParameters ) {
     sensors.requestTemperatures();
     tempATUAL = sensors.getTempCByIndex(0);
     delay(10);
-    if (tempATUAL < - 100) {
+    while (tempATUAL < - 100) {
+      sensors.requestTemperatures();
+      tempATUAL = sensors.getTempCByIndex(0);
       numError++;
+      delay(10);
     }
     if ((millis() - ultimo_millis2) > debounce_delay) {
       ultimo_millis2 = millis();

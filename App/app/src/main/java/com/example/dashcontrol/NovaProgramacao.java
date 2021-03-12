@@ -9,8 +9,12 @@ import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -74,6 +78,7 @@ public class NovaProgramacao extends AppCompatActivity {
     private List<String> conflito;
     Intent intent;
     SharedPreferences prefs;
+    Handler mHandler;
 
 
 
@@ -91,6 +96,35 @@ public class NovaProgramacao extends AppCompatActivity {
         View view = inflater.inflate(R.layout.custom_bar_right, null);
         actionBar.setCustomView(view);
         database = FirebaseDatabase.getInstance();
+
+        mHandler = new Handler(Looper.getMainLooper()) {
+            @Override
+            public void handleMessage(Message message) {
+                AlertDialog.Builder dialog = new AlertDialog.Builder(NovaProgramacao.this);
+                if(message.what == 1){
+                    dialog.setTitle("Conflito de Horário");
+                    dialog.setMessage(message.obj.toString());
+                    dialog.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+                } else if(message.what == 2) {
+                    dialog.setTitle("Aviso");
+                    dialog.setMessage(message.obj.toString());
+                    dialog.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+                }
+
+
+                dialog.show();
+            }
+        };
 
         RandomStringGenerator generator = new RandomStringGenerator.Builder()
                 .withinRange('0', 'Z')
@@ -155,7 +189,7 @@ public class NovaProgramacao extends AppCompatActivity {
                 hrs.put("tempPROG", tempProgAgendamento.getText().toString());
 
                 if (intent.getIntExtra("op", -1) == 1) {
-                    database.getReference().child("cliente").child(prefs.getString("chave","null")).child(prefs.getString("deviceNameForAdapter","null").toLowerCase()).child("R").child("programacoes").child(intent.getStringExtra("numSemana"))
+                   /* database.getReference().child("cliente").child(prefs.getString("chave","null")).child(prefs.getString("deviceNameForAdapter","null").toLowerCase()).child("R").child("programacoes").child(intent.getStringExtra("numSemana"))
                             .child(intent.getStringExtra("chaveHora")).updateChildren(hrs).addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
@@ -166,7 +200,177 @@ public class NovaProgramacao extends AppCompatActivity {
                         public void onFailure(@NonNull Exception e) {
 
                         }
+                    });*/
+
+
+                    database.getReference().child("cliente").child(prefs.getString("chave","null")).child(prefs.getString("deviceNameForAdapter","null").toLowerCase()).child("R").child("programacoes").child(intent.getStringExtra("numSemana")).runTransaction(new Transaction.Handler() {
+                        @Override
+                        public Transaction.Result doTransaction(MutableData mutableData) {
+                            if (mutableData.getValue() != null){
+                                Log.d("mutable string", mutableData.toString());
+                                Log.d("child count", Long.toString(mutableData.getChildrenCount()));
+
+                                for (MutableData child : mutableData.getChildren()) {
+                                    Log.d("Mutable data keey", child.getKey());
+                                    Log.d("Mutable data val", child.getValue().toString());
+                                    if(!child.getKey().toString().contains(intent.getStringExtra("chaveHora"))){
+                                        SimpleDateFormat df = new SimpleDateFormat("HH:mm");
+                                        try {
+                                            Date bancoLiga = df.parse(child.child("liga").getValue().toString());
+                                            Date bancoDesliga = df.parse(child.child("desliga").getValue().toString());
+                                            Date vaiLigar = df.parse(tv1.getText().toString());
+                                            Date vaiDesligar = df.parse(tv2.getText().toString());
+
+                                            if (vaiLigar.after(bancoLiga) && vaiLigar.before(bancoDesliga)) {
+                                                Log.d("abortou", "no primeiro");
+                                                if(!conflito.contains(child.getKey())){
+                                                    conflito.add(child.getKey());
+                                                }
+                                                //Transaction.abort();
+                                                //break;
+                                            }
+                                            if (vaiDesligar.getTime() - 1 > bancoLiga.getTime() && vaiDesligar.getTime() - 1 < bancoDesliga.getTime()) {
+
+                                                Log.d("abortou", "no segundo");
+                                                if(!conflito.contains(child.getKey())){
+                                                    conflito.add(child.getKey());
+                                                }
+                                            }
+
+                                            if (vaiLigar.getTime() < bancoLiga.getTime() && vaiDesligar.getTime() > bancoDesliga.getTime()) {
+                                                if(!conflito.contains(child.getKey())){
+                                                    conflito.add(child.getKey());
+                                                }
+                                            }
+
+                                            if (vaiDesligar.after(bancoLiga) && vaiDesligar.before(bancoDesliga)) {
+                                                if(!conflito.contains(child.getKey())){
+                                                    conflito.add(child.getKey());
+                                                }
+                                                //Transaction.abort();
+                                                // break;
+                                            }
+                                            Log.d("passou", "no segundo");
+
+
+                                        } catch (Exception e) {
+                                        }
+
+                                    }
+                                }
+                                Log.d("Tem conflito qtd", Integer.toString(conflito.size()));
+                                if(conflito.size() == 0){
+                                    mutableData.child(intent.getStringExtra("chaveHora")).setValue(hrs);
+                                    Message message = mHandler.obtainMessage(2, "Dados salvos com sucesso!");
+                                    message.sendToTarget();
+
+                                }else{
+                                    String va = "Não é possível atualizar esse horário pois já existe uma programação definida:\n";
+                                    for(String k : conflito){
+                                        va+= "Liga: "+mutableData.child(k).child("liga").getValue().toString()+ " - Desliga: "+mutableData.child(k).child("desliga").getValue().toString()+"\n";
+                                    }
+                                    Message message = mHandler.obtainMessage(1, va);
+                                    message.sendToTarget();
+                                }
+
+                            }
+
+
+                          /*  for (int i = 0; i < ambientesSelecionados.size(); i++) {
+                                if (mutableData.hasChild(ambientesSelecionados.get(i).toLowerCase())) {
+                                    Log.d("tem o ambinete", "selecionado");
+                                    for (int z = 0; z < diasSelecionados.size(); z++) {
+                                        if (mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").hasChild(String.valueOf(diasSelecionados.get(z)))) {
+
+                                            for (MutableData child : mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(String.valueOf(diasSelecionados.get(z))).getChildren()) {
+                                                Log.d("childdd", child.getKey());
+                                                Log.d("liga", child.child("liga").getValue().toString());
+                                                Log.d("ddesliga", child.child("desliga").getValue().toString());
+                                                Log.d("temp", child.child("tempPROG").getValue().toString());
+
+                                                SimpleDateFormat df = new SimpleDateFormat("HH:mm");
+                                                try {
+                                                    Date bancoLiga = df.parse(child.child("liga").getValue().toString());
+                                                    Date bancoDesliga = df.parse(child.child("desliga").getValue().toString());
+                                                    Date vaiLigar = df.parse(tv1.getText().toString());
+                                                    Date vaiDesligar = df.parse(tv2.getText().toString());
+
+                                                    if (vaiLigar.after(bancoLiga) && vaiLigar.before(bancoDesliga)) {
+                                                        Log.d("abortou", "no primeiro");
+                                                        conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
+                                                        //Transaction.abort();
+                                                        //break;
+                                                    }
+                                                    if (vaiDesligar.getTime() - 1 > bancoLiga.getTime() && vaiDesligar.getTime() - 1 < bancoDesliga.getTime()) {
+
+                                                        Log.d("abortou", "no segundo");
+                                                        conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
+                                                    }
+
+                                                    if (vaiLigar.getTime() < bancoLiga.getTime() && vaiDesligar.getTime() > bancoDesliga.getTime()) {
+                                                        conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
+                                                    }
+
+                                                    if (vaiDesligar.after(bancoLiga) && vaiDesligar.before(bancoDesliga)) {
+
+                                                        //Transaction.abort();
+                                                        // break;
+                                                    }
+                                                    Log.d("passou", "no segundo");
+
+
+                                                } catch (Exception e) {
+                                                }
+
+
+                                            }
+
+                                        }
+                                    }
+
+                                } else {
+                                    Log.d("Aqui da pra add", " de boias pq nao tem no banco ainda");
+                                }
+
+                            }*/
+
+                            Log.d("conflitooo", conflito.toString());
+
+
+                            if (mutableData.getChildrenCount() > 0) {
+                            /*Log.d("tem o filho","do capiroto");
+                            mutableData.child("PC").child("programacoes").child("10").child(UUID.randomUUID().toString()).child("liga").setValue("544562156");*/
+                                for (int i = 0; i < ambientesSelecionados.size(); i++) {
+
+                                    for (int z = 0; z < diasSelecionados.size(); z++) {
+                                        if (!conflito.contains(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))))) {
+                                            // mutableData.child(ambientesSelecionados.get(i)).child("programacoes").child(diasSelecionados.get(z).toString()).child(UUID.randomUUID().toString()).child("liga").setValue("");
+
+                                            //mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(diasSelecionados.get(z).toString()).child(UUID.randomUUID().toString()).setValue(hrs);
+                                            mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(diasSelecionados.get(z).toString().concat("a")).child(generator.generate(10)).setValue(hrs);
+                                        }
+                                    }
+
+                                }
+                            }
+
+
+                            Log.d("estou retornando", "do capiroto");
+
+                            return Transaction.success(mutableData);
+                        }
+
+                        @Override
+                        public void onComplete(@Nullable DatabaseError error, boolean committed, @Nullable DataSnapshot currentData) {
+                            Log.d("on complete", currentData.toString());
+
+                        }
+
+
                     });
+
+
+
 
                 }else{
                 for (int i = 0; i < listView.getCount(); i++) {
@@ -269,7 +473,7 @@ public class NovaProgramacao extends AppCompatActivity {
                                                 }
 
                                                 if (vaiDesligar.after(bancoLiga) && vaiDesligar.before(bancoDesliga)) {
-
+                                                    conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
                                                     //Transaction.abort();
                                                     // break;
                                                 }
