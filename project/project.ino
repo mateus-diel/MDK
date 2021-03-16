@@ -325,13 +325,13 @@ void taskDim( void * pvParameters ) {
     if (isUpdate) {
       DimmableLight::pauseStop();
       delay(200);
-      vTaskSuspend(NULL);
+      vTaskDelete(NULL);
     }
 
     sensors.requestTemperatures();
     tempATUAL = sensors.getTempCByIndex(0);
     delay(10);
-    while (tempATUAL < - 100) {
+    while (tempATUAL < - 150) {
       sensors.requestTemperatures();
       tempATUAL = sensors.getTempCByIndex(0);
       numError++;
@@ -346,6 +346,61 @@ void taskDim( void * pvParameters ) {
       Serial.println("ºC");
       Serial.print("Potencia -> " + String(potencia_1) + " :");
       Serial.println(DIMMER_1.getBrightness()); // mostra a quantidade de brilho atual
+      Serial.println("Semaphore\n");
+      xSemaphoreTake(myMutex, portMAX_DELAY);
+      JSONVar saveHrs;
+      JSONVar itemHrs;
+      for (int i = 0; i < NSEMANAS; i++) {
+        if (hrs[i].semana.length() > 1) {
+          Serial.println(hrs[i].semana);
+          itemHrs["sem"] = hrs[i].semana;
+          itemHrs["temp"] = hrs[i].temp;
+          itemHrs["liga"] = hrs[i].liga;
+          itemHrs["desliga"] = hrs[i].desliga;
+          saveHrs[String(i)] = itemHrs;
+        }
+      }
+      xSemaphoreGive(myMutex);
+      Serial.println(JSON.stringify(saveHrs));
+      JSONVar a = saveHrs.keys();
+      for (int i = 0; i < a.length(); i++) {
+        JSONVar value = saveHrs[a[i]];
+
+        Serial.print("JSON.typeof(myObject[");
+        Serial.print(a[i]);
+        Serial.print("]) = ");
+        Serial.println(JSON.typeof(value));
+
+        Serial.print("myObject[");
+        Serial.print(a[i]);
+        Serial.print("] = ");
+        Serial.println(value);
+
+        JSONVar kk = value.keys();
+        for (int z = 0; z < kk.length(); z++) {
+          JSONVar vv = value[kk[z]];
+          Serial.println();
+          Serial.print("JSON.typeof(myObject[");
+          Serial.print(kk[z]);
+          Serial.print("]) = ");
+          Serial.println(JSON.typeof(vv));
+
+          Serial.print("myObject[");
+          Serial.print(kk[z]);
+          Serial.print("] = ");
+          Serial.println(vv);
+          Serial.println();
+
+        }
+
+        Serial.println();
+      }
+
+
+
+      saveHrs = undefined;
+      itemHrs = undefined;
+      Serial.println("\nSemaphore\n");
     }
 
     if ((millis() - ultimo_millis1) > debounce_delay + 1800000) {
