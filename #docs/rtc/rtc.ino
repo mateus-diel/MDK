@@ -1,3 +1,4 @@
+
 // CONNECTIONS:
 // DS1302 CLK/SCLK --> 5
 // DS1302 DAT/IO --> 4
@@ -8,7 +9,9 @@
 #include <ThreeWire.h>  
 #include <RtcDS1302.h>
 
-ThreeWire myWire(21,22,23); // IO, SCLK, CE
+#define offset 946684800
+
+ThreeWire myWire(21, 22, 23); // IO, SCLK, CE
 RtcDS1302<ThreeWire> Rtc(myWire);
 
 void setup () 
@@ -66,6 +69,10 @@ void setup ()
 void loop () 
 {
     RtcDateTime now = Rtc.GetDateTime();
+    RtcDateTime dt = RtcDateTime(now.Year(),now.Month(), now.Day(), 19, 30,0);
+    Serial.println(now+offset);
+    Serial.println(dt+offset);
+    Serial.println(now.DayOfWeek());
 
     printDateTime(now);
     Serial.println();
@@ -77,7 +84,7 @@ void loop ()
         Serial.println("RTC lost confidence in the DateTime!");
     }
 
-    delay(1000); // ten seconds
+    delay(5000); // ten seconds
 }
 
 #define countof(a) (sizeof(a) / sizeof(a[0]))

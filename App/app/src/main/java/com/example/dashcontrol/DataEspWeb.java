@@ -105,8 +105,7 @@ public class DataEspWeb extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 for (DataSnapshot device: snapshot.getChildren()) {
-                    Log.d("nome",device.getKey());
-                    Log.d("valor",String.valueOf(device.getValue()));
+                    Log.d("nome valor",device.getKey().concat("  "+String.valueOf(device.getValue())));
 
                     if(device.getKey().equals("LINHA_1") && Boolean.valueOf(device.getValue().toString().toLowerCase())){
                         txtStatus.setText("Ligado!");
@@ -271,12 +270,12 @@ public class DataEspWeb extends AppCompatActivity {
             public void onSuccess(Void aVoid) {
                     t = new Thread() {
                         public void run() {
-                            Log.d("Last temp progh", String.valueOf(lastTempProg));
-                            Log.d("temp prog", String.valueOf(txtTempProg.getText().toString()));
-                            Log.d("liga desliga", String.valueOf(ligaDesliga));
-                            Log.d("last liga desliga", String.valueOf(lastLigaDesliga));
-                            Log.d("modo", String.valueOf(modo));
-                            Log.d("last modo", String.valueOf(lastModo));
+                            Log.i("Last temp progh", String.valueOf(lastTempProg));
+                            Log.i("temp prog", String.valueOf(txtTempProg.getText().toString()));
+                            Log.i("liga desliga", String.valueOf(ligaDesliga));
+                            Log.i("last liga desliga", String.valueOf(lastLigaDesliga));
+                            Log.i("modo", String.valueOf(modo));
+                            Log.i("last modo", String.valueOf(lastModo));
                             while (lastTempProg != Integer.parseInt(txtTempProg.getText().toString()) || lastLigaDesliga != ligaDesliga || lastModo != modo){
                                 if(time > timeout){
                                     activity.runOnUiThread(new Runnable()
