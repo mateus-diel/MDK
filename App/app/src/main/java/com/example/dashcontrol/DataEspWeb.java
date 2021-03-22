@@ -43,17 +43,17 @@ public class DataEspWeb extends AppCompatActivity {
     TextView txtLocal;
     TextView txtStatus, modoWeb;
     TextView txtTempProg;
-    private FirebaseDatabase database;
-    private DatabaseReference ref;
-    private ValueEventListener listener;
+    private static FirebaseDatabase database;
+    private static DatabaseReference ref;
+    private static ValueEventListener listener;
     ProgressDialog progressDialog;
     SeekBar seekBar;
     Thread t;
     Intent intent;
     SharedPreferences prefs;
     volatile int lastTempProg;
-    volatile boolean lastLigaDesliga, ligaDesliga;
-    volatile boolean modo, lastModo;
+    volatile boolean lastLigaDesliga, ligaDesliga = false;
+    volatile boolean modo, lastModo = false;
     Activity activity;
 
     @Override
@@ -111,12 +111,12 @@ public class DataEspWeb extends AppCompatActivity {
                         txtStatus.setText("Ligado!");
                         seekBar.setEnabled(true);
                         btnLigaDesliga.setText("Desligar");
-                        ligaDesliga = false;
+                        lastLigaDesliga = true;
                     }else if(device.getKey().equals("LINHA_1") && !Boolean.valueOf(device.getValue().toString().toLowerCase())){
                         txtStatus.setText("Desligado!");
                         btnLigaDesliga.setText("Ligar");
                         seekBar.setEnabled(false);
-                        ligaDesliga = true;
+                        lastLigaDesliga = false;
                     }else if(device.getKey().equals("tempATUAL")){
                         temp.animateProgressChange(Float.valueOf(device.getValue().toString()),1000);
                         temp.setText(String.format("%.1f",Float.valueOf(device.getValue().toString())).replace(",",".").concat(" ºC"));
@@ -131,14 +131,14 @@ public class DataEspWeb extends AppCompatActivity {
                         btnLigaDesliga.setEnabled(false);
                         seekBar.setEnabled(false);
                         modoWeb.setText("Automático");
-                        modo = false;
+                        lastModo = true;
                     }else if(device.getKey().equals("auto") && !Boolean.valueOf(device.getValue().toString().toLowerCase())){
                         btnManualWeb.setEnabled(false);
                         btnAutoWeb.setEnabled(true);
                         seekBar.setEnabled(true);
                         btnLigaDesliga.setEnabled(true);
                         modoWeb.setText("Manual");
-                        modo=true;
+                        lastModo=false;
                     }
 
 
@@ -154,7 +154,7 @@ public class DataEspWeb extends AppCompatActivity {
 
         ref = database.getReference("cliente/".concat(prefs.getString("chave","null")).concat("/").concat(intent.getStringExtra("deviceName").toLowerCase()).concat("/W"));
         Log.d("Caminho do cliente","cliente/".concat(prefs.getString("chave","null")).concat("/").concat(intent.getStringExtra("deviceName")).concat("/W") );
-        ref.addValueEventListener(listener);
+
 
         btnLigaDesliga.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -335,10 +335,11 @@ public class DataEspWeb extends AppCompatActivity {
 
     @Override
     protected void onPause() {
+        super.onPause();
         if(listener!=null){
             ref.removeEventListener(listener);
+            Log.d("removi o listener", "verdade");
         }
-        super.onPause();
     }
 
     @Override
@@ -349,5 +350,10 @@ public class DataEspWeb extends AppCompatActivity {
             temp.postInvalidate();
             temp.refreshDrawableState();
         }
+        if(listener!=null){
+            Log.d("adicionei o listener", "verdade");
+            ref.addValueEventListener(listener);
+        }
+
     }
 }

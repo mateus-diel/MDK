@@ -151,7 +151,7 @@ public class VerProgramacoesWeb extends AppCompatActivity {
             return "Sexta";
         }else if(num.contains("6a")){
             return "Sábado";
-        }else if(num.contains("7a")){
+        }else if(num.contains("0a")){
             return "Domingo";
         }
     return "";

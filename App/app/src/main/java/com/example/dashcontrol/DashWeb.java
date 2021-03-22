@@ -242,6 +242,8 @@ public class DashWeb extends AppCompatActivity {
         }
     }
 
+
+
     public static ArrayList<String> getDispositivos() {
         return dispositivos;
     }

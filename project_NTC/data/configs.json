@@ -1,8 +1,8 @@
 {
     "default":false,
-    "ssid":"GIGABYTE 2G",
-    "password":"giga2020a",
-    "deviceName":"mateus giga 2",
+    "ssid":"Mateus",
+    "password":"home1234",
+    "deviceName":"mateus casa",
     "defaultPassword":"12345678",
     "client_id":"Fw8XvAcsCVha5tnfY9mlgJz3sAG2",
     "host":"https://espiot-c6099-default-rtdb.firebaseio.com",

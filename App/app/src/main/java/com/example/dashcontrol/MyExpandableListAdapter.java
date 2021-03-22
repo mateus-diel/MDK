@@ -193,8 +193,8 @@ public class MyExpandableListAdapter extends BaseExpandableListAdapter {
         }else if(str.contains("Sábado")){
             return "6a";
         }else if(str.contains("Domingo")){
-            return "7a";
+            return "0a";
         }
-            return  "0a";
+            return  "10a";
     }
 }
