@@ -367,6 +367,7 @@ void taskDim( void * pvParameters ) {
       numError++;
       delay(10);
     }
+    
     if (automaticMode) {
       xSemaphoreTake(myMutex, portMAX_DELAY);
       for (int i = 0; i < NSEMANAS; i++) {
