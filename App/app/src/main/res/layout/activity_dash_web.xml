@@ -24,14 +24,14 @@
         android:id="@+id/grid_view_dash_web"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:numColumns="2"
+        android:numColumns="3"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView9" />
 
     <com.github.clans.fab.FloatingActionMenu
-        android:id="@+id/material_design_android_floating_action_menu"
+        android:id="@+id/floatingMenuWeb"
         android:layout_width="match_parent"
         android:layout_height="244dp"
         android:layout_alignParentRight="true"
@@ -42,12 +42,12 @@
         fab:menu_animationDelayPerItem="55"
         fab:menu_backgroundColor="@android:color/transparent"
         fab:menu_buttonSpacing="0dp"
-        fab:menu_colorNormal="#da3c2f"
-        fab:menu_colorPressed="#dc4b3f"
-        fab:menu_colorRipple="#99d4d4d4"
+        fab:menu_colorNormal="@color/laranjalogo"
+        fab:menu_colorPressed="@color/colorPrimary"
+        fab:menu_colorRipple="@color/laranjalogo"
         fab:menu_fab_label="Menu"
         fab:menu_fab_size="normal"
-        fab:menu_icon="@drawable/ic_settings"
+        fab:menu_icon="@drawable/ic_menu"
         fab:menu_labels_colorNormal="#333"
         fab:menu_labels_colorPressed="#444"
         fab:menu_labels_colorRipple="#66efecec"
@@ -64,34 +64,59 @@
         fab:menu_labels_textColor="#f2f1f1"
         fab:menu_labels_textSize="15sp"
         fab:menu_openDirection="up"
-        fab:menu_shadowColor="#66aff198"
+        fab:menu_shadowColor="@color/colorPrimary"
         fab:menu_shadowRadius="4dp"
         fab:menu_shadowXOffset="1dp"
         fab:menu_shadowYOffset="4dp"
         fab:menu_showShadow="true">
 
         <com.github.clans.fab.FloatingActionButton
-            android:id="@+id/material_design_floating_action_menu_item1"
+            android:id="@+id/floatingProgramaçõesWeb"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_settings"
-            fab:fab_label="Menu Item 1"
+            android:src="@drawable/ic_time"
+            fab:fab_label="Programações"
+            app:fab_colorNormal="@color/laranjalogo"
+            app:fab_colorPressed="@color/colorPrimary"
             fab:fab_size="mini" />
 
         <com.github.clans.fab.FloatingActionButton
-            android:id="@+id/material_design_floating_action_menu_item2"
+            android:id="@+id/floatingPersonalizarWeb"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_settings"
-            fab:fab_label="Menu Item 2"
+            android:src="@drawable/ic_preferences"
+            fab:fab_label="Personalizar Icones"
+            app:fab_colorNormal="@color/laranjalogo"
+            app:fab_colorPressed="@color/colorPrimary"
+            fab:fab_size="mini" />
+        <com.github.clans.fab.FloatingActionButton
+            android:id="@+id/floatingModoViagemWeb"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_business"
+            fab:fab_label="Modo Viagem"
+            app:fab_colorNormal="@color/laranjalogo"
+            app:fab_colorPressed="@color/colorPrimary"
             fab:fab_size="mini" />
 
         <com.github.clans.fab.FloatingActionButton
-            android:id="@+id/material_design_floating_action_menu_item3"
+            android:id="@+id/floatingSupportWeb"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_settings"
-            fab:fab_label="Menu Item 3"
+            android:src="@drawable/ic_support"
+            fab:fab_label="Contato"
+            app:fab_colorNormal="@color/laranjalogo"
+            app:fab_colorPressed="@color/colorPrimary"
+            fab:fab_size="mini" />
+
+        <com.github.clans.fab.FloatingActionButton
+            android:id="@+id/floatingSairWeb"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_exit"
+            app:fab_colorNormal="@color/laranjalogo"
+            app:fab_colorPressed="@color/colorPrimary"
+            fab:fab_label="Sair"
             fab:fab_size="mini" />
     </com.github.clans.fab.FloatingActionMenu>
 

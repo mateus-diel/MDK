@@ -21,7 +21,7 @@ size_t childPathSize = 2;
 typedef struct
 {
   String semana;
-  int temp;
+  double temp;
   String liga;
   String desliga;
 } Horarios;
@@ -33,8 +33,12 @@ typedef struct
 #define PINORESET 13
 #define CONFIGURATION "/configs.json"
 #define DEVICESINFO "/devices.json"
+#define DAYSINFO "/days.json"
 #define VERSION "1.01"
+#define MODEL "casa"
 #define NSEMANAS 35
+
+
 
 Horarios hrs[NSEMANAS];
 SemaphoreHandle_t myMutex;
@@ -78,6 +82,13 @@ unsigned long ultimo_millis2 = 0;
 unsigned long ultimo_millis3 = 0;
 unsigned long debounce_delay = 500;
 
+void limpaHorarios() {
+  for (int i = 0; i < NSEMANAS; i++) {
+    hrs[i].semana = undefined;
+  }
+}
+
+
 void streamCallback(MultiPathStreamData stream)
 {
   Serial.println();
@@ -108,69 +119,36 @@ void streamCallback(MultiPathStreamData stream)
         }
         updateValues = true;
       } else if (stream.dataPath.indexOf(childPath[0]) > -1 && stream.type.indexOf("json") > -1) {
-        int i = 0;
-        DynamicJsonBuffer jsonBuffer;
-        JsonObject& root = jsonBuffer.parseObject(stream.value);
-        Serial.println("json certo");
+        int pos = 0;
+        limpaHorarios();
 
-        // using C++11 syntax (preferred):
-        for (auto kv : root) {
-          //Serial.println(kv.key);
-
-          //Serial.println(root.get<String>(kv.key));
-          for (auto k : (root.get<JsonVariant>(kv.key)).as<JsonObject>()) {
-            //Serial.println("key do caraio");
-            //Serial.println(k.key);
-            //Serial.println(k.value.as<String>());
-
-            if (String(kv.key).length() > 3) {
-
-            } else {
-
-              Serial.println("\n");
-              Serial.print("Semana: ");
-              Serial.println(kv.key);
-              Serial.print("temp: ");
-              Serial.println((((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<float>("tempPROG"));
-              Serial.print("liga: ");
-              Serial.println((((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<String>("liga"));
-              Serial.print("desliga: ");
-              Serial.println((((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<String>("desliga"));
-              xSemaphoreTake(myMutex, portMAX_DELAY);
-              hrs[i].semana = String(kv.key);
-              hrs[i].temp = (((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<int>("tempPROG");
-              hrs[i].liga = (((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<String>("liga");
-              hrs[i].desliga = (((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()).get<String>("desliga");
-              xSemaphoreGive(myMutex);
-              i++;
-
-            }
-
-            //              Serial.println(key.value.as<String>());
-            /*for(auto key: ((root.get<JsonVariant>(kv.key)).as<JsonObject>()).get<JsonVariant>(k.key).as<JsonObject>()){
-              Serial.println("\n");
-              Serial.print("Semana: ");
-              Serial.println(kv.key);
-              Serial.print("key: ");
-              Serial.print(key.key);
-              Serial.print(", valor: ");
-              Serial.println(key.value.as<String>());
-              }*/
-
+        JSONVar root = JSON.parse(stream.value);
+        JSONVar days = root.keys();
+        for (int i = 0; i < days.length(); i++) {
+          JSONVar value = root[days[i]];
+          JSONVar Keys = value.keys();
+          for (int z = 0; z < Keys.length(); z++) {
+            JSONVar val = value[Keys[z]];
+            /*Serial.println();
+              Serial.print(Keys[z]);
+              Serial.print(": ");
+              Serial.println(val);
+              Serial.println(days[i]);
+              Serial.println(val["liga"]);
+              Serial.println(val["desliga"]);
+              Serial.println(val["tempPROG"]);*/
+            xSemaphoreTake(myMutex, portMAX_DELAY);
+            hrs[pos].semana = String((const char*) days[i]);
+            hrs[pos].temp = String((const char*) val["tempPROG"]).toDouble();
+            hrs[pos].liga = String((const char*) val["liga"]);
+            hrs[pos].desliga = String((const char*) val["desliga"]);
+            xSemaphoreGive(myMutex);
+            pos++;
           }
         }
-        Serial.println();
-
-
-
       }
     }
   }
-
-  Serial.println();
-
-
-
 }
 
 void streamTimeoutCallback(bool timeout) {
@@ -179,6 +157,18 @@ void streamTimeoutCallback(bool timeout) {
     Serial.println("Stream timeout, resume streaming...");
     Serial.println();
   }
+}
+
+boolean estaEntre(String liga, String desliga) {
+  if (Rtc.IsDateTimeValid()) {
+    RtcDateTime now = Rtc.GetDateTime();
+    RtcDateTime On = RtcDateTime(now.Year(), now.Month(), now.Day(), liga.substring(0, liga.indexOf(":")).toInt(), liga.substring(liga.indexOf(":") + 1, liga.length()).toInt(), 0);
+    RtcDateTime Off = RtcDateTime(now.Year(), now.Month(), now.Day(), desliga.substring(0, desliga.indexOf(":")).toInt(), desliga.substring(desliga.indexOf(":") + 1, desliga.length()).toInt(), 0);
+    if (now > On && now < Off) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void responseToClient (AsyncWebServerRequest *req, String res) {
@@ -198,6 +188,29 @@ void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
   WiFi.begin((const char*) configs["ssid"], (const char*) configs["password"]);
 }
 
+String diaDaSemana() {
+  if (!Rtc.IsDateTimeValid())  {
+    return "-1";
+  }
+
+  if (Rtc.GetIsWriteProtected())  {
+    Serial.println("RTC was write protected, enabling writing now");
+    Rtc.SetIsWriteProtected(false);
+    return "-1";
+  }
+
+  if (!Rtc.GetIsRunning())  {
+    Serial.println("RTC was not actively running, starting now");
+    Rtc.SetIsRunning(true);
+    return "-1";
+  }
+  RtcDateTime date = Rtc.GetDateTime();
+  /*Serial.print("\n Dia da semana: ");
+    Serial.println(String(date.DayOfWeek()));
+    printDateTime(date);
+    Serial.println();*/
+  return (String(date.DayOfWeek()));
+}
 
 void ligaRELE(short pin) {
   digitalWrite(pin, HIGH);
@@ -243,6 +256,22 @@ boolean writeFile(String message, String path) {
   return true;
 }
 
+void loadHrs() {
+  JSONVar saveHrs = JSON.parse(readFile(DAYSINFO));
+  JSONVar a = saveHrs.keys();
+  int pos = 0;
+
+  for (int i = 0; i < a.length(); i++) {
+    JSONVar value = saveHrs[a[i]];
+    hrs[pos].semana = String((const char*) value["sem"]);
+    hrs[pos].temp = String((const char*) value["temp"]).toDouble();
+    hrs[pos].liga = String((const char*) value["liga"]);
+    hrs[pos].desliga = String((const char*) value["desliga"]);
+    pos++;
+  }
+
+}
+
 
 void setup() {
   Serial.begin(115200);
@@ -275,6 +304,7 @@ void setup() {
     LINHA_1 = (bool) devices["linha_1"];
 
     sensors.begin();
+    loadHrs();
 
     Serial.print("\ntemperatura programada lida: ");
     Serial.println(tempPROG);
@@ -337,6 +367,23 @@ void taskDim( void * pvParameters ) {
       numError++;
       delay(10);
     }
+    if (automaticMode) {
+      xSemaphoreTake(myMutex, portMAX_DELAY);
+      for (int i = 0; i < NSEMANAS; i++) {
+        if (hrs[i].semana.length() > 1) {
+          if (hrs[i].semana.indexOf(diaDaSemana()) > -1 && diaDaSemana().toInt() > -1 ) {
+            if (estaEntre(hrs[i].liga, hrs[i].desliga)) {
+              LINHA_1 = true;
+              tempPROG = hrs[i].temp;
+              break;
+            }
+          }
+        }
+        LINHA_1 = false;
+      }
+      xSemaphoreGive(myMutex);
+    }
+
     if ((millis() - ultimo_millis2) > debounce_delay) {
       ultimo_millis2 = millis();
       Serial.print(tempATUAL);
@@ -345,8 +392,17 @@ void taskDim( void * pvParameters ) {
       devices["tempPROG"] = tempPROG;
       Serial.println("ºC");
       Serial.print("Potencia -> " + String(potencia_1) + " :");
-      Serial.println(DIMMER_1.getBrightness()); // mostra a quantidade de brilho atual
-      Serial.println("Semaphore\n");
+      Serial.println(DIMMER_1.getBrightness());
+    }
+
+    if ((millis() - ultimo_millis1) > debounce_delay + 1800000) {
+      ultimo_millis1 = millis();
+      devices["linha_1"] = LINHA_1;
+      devices["tempPROG_1"] = tempPROG;
+      DimmableLight::pauseStop();
+      delay(10);
+      writeFile(JSON.stringify(devices), DEVICESINFO);
+      delay(10);
       xSemaphoreTake(myMutex, portMAX_DELAY);
       JSONVar saveHrs;
       JSONVar itemHrs;
@@ -361,61 +417,12 @@ void taskDim( void * pvParameters ) {
         }
       }
       xSemaphoreGive(myMutex);
-      Serial.println(JSON.stringify(saveHrs));
-      JSONVar a = saveHrs.keys();
-      for (int i = 0; i < a.length(); i++) {
-        JSONVar value = saveHrs[a[i]];
-
-        Serial.print("JSON.typeof(myObject[");
-        Serial.print(a[i]);
-        Serial.print("]) = ");
-        Serial.println(JSON.typeof(value));
-
-        Serial.print("myObject[");
-        Serial.print(a[i]);
-        Serial.print("] = ");
-        Serial.println(value);
-
-        JSONVar kk = value.keys();
-        for (int z = 0; z < kk.length(); z++) {
-          JSONVar vv = value[kk[z]];
-          Serial.println();
-          Serial.print("JSON.typeof(myObject[");
-          Serial.print(kk[z]);
-          Serial.print("]) = ");
-          Serial.println(JSON.typeof(vv));
-
-          Serial.print("myObject[");
-          Serial.print(kk[z]);
-          Serial.print("] = ");
-          Serial.println(vv);
-          Serial.println();
-
-        }
-
-        Serial.println();
-      }
-
-
-
+      writeFile(JSON.stringify(saveHrs), DAYSINFO);
+      delay(10);
       saveHrs = undefined;
       itemHrs = undefined;
-      Serial.println("\nSemaphore\n");
-    }
-
-    if ((millis() - ultimo_millis1) > debounce_delay + 1800000) {
-      ultimo_millis1 = millis();
-      devices["linha_1"] = LINHA_1;
-      devices["tempPROG_1"] = tempPROG;
-      DimmableLight::pauseStop();
-      delay(10);
-      writeFile(JSON.stringify(devices), DEVICESINFO);
-      delay(10);
-      xSemaphoreTake(myMutex, portMAX_DELAY);
-      xSemaphoreGive(myMutex);
       DIMMER_1.setBrightness(10);
       DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
-      //Serial.println("passou no salva memoria");
     }
 
 
@@ -460,7 +467,6 @@ void taskDim( void * pvParameters ) {
 }
 
 void taskConn( void * pvParameters ) {
-
   if ((bool) configs["default"]) {
     WiFi.mode(WIFI_AP);
     delay(1000);
@@ -469,10 +475,8 @@ void taskConn( void * pvParameters ) {
     Serial.println(mac);
     Serial.print("Size of: ");
     Serial.println(sizeof(mac));
-
     char ssid[mac.length() + 1];
     mac.toCharArray(ssid, mac.length() + 1);
-
     char pass[8 + 1];
     String((const char*)configs["defaultPassword"]).toCharArray(pass, 8 + 1);
     Serial.println("\nSSID: ");
@@ -482,15 +486,9 @@ void taskConn( void * pvParameters ) {
 
     WiFi.softAP(ssid, pass);
     delay(2000);
-
-    delay(100);
-
     Serial.print("AP IP address: ");
     Serial.println(WiFi.softAPIP());
-
-
   } else {
-
     WiFi.mode(WIFI_MODE_STA);
     delay(1000);
     WiFi.begin((const char*) configs["ssid"], (const char*) configs["password"]);
@@ -507,9 +505,6 @@ void taskConn( void * pvParameters ) {
     WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_LOST_IP);
     Serial.print("Ip->: ");
     Serial.println(WiFi.localIP());
-
-
-
   }
 
 
@@ -651,7 +646,11 @@ void taskConn( void * pvParameters ) {
   if (!Firebase.setTimestamp(writeData, nodo + "/W/uptime")) {
     Serial.println("Erro ao gravar a data em nuvem");
   }
-
+  json1.remove("update");
+  json1.set("ver", VERSION);
+  if (!Firebase.updateNode(writeData, nodo + "/W/", json1)) {
+    Serial.println(writeData.errorReason());
+  }
   Firebase.reconnectWiFi(true);
 
   if (!Firebase.beginMultiPathStream(readData, nodo + "R/", childPath, childPathSize))
@@ -695,24 +694,30 @@ void taskConn( void * pvParameters ) {
         json2.set("potencia", potencia_1);
         json2.set("erro leitura", numError);
         json2.set("auto", automaticMode);
+        json2.set("sinal", String(WiFi.RSSI()));
 
-        if (Firebase.updateNode(writeData, nodo + "/W/", json2)) {
-          Serial.println(writeData.dataPath() + "/" + writeData.pushName());
-        } else {
+        if (!Firebase.updateNode(writeData, nodo + "/W/", json2)) {
           Serial.println(writeData.errorReason());
         }
         Firebase.setTimestamp(writeData, nodo + "/W/Timestamp");
         writeData.stopWiFiClient();
 
         if (isUpdate) {
-          t_httpUpdate_return ret = ESPhttpUpdate.update("http://update.gigabyte.inf.br/update.bin");
+          String url = "http://update.gigabyte.inf.br/update.php?ver=";
+          url.concat(VERSION);
+          url.concat("&model=");
+          url.concat(MODEL);
+          Serial.println(url);
+          t_httpUpdate_return ret = ESPhttpUpdate.update(url);
           switch (ret) {
             case HTTP_UPDATE_FAILED:
               Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+              ESP.restart();
               break;
 
             case HTTP_UPDATE_NO_UPDATES:
               Serial.println("HTTP_UPDATE_NO_UPDATES");
+              ESP.restart();
               break;
 
             case HTTP_UPDATE_OK:
@@ -721,12 +726,9 @@ void taskConn( void * pvParameters ) {
               break;
           }
         }
-
-
       } else {
         WiFi.reconnect();
       }
-
       updateValues = false;
     }
     delay(1);

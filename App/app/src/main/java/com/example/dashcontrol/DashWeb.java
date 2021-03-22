@@ -27,6 +27,8 @@ import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 
+import com.github.clans.fab.FloatingActionButton;
+import com.github.clans.fab.FloatingActionMenu;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -48,6 +50,8 @@ public class DashWeb extends AppCompatActivity {
     static GridView gridView;
     GridAdapter adapter;
     SharedPreferences prefs;
+    FloatingActionButton prog, sair, contato, modoViagem, personalizarIcones;
+    FloatingActionMenu floatingMenu;
 
 
     ProgressDialog progressDialog;
@@ -65,10 +69,25 @@ public class DashWeb extends AppCompatActivity {
         actionBar.setCustomView(view);
         database = FirebaseDatabase.getInstance();
         gridView = findViewById(R.id.grid_view_dash_web);
+        sair = findViewById(R.id.floatingSairWeb);
+        contato = findViewById(R.id.floatingSupportWeb);
+        modoViagem = findViewById(R.id.floatingModoViagemWeb);
+        personalizarIcones = findViewById(R.id.floatingPersonalizarWeb);
         dispositivos = new ArrayList<>();
         names = new ArrayList<>();
         draw = new ArrayList<>();
         prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
+        prog = findViewById(R.id.floatingProgramaçõesWeb);
+        floatingMenu = findViewById(R.id.floatingMenuWeb);
+
+        prog.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                floatingMenu.close(true);
+                Intent i = new Intent(getApplicationContext(), NovaProgramacao.class);
+                startActivity(i);
+            }
+        });
 
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -76,6 +95,27 @@ public class DashWeb extends AppCompatActivity {
                 Intent intent = new Intent(getApplicationContext(), DataEspWeb.class);
                 intent.putExtra("deviceName", names.get(position).toLowerCase());
                 startActivity(intent);
+            }
+        });
+
+        sair.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putBoolean("autoLogin", false);
+                editor.apply();
+                Intent intent = new Intent(getApplicationContext(), Login.class);
+                startActivity(intent);
+                finish();
+            }
+        });
+
+        personalizarIcones.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                floatingMenu.close(true);
+                Intent a = new Intent(getApplicationContext(), PersonalizarIcones.class);
+                startActivity(a);
             }
         });
 
@@ -192,40 +232,9 @@ public class DashWeb extends AppCompatActivity {
         });
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menuweb, menu);
-        return true;
-
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.btnSairWeb:
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.putBoolean("autoLogin", false);
-                editor.apply();
-                Intent intent = new Intent(getApplicationContext(), Login.class);
-                startActivity(intent);
-                finish();
-                break;
-
-            case R.id.programacoesWeb:
-                Intent i = new Intent(getApplicationContext(), NovaProgramacao.class);
-                startActivity(i);
-                break;
-
-            case R.id.btnPersonalizarIcones:
-                Intent a = new Intent(getApplicationContext(), PersonalizarIcones.class);
-                startActivity(a);
-                break;
 
 
-        }
-        return super.onOptionsItemSelected(item);
-    }
+
 
     @Override
     public void onBackPressed() {
