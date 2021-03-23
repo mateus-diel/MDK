@@ -89,6 +89,16 @@
             app:fab_colorNormal="@color/laranjalogo"
             app:fab_colorPressed="@color/colorPrimary"
             fab:fab_size="mini" />
+
+        <com.github.clans.fab.FloatingActionButton
+            android:id="@+id/floatingUsuariosWeb"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_person"
+            fab:fab_label="Usuários"
+            app:fab_colorNormal="@color/laranjalogo"
+            app:fab_colorPressed="@color/colorPrimary"
+            fab:fab_size="mini" />
         <com.github.clans.fab.FloatingActionButton
             android:id="@+id/floatingModoViagemWeb"
             android:layout_width="wrap_content"

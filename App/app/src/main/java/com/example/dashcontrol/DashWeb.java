@@ -1,15 +1,22 @@
 package com.example.dashcontrol;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.ContentProviderOperation;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -20,10 +27,12 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.GridView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 
@@ -50,8 +59,10 @@ public class DashWeb extends AppCompatActivity {
     static GridView gridView;
     GridAdapter adapter;
     SharedPreferences prefs;
-    FloatingActionButton prog, sair, contato, modoViagem, personalizarIcones;
+    FloatingActionButton prog, sair, contato, modoViagem, personalizarIcones, usuarios;
     FloatingActionMenu floatingMenu;
+
+
 
 
     ProgressDialog progressDialog;
@@ -71,6 +82,7 @@ public class DashWeb extends AppCompatActivity {
         gridView = findViewById(R.id.grid_view_dash_web);
         sair = findViewById(R.id.floatingSairWeb);
         contato = findViewById(R.id.floatingSupportWeb);
+        usuarios = findViewById(R.id.floatingUsuariosWeb);
         modoViagem = findViewById(R.id.floatingModoViagemWeb);
         personalizarIcones = findViewById(R.id.floatingPersonalizarWeb);
         dispositivos = new ArrayList<>();
@@ -79,6 +91,28 @@ public class DashWeb extends AppCompatActivity {
         prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
         prog = findViewById(R.id.floatingProgramaçõesWeb);
         floatingMenu = findViewById(R.id.floatingMenuWeb);
+        /*Uri uri = Uri.parse("smsto:" + "5555981267427");
+        Intent i = new Intent(Intent.ACTION_SENDTO, uri);
+        i.setPackage("com.whatsapp");
+        startActivity(Intent.createChooser(i, ""));*/
+
+        usuarios.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                floatingMenu.close(true);
+                Intent i = new Intent(getApplicationContext(), Usuarios.class);
+                startActivity(i);
+            }
+        });
+
+        contato.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                floatingMenu.close(true);
+                Intent i = new Intent(getApplicationContext(), Contato.class);
+                startActivity(i);
+            }
+        });
 
         prog.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -92,6 +126,7 @@ public class DashWeb extends AppCompatActivity {
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                floatingMenu.close(true);
                 Intent intent = new Intent(getApplicationContext(), DataEspWeb.class);
                 intent.putExtra("deviceName", names.get(position).toLowerCase());
                 startActivity(intent);
@@ -143,81 +178,95 @@ public class DashWeb extends AppCompatActivity {
             }
         });
 
-        ref = database.getReference("chaves/".concat(prefs.getString("chave","null")).concat("/ativo"));
+        ref = database.getReference("chaves/".concat(prefs.getString("chave","null")));
 
-        ref.addValueEventListener(new ValueEventListener() {
+        ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if(snapshot.exists()){
+                    progressDialog.dismiss();
+                    Log.d("snap",snapshot.toString());
                     Log.d("snapshot",snapshot.getValue().toString());
-                    if(!Boolean.valueOf(snapshot.getValue().toString().toLowerCase())){
-                        passResetDialog.create().show();
-                    }else{
-                        Log.d("caminhooo","cliente/".concat(prefs.getString("chave","null")));
-                        ref1 = database.getReference("cliente/".concat(prefs.getString("chave","null")));
-                        ref1.addValueEventListener(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                for (DataSnapshot device: snapshot.getChildren()) {
-                                    Drawable unwrappedDrawable;
-                                    Drawable wrappedDrawable;
-                                    unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, R.drawable.ic_home_iconuserselect);
-                                    wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
 
-                                    Log.d(" o caminho do cara e ", prefs.getString(prefs.getString("email","null").concat(device.getKey().concat("/IconUser")),"null"));
+                    if(snapshot.hasChild("ativo")){
+                        if(!Boolean.valueOf(snapshot.child("ativo").getValue().toString().toLowerCase())){
+                            passResetDialog.create().show();
+                        }else{
+                            SharedPreferences.Editor editor = prefs.edit();
+                            editor.putString("chave_original", "null");
+                            if(snapshot.hasChild("alias")){
+                                Log.d("alias",snapshot.child("alias").getValue().toString());
+                                editor.putString("chave_original", prefs.getString("chave","null"));
+                                editor.putString("chave", snapshot.child("alias").getValue().toString());
+                                floatingMenu.removeMenuButton(usuarios);
+                            }
+                            editor.apply();
+                            Log.d("caminhooo","cliente/".concat(prefs.getString("chave","null")));
+                            ref1 = database.getReference("cliente/".concat(prefs.getString("chave","null")));
+                            ref1.addValueEventListener(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                    for (DataSnapshot device: snapshot.getChildren()) {
+                                        Drawable unwrappedDrawable;
+                                        Drawable wrappedDrawable;
+                                        unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, R.drawable.ic_home_iconuserselect);
+                                        wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
 
-                                    if(!prefs.getString(prefs.getString("email","null").concat(device.getKey().concat("/IconUser")),"null").equals("null")){
-                                        Log.d(" o cara tem icone ", "null");
+                                        Log.d(" o caminho do cara e ", prefs.getString(prefs.getString("email","null").concat(device.getKey().concat("/IconUser")),"null"));
 
-                                        Field[] drawablesFields = com.example.dashcontrol.R.drawable.class.getFields();
+                                        if(!prefs.getString(prefs.getString("email","null").concat(device.getKey().concat("/IconUser")),"null").equals("null")){
+                                            Log.d(" o cara tem icone ", "null");
 
-                                        for (Field field : drawablesFields) {
-                                            try {
-                                                Log.i("LOG_TAG", "my drawww." + field.getName());
-                                                if (field.getName().contains(prefs.getString(prefs.getString("email","null").concat(device.getKey().concat("/IconUser")),"null"))) {
-                                                    Log.d("É esse aquii", field.getName());
+                                            Field[] drawablesFields = com.example.dashcontrol.R.drawable.class.getFields();
 
-                                                     unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, field.getInt(null));
-                                                     wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
+                                            for (Field field : drawablesFields) {
+                                                try {
+                                                    Log.i("LOG_TAG", "my drawww." + field.getName());
+                                                    if (field.getName().contains(prefs.getString(prefs.getString("email","null").concat(device.getKey().concat("/IconUser")),"null"))) {
+                                                        Log.d("É esse aquii", field.getName());
+
+                                                        unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, field.getInt(null));
+                                                        wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
+                                                    }
+                                                } catch (Exception e) {
+                                                    e.printStackTrace();
                                                 }
-                                            } catch (Exception e) {
-                                                e.printStackTrace();
                                             }
                                         }
+
+
+
+                                        if ((Math.abs(Long.valueOf(device.child("W").child("Timestamp").getValue().toString())-System.currentTimeMillis())/1000)<offset) {
+
+                                            DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.laranjalogo));
+                                            names.add(device.getKey().toUpperCase());
+                                            draw.add(wrappedDrawable);
+                                            dispositivos.add(device.getKey().toUpperCase());
+
+                                        } else {
+                                            DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.azulonline));
+                                            //DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.azulonline));
+                                            names.add(device.getKey().toUpperCase());
+                                            draw.add(wrappedDrawable);
+                                            dispositivos.add(device.getKey().toUpperCase());
+                                        }
                                     }
-
-
-
-                                    if ((Math.abs(Long.valueOf(device.child("W").child("Timestamp").getValue().toString())-System.currentTimeMillis())/1000)<offset) {
-
-                                        DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.laranjalogo));
-                                        names.add(device.getKey().toUpperCase());
-                                        draw.add(wrappedDrawable);
-                                        dispositivos.add(device.getKey().toUpperCase());
-
-                                    } else {
-                                        DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.azulonline));
-                                        //DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.azulonline));
-                                        names.add(device.getKey().toUpperCase());
-                                        draw.add(wrappedDrawable);
-                                        dispositivos.add(device.getKey().toUpperCase());
+                                    if(snapshot.exists()){
+                                        Log.d("snapppp", snapshot.toString());
                                     }
+                                    ref1.removeEventListener(this);
+                                    adapter = new GridAdapter(DashWeb.this, names,draw);
+                                    gridView.setAdapter(adapter);
+                                    Log.d("tamanghoo",Integer.toString(draw.size()));
+                                    progressDialog.dismiss();
                                 }
-                                if(snapshot.exists()){
-                                    Log.d("snapppp", snapshot.toString());
-                                }
-                                ref1.removeEventListener(this);
-                                adapter = new GridAdapter(DashWeb.this, names,draw);
-                                gridView.setAdapter(adapter);
-                                Log.d("tamanghoo",Integer.toString(draw.size()));
-                                progressDialog.dismiss();
-                            }
 
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError error) {
-                                Log.d("snapppp", "canceleddd");
-                            }
-                        });
+                                @Override
+                                public void onCancelled(@NonNull DatabaseError error) {
+                                    Log.d("snapppp", "canceleddd");
+                                }
+                            });
+                        }
                     }
 
                 }
@@ -238,6 +287,8 @@ public class DashWeb extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
+
+        floatingMenu.close(true);
         //super.onBackPressed();
     }
 
@@ -250,8 +301,6 @@ public class DashWeb extends AppCompatActivity {
             }
         }
     }
-
-
 
     public static ArrayList<String> getDispositivos() {
         return dispositivos;

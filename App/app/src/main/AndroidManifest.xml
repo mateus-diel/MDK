@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:allowBackup="true"
@@ -15,10 +18,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DashControl"
         android:usesCleartextTraffic="true">
-        <activity android:name=".VerProgramacoesWeb"></activity>
+        <activity android:name=".Contato"></activity>
+        <activity android:name=".Usuarios" />
+        <activity android:name=".VerProgramacoesWeb" />
         <activity android:name=".Teste" />
-        <activity android:name=".PersonalizarIcones"></activity>
-        <activity android:name=".NovaProgramacao"></activity>
+        <activity android:name=".PersonalizarIcones" />
+        <activity android:name=".NovaProgramacao" />
         <activity android:name=".DataEspWeb" />
         <activity
             android:name=".DashWeb"
