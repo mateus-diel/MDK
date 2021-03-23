@@ -11,7 +11,7 @@
 
 #define offset 946684800
 
-ThreeWire myWire(21, 22, 23); // IO, SCLK, CE
+ThreeWire myWire(15, 2, 4); // IO, SCLK, CE
 RtcDS1302<ThreeWire> Rtc(myWire);
 
 void setup () 
