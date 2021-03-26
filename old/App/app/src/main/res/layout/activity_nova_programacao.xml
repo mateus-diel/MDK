@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/cinzaBackground"
+    android:fadeScrollbars="false"
+    tools:context=".NovaProgramacao">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+
+        <TextView
+            android:id="@+id/textView7"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:layout_marginTop="5dp"
+            android:text="Selecione os dias da semana:"
+            android:textColor="@color/black"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:textSize="20sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_gravity="center"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <CheckBox
+                    android:id="@+id/checkTodos"
+                    android:buttonTint="@color/colorPrimary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:text="Todos"
+                    android:drawablePadding="0dp"
+                    android:singleLine="true"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/textView7" />
+                <CheckBox
+                    android:id="@+id/checkBoxSeg"
+                    android:layout_width="wrap_content"
+                    android:buttonTint="@color/colorPrimary"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:text="Seg"
+                    android:drawablePadding="0dp"
+                    android:singleLine="true"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/textView7" />
+
+                <CheckBox
+                    android:id="@+id/checkBoxTer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:buttonTint="@color/colorPrimary"
+                    android:text="Ter"
+                    app:layout_constraintStart_toEndOf="@+id/checkBox"
+                    app:layout_constraintTop_toBottomOf="@+id/textView7" />
+
+                <CheckBox
+                    android:id="@+id/checkBoxQua"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="@color/colorPrimary"
+                    android:layout_marginTop="5dp"
+                    android:text="Qua"
+                    app:layout_constraintStart_toEndOf="@+id/checkBox2"
+                    app:layout_constraintTop_toBottomOf="@+id/textView7" />
+
+
+
+            </LinearLayout>
+        </HorizontalScrollView>
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="horizontal">
+
+                <CheckBox
+                    android:id="@+id/checkBoxQui"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="@color/colorPrimary"
+                    android:text="Qui"
+                    app:layout_constraintStart_toEndOf="@+id/checkBox3"
+                    app:layout_constraintTop_toBottomOf="@+id/textView7" />
+
+                <CheckBox
+                    android:id="@+id/checkBoxSex"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Sex"
+                    android:buttonTint="@color/colorPrimary"
+                    app:layout_constraintStart_toEndOf="@+id/checkBox4"
+                    app:layout_constraintTop_toBottomOf="@+id/textView7" />
+
+                <CheckBox
+                    android:id="@+id/checkBoxSab"
+                    android:layout_width="wrap_content"
+                    android:buttonTint="@color/colorPrimary"
+                    android:layout_height="wrap_content"
+                    android:text="Sab"
+                    app:layout_constraintStart_toEndOf="@+id/checkBox5"
+                    app:layout_constraintTop_toBottomOf="@+id/textView7" />
+
+                <CheckBox
+                    android:id="@+id/checkBoxDom"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="@color/colorPrimary"
+                    android:text="Dom"
+                    app:layout_constraintStart_toEndOf="@+id/checkBox6"
+                    app:layout_constraintTop_toBottomOf="@+id/textView7" />
+
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_marginTop="5dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/textView10"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/black"
+                android:layout_marginStart="5dp"
+                android:layout_marginTop="5dp"
+                android:text="Temperatura:"
+                android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/tempAgendada"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:layout_marginTop="5dp"
+                android:textColor="@color/black"
+                android:text="30"
+                android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/textView12"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:layout_marginTop="5dp"
+                android:textColor="@color/black"
+                android:textSize="20sp"
+                android:text="ºC" />
+        </LinearLayout>
+        <SeekBar
+            android:id="@+id/seekBarAgendamento"
+            android:layout_width="match_parent"
+            android:layout_height="35dp"
+            android:layout_marginTop="5dp"
+            android:indeterminate="false"
+            android:max="40"
+            android:min="5"
+            android:progress="35"
+            android:progressDrawable="@drawable/track"
+            android:thumb="@drawable/thumb" />
+
+        <TextView
+            android:id="@+id/textView8"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/black"
+            android:layout_marginStart="5dp"
+            android:layout_marginTop="5dp"
+            android:text="Liga às:"
+            android:textSize="20sp" />
+        <TextView
+            android:id="@+id/txtLigaHora"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:textColor="@color/black"
+            android:layout_marginTop="10dp"
+            android:drawableTop="@drawable/ic_time"
+            android:drawablePadding="10dp"
+            android:gravity="center"
+            android:hint="Selecione"
+            android:textSize="20sp"
+            android:layout_gravity="center"/>
+        <TextView
+            android:id="@+id/txtDesliga"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:textColor="@color/black"
+            android:layout_marginTop="20dp"
+            android:text="Desliga às:"
+            android:textSize="20sp" />
+        <TextView
+            android:id="@+id/txtDesligaHora"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:textColor="@color/black"
+            android:layout_marginTop="10dp"
+            android:drawableTop="@drawable/ic_time"
+            android:drawablePadding="10dp"
+            android:gravity="center"
+            android:hint="Selecione"
+            android:textSize="20sp"
+            android:layout_gravity="center"/>
+
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:layout_marginTop="5dp"
+            android:text="Selecione os Ambientes:"
+            android:textColor="@color/black"
+            android:textSize="20sp" />
+
+        <ListView
+            android:id="@+id/listViewDispositivos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:choiceMode="multipleChoice" />
+
+
+
+
+    </LinearLayout>
+
+</ScrollView>
