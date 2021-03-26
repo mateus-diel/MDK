@@ -12,7 +12,7 @@
 #include <ThreeWire.h>
 #include <RtcDS1302.h>
 
-ThreeWire myWire(21, 22, 23); // IO, SCLK, CE
+ThreeWire myWire(13, 14, 12); // IO, SCLK, CE
 RtcDS1302<ThreeWire> Rtc(myWire);
 
 String childPath[2] = {"/programacoes", "/info"};
@@ -30,7 +30,7 @@ typedef struct
 #define PINO_ZC     2
 #define MAXPOT 252
 #define MINPOT  0
-#define PINORESET 13
+#define PINORESET 27
 #define CONFIGURATION "/configs.json"
 #define DEVICESINFO "/devices.json"
 #define DAYSINFO "/days.json"
@@ -272,6 +272,24 @@ void loadHrs() {
 
 }
 
+#define countof(a) (sizeof(a) / sizeof(a[0]))
+
+void printDateTime(const RtcDateTime& dt)
+{
+    char datestring[20];
+
+    snprintf_P(datestring, 
+            countof(datestring),
+            PSTR("%02u/%02u/%04u %02u:%02u:%02u"),
+            dt.Month(),
+            dt.Day(),
+            dt.Year(),
+            dt.Hour(),
+            dt.Minute(),
+            dt.Second() );
+    Serial.print(datestring);
+}
+
 
 void setup() {
   Serial.begin(115200);
@@ -394,6 +412,9 @@ void taskDim( void * pvParameters ) {
       Serial.println("ºC");
       Serial.print("Potencia -> " + String(potencia_1) + " :");
       Serial.println(DIMMER_1.getBrightness());
+      Serial.print("date: ");
+      printDateTime(Rtc.GetDateTime());
+      Serial.println();
     }
 
     if ((millis() - ultimo_millis1) > debounce_delay + 1800000) {
