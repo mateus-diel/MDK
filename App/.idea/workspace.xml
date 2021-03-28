@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AndroidLayouts">
+    <shared>
+      <config />
+    </shared>
+  </component>
+  <component name="AndroidLogFilters">
+    <option name="TOOL_WINDOW_LOG_LEVEL" value="debug" />
+    <option name="TOOL_WINDOW_CONFIGURED_FILTER" value="Show only selected application" />
+  </component>
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="b2931992-971d-43e0-863a-37fd2cfb955d" name="Default Changelist" comment="removi o menu superior e coloqueio floating menu" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[f7803186]" />
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="layoutResourceFile" />
+        <option value="resourceFile" />
+        <option value="layoutResourceFile_vertical" />
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="GenerateSignedApkSettings">
+    <option name="KEY_STORE_PATH" value="C:\Users\Mateus\Desktop\MDK\key.jks" />
+    <option name="KEY_ALIAS" value="key0" />
+    <option name="REMEMBER_PASSWORDS" value="true" />
+    <option name="BUILD_TARGET_KEY" value="apk" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectId" id="1p6wqrPppJtqTWjIZBjmj5BHVVx" />
+  <component name="ProjectLevelVcsManager">
+    <OptionsSetting value="false" id="Update" />
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ApkExportedModule" value="DashControl.app" />
+    <property name="ExportApk.ApkPath" value="C:\Users\Mateus\Desktop\MDK\App\app" />
+    <property name="ExportApk.BuildVariants" value="release" />
+    <property name="ExportApk.SignV2" value="true" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="android-custom-viewC:/Users/Mateus/AppData/Local/Android/Sdk/sources/android-30/android/widget/AbsListView.java_SELECTED" value="AbsListView" />
+    <property name="android-custom-viewC:/Users/Mateus/AppData/Local/Android/Sdk/sources/android-30/android/widget/ListView.java_SELECTED" value="ListView" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../FloatingActionButton-master" />
+    <property name="multi-representation-previewC:/Users/Mateus/AppData/Local/Android/Sdk/sources/android-30/android/widget/AbsListView.java_selected" value="Custom views" />
+    <property name="multi-representation-previewC:/Users/Mateus/AppData/Local/Android/Sdk/sources/android-30/android/widget/ListView.java_selected" value="Custom views" />
+    <property name="project.structure.last.edited" value="Modules" />
+    <property name="project.structure.proportion" value="0.17" />
+    <property name="project.structure.side.proportion" value="0.2" />
+    <property name="settings.editor.selected.configurable" value="editor.preferences.tabs" />
+  </component>
+  <component name="RecentsManager">
+    <key name="android.template.118787598">
+      <recent name="com.example.dashcontrol" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\Mateus\Desktop\MDK\App\app\src\main\res\menu" />
+    </key>
+    <key name="android.template.-1853785755">
+      <recent name="com.example.dashcontrol" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Mateus\Desktop\MDK\App\app\src\main\res\drawable" />
+    </key>
+    <key name="CreateClassDialog.RecentsKey">
+      <recent name="com.example.dashcontrol" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="AndroidJUnit" factoryName="Android JUnit">
+      <option name="TEST_OBJECT" value="class" />
+      <option name="WORKING_DIRECTORY" value="$MODULE_DIR$" />
+      <method v="2">
+        <option name="Android.Gradle.BeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="app" type="AndroidRunConfigurationType" factoryName="Android App" activateToolWindowBeforeRun="false">
+      <module name="DashControl.app" />
+      <option name="DEPLOY" value="true" />
+      <option name="DEPLOY_APK_FROM_BUNDLE" value="false" />
+      <option name="DEPLOY_AS_INSTANT" value="false" />
+      <option name="ARTIFACT_NAME" value="" />
+      <option name="PM_INSTALL_OPTIONS" value="" />
+      <option name="ALL_USERS" value="false" />
+      <option name="DYNAMIC_FEATURES_DISABLED_LIST" value="" />
+      <option name="ACTIVITY_EXTRA_FLAGS" value="" />
+      <option name="MODE" value="default_activity" />
+      <option name="CLEAR_LOGCAT" value="false" />
+      <option name="SHOW_LOGCAT_AUTOMATICALLY" value="false" />
+      <option name="SKIP_NOOP_APK_INSTALLATIONS" value="true" />
+      <option name="FORCE_STOP_RUNNING_APP" value="true" />
+      <option name="TARGET_SELECTION_MODE" value="DEVICE_AND_SNAPSHOT_COMBO_BOX" />
+      <option name="SELECTED_CLOUD_MATRIX_CONFIGURATION_ID" value="-1" />
+      <option name="SELECTED_CLOUD_MATRIX_PROJECT_ID" value="" />
+      <option name="DEBUGGER_TYPE" value="Auto" />
+      <Auto>
+        <option name="USE_JAVA_AWARE_DEBUGGER" value="false" />
+        <option name="SHOW_STATIC_VARS" value="true" />
+        <option name="WORKING_DIR" value="" />
+        <option name="TARGET_LOGGING_CHANNELS" value="lldb process:gdb-remote packets" />
+        <option name="SHOW_OPTIMIZED_WARNING" value="true" />
+      </Auto>
+      <Hybrid>
+        <option name="USE_JAVA_AWARE_DEBUGGER" value="false" />
+        <option name="SHOW_STATIC_VARS" value="true" />
+        <option name="WORKING_DIR" value="" />
+        <option name="TARGET_LOGGING_CHANNELS" value="lldb process:gdb-remote packets" />
+        <option name="SHOW_OPTIMIZED_WARNING" value="true" />
+      </Hybrid>
+      <Java />
+      <Native>
+        <option name="USE_JAVA_AWARE_DEBUGGER" value="false" />
+        <option name="SHOW_STATIC_VARS" value="true" />
+        <option name="WORKING_DIR" value="" />
+        <option name="TARGET_LOGGING_CHANNELS" value="lldb process:gdb-remote packets" />
+        <option name="SHOW_OPTIMIZED_WARNING" value="true" />
+      </Native>
+      <Profilers>
+        <option name="ADVANCED_PROFILING_ENABLED" value="false" />
+        <option name="STARTUP_PROFILING_ENABLED" value="false" />
+        <option name="STARTUP_CPU_PROFILING_ENABLED" value="false" />
+        <option name="STARTUP_CPU_PROFILING_CONFIGURATION_NAME" value="Sample Java Methods" />
+        <option name="STARTUP_NATIVE_MEMORY_PROFILING_ENABLED" value="false" />
+        <option name="NATIVE_MEMORY_SAMPLE_RATE_BYTES" value="2048" />
+      </Profilers>
+      <option name="DEEP_LINK" value="" />
+      <option name="ACTIVITY_CLASS" value="" />
+      <option name="SEARCH_ACTIVITY_IN_GLOBAL_SCOPE" value="false" />
+      <option name="SKIP_ACTIVITY_VALIDATION" value="false" />
+      <method v="2">
+        <option name="Android.Gradle.BeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b2931992-971d-43e0-863a-37fd2cfb955d" name="Default Changelist" comment="" />
+      <created>1614517041759</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1614517041759</updated>
+    </task>
+    <task id="LOCAL-00001" summary="atualizações de views">
+      <created>1614559612532</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1614559612532</updated>
+    </task>
+    <task id="LOCAL-00002" summary="implementando transactions e botao de salvar programacao">
+      <created>1614829071398</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1614829071398</updated>
+    </task>
+    <task id="LOCAL-00003" summary="implemntei views para edição e inserção de horarios">
+      <created>1615073240952</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1615073240952</updated>
+    </task>
+    <task id="LOCAL-00004" summary="implementei thread na view de ver os dados do esp e implementei comunicação de salvar os dados para o banco">
+      <created>1615169780363</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1615169780364</updated>
+    </task>
+    <task id="LOCAL-00005" summary="implementei verificação de conflito na hora em que eu edito um horario">
+      <created>1615512252561</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1615512252561</updated>
+    </task>
+    <task id="LOCAL-00006" summary="ajeitei as programações de horarios e coloquei um floating button menu">
+      <created>1616371433863</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1616371433863</updated>
+    </task>
+    <task id="LOCAL-00007" summary="removi o menu superior e coloqueio floating menu">
+      <created>1616456716141</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1616456716141</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="atualizações de views" />
+    <MESSAGE value="implementando transactions e botao de salvar programacao" />
+    <MESSAGE value="implemntei views para edição e inserção de horarios" />
+    <MESSAGE value="implementei thread na view de ver os dados do esp e implementei comunicação de salvar os dados para o banco" />
+    <MESSAGE value="implementei verificação de conflito na hora em que eu edito um horario" />
+    <MESSAGE value="ajeitei as programações de horarios e coloquei um floating button menu" />
+    <MESSAGE value="removi o menu superior e coloqueio floating menu" />
+    <option name="LAST_COMMIT_MESSAGE" value="removi o menu superior e coloqueio floating menu" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="157" y="266" key="#PSD" timestamp="1615055657051">
+      <screen x="0" y="0" width="2560" height="1040" />
+    </state>
+    <state x="157" y="266" key="#PSD/0.0.2560.1040@0.0.2560.1040" timestamp="1615055657051" />
+    <state x="445" y="226" key="#com.intellij.ide.util.MemberChooser" timestamp="1615062472504">
+      <screen x="0" y="0" width="2560" height="1040" />
+    </state>
+    <state x="445" y="226" key="#com.intellij.ide.util.MemberChooser/0.0.2560.1040@0.0.2560.1040" timestamp="1615062472504" />
+    <state x="1010" y="267" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1614558748932">
+      <screen x="0" y="0" width="2560" height="1040" />
+    </state>
+    <state x="1010" y="267" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/0.0.2560.1040@0.0.2560.1040" timestamp="1614558748932" />
+    <state x="220" y="275" width="840" height="486" key="AndroidCreateResourceFileDialog" timestamp="1615055800243">
+      <screen x="0" y="0" width="2560" height="1040" />
+    </state>
+    <state x="220" y="275" width="840" height="486" key="AndroidCreateResourceFileDialog/0.0.2560.1040@0.0.2560.1040" timestamp="1615055800243" />
+    <state x="420" y="275" key="FileChooserDialogImpl" timestamp="1616453242692">
+      <screen x="0" y="0" width="2560" height="1040" />
+    </state>
+    <state x="420" y="275" key="FileChooserDialogImpl/0.0.2560.1040@0.0.2560.1040" timestamp="1616453242692" />
+    <state width="2516" height="250" key="GridCell.Tab.0.bottom" timestamp="1616365351144">
+      <screen x="0" y="0" width="2560" height="1040" />
+    </state>
+    <state width="2516" height="250" key="GridCell.Tab.0.bottom/0.0.2560.1040@0.0.2560.1040" timestamp="1616365351144" />
+    <state width="2516" height="250" key="GridCell.Tab.0.center" timestamp="1616365351144">
+      <screen x="0" y="0" width="2560" height="1040" />
+    </state>
+    <state width="2516" height="250" key="GridCell.Tab.0.center/0.0.2560.1040@0.0.2560.1040" timestamp="1616365351144" />
+    <state width="2516" height="250" key="GridCell.Tab.0.left" timestamp="1616365351143">
+      <screen x="0" y="0" width="2560" height="1040" />
+    </state>
+    <state width="2516" height="250" key="GridCell.Tab.0.left/0.0.2560.1040@0.0.2560.1040" timestamp="1616365351143" />
+    <state width="2516" height="250" key="GridCell.Tab.0.right" timestamp="1616365351144">
+      <screen x="0" y="0" width="2560" height="1040" />
+    </state>
+    <state width="2516" height="250" key="GridCell.Tab.0.right/0.0.2560.1040@0.0.2560.1040" timestamp="1616365351144" />
+    <state x="781" y="164" key="SettingsEditor" timestamp="1616349584099">
+      <screen x="0" y="0" width="2560" height="1040" />
+    </state>
+    <state x="781" y="164" key="SettingsEditor/0.0.2560.1040@0.0.2560.1040" timestamp="1616349584099" />
+    <state x="1089" y="434" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1614809652393">
+      <screen x="0" y="0" width="2560" height="1040" />
+    </state>
+    <state x="1089" y="434" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.2560.1040@0.0.2560.1040" timestamp="1614809652393" />
+    <state x="1123" y="277" key="refactoring.ChangeSignatureDialog" timestamp="1614815415558">
+      <screen x="0" y="0" width="2560" height="1040" />
+    </state>
+    <state x="1123" y="277" key="refactoring.ChangeSignatureDialog/0.0.2560.1040@0.0.2560.1040" timestamp="1614815415558" />
+    <state x="936" y="240" key="run.anything.popup" timestamp="1615508114548">
+      <screen x="0" y="0" width="2560" height="1040" />
+    </state>
+    <state x="936" y="240" key="run.anything.popup/0.0.2560.1040@0.0.2560.1040" timestamp="1615508114548" />
+    <state x="936" y="172" width="672" height="676" key="search.everywhere.popup" timestamp="1614547116314">
+      <screen x="0" y="0" width="2560" height="1040" />
+    </state>
+    <state x="936" y="172" width="672" height="676" key="search.everywhere.popup/0.0.2560.1040@0.0.2560.1040" timestamp="1614547116314" />
+  </component>
+</project>

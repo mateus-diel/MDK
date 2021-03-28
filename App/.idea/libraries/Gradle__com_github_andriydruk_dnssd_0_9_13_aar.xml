@@ -1,0 +1,15 @@
+<component name="libraryTable">
+  <library name="Gradle: com.github.andriydruk:dnssd:0.9.13@aar">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/cd22e5c6e4774b162d54a842a39c4c35/jetified-dnssd-0.9.13/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/cd22e5c6e4774b162d54a842a39c4c35/jetified-dnssd-0.9.13/res" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/cd22e5c6e4774b162d54a842a39c4c35/jetified-dnssd-0.9.13/AndroidManifest.xml" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.andriydruk/dnssd/0.9.13/49f857983ef927737653f72ad29e94257325a795/dnssd-0.9.13-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.andriydruk/dnssd/0.9.13/5475cf3db3a8df5a023c6aa3fd0d36be6121d85d/dnssd-0.9.13-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

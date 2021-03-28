@@ -1,0 +1,15 @@
+<component name="libraryTable">
+  <library name="Gradle: com.github.andriydruk:rxdnssd:0.9.13@aar">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/99cdf4a04f92079e6d4ebf24a20f604c/jetified-rxdnssd-0.9.13/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/99cdf4a04f92079e6d4ebf24a20f604c/jetified-rxdnssd-0.9.13/res" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/99cdf4a04f92079e6d4ebf24a20f604c/jetified-rxdnssd-0.9.13/AndroidManifest.xml" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.andriydruk/rxdnssd/0.9.13/dc0c5f1f473aa2de1d07d56b83f5a1a3c8311a8c/rxdnssd-0.9.13-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.github.andriydruk/rxdnssd/0.9.13/2a6eaa200028802e57b5359d06e81415adb8a401/rxdnssd-0.9.13-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
