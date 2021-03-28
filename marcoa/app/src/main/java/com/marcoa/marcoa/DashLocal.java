@@ -19,6 +19,9 @@ import android.widget.GridLayout;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.github.clans.fab.FloatingActionButton;
+import com.github.clans.fab.FloatingActionMenu;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -37,6 +40,8 @@ public class DashLocal extends AppCompatActivity {
     private Object mPauseLock;
     private boolean mPaused;
     private boolean mFinished;
+    FloatingActionButton sair, btnNovoESP;
+    FloatingActionMenu menu;
 
 
 
@@ -45,6 +50,27 @@ public class DashLocal extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dash);
         //((GridLayout) findViewById(R.id.gridLayoutforESP)).removeAllViews();
+        sair = findViewById(R.id.floatingSairLocal);
+        btnNovoESP = findViewById(R.id.floatingNovoDispositivo);
+        menu = findViewById(R.id.floatingMenuLocal);
+        btnNovoESP.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(DashLocal.this, ConfigureEsp.class);
+                startActivity(intent);
+                menu.close(true);
+                finish();
+            }
+        });
+
+        sair.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent a = new Intent(DashLocal.this,Login.class);
+                startActivity(a);
+                finish();
+            }
+        });
 
         new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
             @Override
@@ -192,31 +218,11 @@ public class DashLocal extends AppCompatActivity {
         super.onStop();
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menu, menu);
-        return true;
-
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.btnNovoESP:
-                Intent intent = new Intent(getApplicationContext(), ConfigureEsp.class);
-                startActivity(intent);
-                break;
-
-
-        }
-        return super.onOptionsItemSelected(item);
-    }
 
     private void onClick(View v) {
         LoadingDialog dialog = new LoadingDialog(this);
         dialog.startLoadingDialog();
-        Intent intent = new Intent(getApplicationContext(), SetDataEsp.class);
+        Intent intent = new Intent(DashLocal.this, SetDataEsp.class);
         intent.putExtra("ip", v.getTag().toString());
         intent.putExtra("nome", String.valueOf(((Button) v).getText()));
 
@@ -239,6 +245,7 @@ public class DashLocal extends AppCompatActivity {
                 Log.d("oook respondeu","end");
                 startActivity(intent);
                 dialog.dimissDialog();
+                finish();
             } else {
                Log.d("nao responde","end");
             }

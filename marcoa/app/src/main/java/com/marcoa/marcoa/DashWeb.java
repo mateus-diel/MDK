@@ -8,6 +8,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -37,14 +40,17 @@ public class DashWeb extends AppCompatActivity {
     private DatabaseReference ref, ref1;
     private long offset = 60 * 5;
     public static ArrayList<String> names;
-    public static  ArrayList <Drawable> draw;
+    public static ArrayList<Drawable> draw;
     private static ArrayList<String> dispositivos;
     static GridView gridView;
+    Handler mHandler;
+    static boolean modoViagemAtivo = false;
     GridAdapter adapter;
     SharedPreferences prefs;
     FloatingActionButton prog, sair, contato, modoViagem, personalizarIcones, usuarios;
     FloatingActionMenu floatingMenu;
     ProgressDialog progressDialog;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,6 +75,74 @@ public class DashWeb extends AppCompatActivity {
         prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
         prog = findViewById(R.id.floatingProgramaçõesWeb);
         floatingMenu = findViewById(R.id.floatingMenuWeb);
+
+        mHandler = new Handler(Looper.getMainLooper()) {
+            @Override
+            public void handleMessage(Message message) {
+                AlertDialog.Builder dialog = new AlertDialog.Builder(DashWeb.this);
+                if (message.what == 1) {
+                    dialog.setTitle("Aviso!");
+                    dialog.setMessage(message.obj.toString());
+                    dialog.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+                }
+                dialog.create().show();
+            }
+        };
+
+        modoViagem.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AlertDialog.Builder passResetDialog = new AlertDialog.Builder(DashWeb.this);
+                passResetDialog.setTitle("Aviso");
+                passResetDialog.setCancelable(false);
+                if (modoViagemAtivo) {
+                    passResetDialog.setMessage("O modo viagem define a temperatura de todos os seus ambientes para 10ºC.\nEste modo está ativo no momento. Deseja desativar?");
+                } else {
+                    passResetDialog.setMessage("O modo viagem define a temperatura de todos os seus ambientes para 10ºC.\nEste modo não está ativo no momento. Deseja ativar?");
+                }
+                passResetDialog.setPositiveButton("Sim", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        database.getReference("cliente/".concat(prefs.getString("chave", "null"))).addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                if (snapshot.exists()) {
+                                    boolean result = false;
+                                    for (DataSnapshot device : snapshot.getChildren()) {
+                                        if (modoViagemAtivo) {
+                                            database.getReference("cliente/".concat(prefs.getString("chave", "null"))).child(device.getKey()).child("R").child("info").child("modoViagem").setValue(false);
+                                            result = false;
+                                        } else {
+                                            database.getReference("cliente/".concat(prefs.getString("chave", "null"))).child(device.getKey()).child("R").child("info").child("modoViagem").setValue(true);
+                                            result = true;
+                                        }
+                                    }
+                                    modoViagemAtivo = result;
+                                    Message message = mHandler.obtainMessage(1, "Modo viagem definido com sucesso!");
+                                    message.sendToTarget();
+                                }
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
+                                Log.d("snapppp", "canceleddd");
+                            }
+                        });
+                    }
+                }).setNegativeButton("Não", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+                passResetDialog.create().show();
+            }
+        });
 
 
         usuarios.setOnClickListener(new View.OnClickListener() {
@@ -131,7 +205,6 @@ public class DashWeb extends AppCompatActivity {
         });
 
 
-
         SharedPreferences prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Por favor, aguarde...");
@@ -139,8 +212,8 @@ public class DashWeb extends AppCompatActivity {
         progressDialog.setCanceledOnTouchOutside(false);
         progressDialog.show();
 
-        Log.d("email",prefs.getString("email","null"));
-        Log.d("uuid", prefs.getString("chave","null"));
+        Log.d("email", prefs.getString("email", "null"));
+        Log.d("uuid", prefs.getString("chave", "null"));
         AlertDialog.Builder passResetDialog = new AlertDialog.Builder(this);
         passResetDialog.setTitle("Aviso");
         passResetDialog.setCancelable(false);
@@ -154,51 +227,55 @@ public class DashWeb extends AppCompatActivity {
             }
         });
 
-        ref = database.getReference("chaves/".concat(prefs.getString("chave","null")));
+        ref = database.getReference("chaves/".concat(prefs.getString("chave", "null")));
 
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if(snapshot.exists() && snapshot.getValue() != null){
+                if (snapshot.exists() && snapshot.getValue() != null) {
                     progressDialog.dismiss();
-                    Log.d("snap",snapshot.toString());
-                    Log.d("snapshot",snapshot.getValue().toString());
+                    Log.d("snap", snapshot.toString());
+                    Log.d("snapshot", snapshot.getValue().toString());
 
-                    if(snapshot.hasChild("ativo")){
-                        if(!Boolean.valueOf(snapshot.child("ativo").getValue().toString().toLowerCase())){
+                    if (snapshot.hasChild("ativo")) {
+                        if (!Boolean.valueOf(snapshot.child("ativo").getValue().toString().toLowerCase())) {
                             passResetDialog.create().show();
-                        }else{
+                        } else {
                             SharedPreferences.Editor editor = prefs.edit();
                             editor.putString("chave_original", "null");
-                            if(snapshot.hasChild("alias")){
-                                Log.d("alias",snapshot.child("alias").getValue().toString());
-                                editor.putString("chave_original", prefs.getString("chave","null"));
+                            if (snapshot.hasChild("alias")) {
+                                Log.d("alias", snapshot.child("alias").getValue().toString());
+                                editor.putString("chave_original", prefs.getString("chave", "null"));
                                 editor.putString("chave", snapshot.child("alias").getValue().toString());
                                 floatingMenu.removeMenuButton(usuarios);
                             }
                             editor.apply();
-                            Log.d("caminhooo","cliente/".concat(prefs.getString("chave","null")));
-                            ref1 = database.getReference("cliente/".concat(prefs.getString("chave","null")));
+                            Log.d("caminhooo", "cliente/".concat(prefs.getString("chave", "null")));
+                            ref1 = database.getReference("cliente/".concat(prefs.getString("chave", "null")));
                             ref1.addListenerForSingleValueEvent(new ValueEventListener() {
                                 @Override
                                 public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                    if(snapshot.exists()){
-                                        for (DataSnapshot device: snapshot.getChildren()) {
+                                    if (snapshot.exists()) {
+                                        for (DataSnapshot device : snapshot.getChildren()) {
                                             Drawable unwrappedDrawable;
                                             Drawable wrappedDrawable;
                                             unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, R.drawable.ic_home_iconuserselect);
                                             wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
 
-                                            Log.d(" o caminho do cara e ", prefs.getString(prefs.getString("email","null").concat(device.getKey().toLowerCase().concat("/IconUser")),"null"));
-                                            Log.d("getKey",device.getKey());
-                                            if(!prefs.getString(prefs.getString("email","null").concat(device.getKey().toLowerCase().concat("/IconUser")),"null").equals("null")){
+                                            if (device.hasChild("W/modoViagem")) {
+                                                modoViagemAtivo = (boolean) device.child("W").child("modoViagem").getValue();
+                                            }
+
+                                            Log.d(" o caminho do cara e ", prefs.getString(prefs.getString("email", "null").concat(device.getKey().toLowerCase().concat("/IconUser")), "null"));
+                                            Log.d("getKey", device.getKey());
+                                            if (!prefs.getString(prefs.getString("email", "null").concat(device.getKey().toLowerCase().concat("/IconUser")), "null").equals("null")) {
                                                 Log.d(" o cara tem icone ", "null");
 
                                                 Field[] drawablesFields = R.drawable.class.getFields();
 
                                                 for (Field field : drawablesFields) {
                                                     try {
-                                                        if (field.getName().contains(prefs.getString(prefs.getString("email","null").concat(device.getKey().toLowerCase().concat("/IconUser")),"null"))) {
+                                                        if (field.getName().contains(prefs.getString(prefs.getString("email", "null").concat(device.getKey().toLowerCase().concat("/IconUser")), "null"))) {
                                                             Log.d("É esse aquii", field.getName());
 
                                                             unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, field.getInt(null));
@@ -211,8 +288,7 @@ public class DashWeb extends AppCompatActivity {
                                             }
 
 
-
-                                            if ((Math.abs(Long.valueOf(device.child("W").child("Timestamp").getValue().toString())-System.currentTimeMillis())/1000)<offset) {
+                                            if ((Math.abs(Long.valueOf(device.child("W").child("Timestamp").getValue().toString()) - System.currentTimeMillis()) / 1000) < offset) {
 
                                                 DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.laranjalogo));
                                                 names.add(device.getKey().toUpperCase());
@@ -227,10 +303,10 @@ public class DashWeb extends AppCompatActivity {
                                                 dispositivos.add(device.getKey().toUpperCase());
                                             }
                                         }
-                                        if(snapshot.exists()){
+                                        if (snapshot.exists()) {
                                             Log.d("snapppp", snapshot.toString());
                                         }
-                                        adapter = new GridAdapter(DashWeb.this, names,draw);
+                                        adapter = new GridAdapter(DashWeb.this, names, draw);
                                         gridView.setAdapter(adapter);
                                         progressDialog.dismiss();
                                     }
@@ -240,7 +316,7 @@ public class DashWeb extends AppCompatActivity {
                                 public void onCancelled(@NonNull DatabaseError error) {
                                     Log.d("snapppp", "canceleddd");
                                 }
-                            }) ;
+                            });
                         }
                     }
 
@@ -257,9 +333,6 @@ public class DashWeb extends AppCompatActivity {
     }
 
 
-
-
-
     @Override
     public void onBackPressed() {
 
@@ -270,8 +343,8 @@ public class DashWeb extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if(draw != null){
-            if(draw.size()>0){
+        if (draw != null) {
+            if (draw.size() > 0) {
 
             }
         }

@@ -6,6 +6,7 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,10 +30,8 @@ import java.util.Map;
 
 public class SetDataEsp extends AppCompatActivity {
     CircularProgressView temp;
-    Button btnMenos;
-    Button btnMais;
-    Button btnLigaDesliga;
-    TextView txtLocal;
+    Button btnLigaDesliga, manual, automatico;
+    TextView txtLocal, txtModo;
     TextView txtStatus;
     TextView txtTempProg;
     String address;
@@ -42,6 +41,8 @@ public class SetDataEsp extends AppCompatActivity {
     private boolean mPaused;
     private boolean mFinished;
     private LoadingDialog loadingDialog;
+    SeekBar seekBar;
+
 
     RequestQueue requestQueue;
 
@@ -49,22 +50,77 @@ public class SetDataEsp extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_set_data_esp);
+        txtModo= findViewById(R.id.txtModo);
+        manual= findViewById(R.id.btnManual);
+        automatico= findViewById(R.id.btnAuto);
         loadingDialog = new LoadingDialog(this);
         loadingDialog.startLoadingDialog();
         mPauseLock = new Object();
         mPaused = false;
         mFinished = false;
-        btnMenos = findViewById(R.id.btnMenos);
-        btnMais = findViewById(R.id.btnMais);
         btnLigaDesliga = findViewById(R.id.bntLigaDesliga);
         txtLocal = findViewById(R.id.txtLocal);
         txtStatus = findViewById(R.id.txtLigaDesliga);
-        txtTempProg = findViewById(R.id.txtTempProg);
+        txtTempProg = findViewById(R.id.txtTempProgLocal);
         temp = findViewById(R.id.progessView);
         temp.setMaxValue(50);
         temp.setProgress(0);
         temp.setTextEnabled(true);
         temp.setText("...");
+
+        seekBar = findViewById(R.id.seekBarLocal);
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                txtTempProg.setText(Integer.toString(progress));
+
+            };
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                try{
+                    JSONObject config = new JSONObject();
+                    config.put("tempPROG", Float.parseFloat(txtTempProg.getText().toString()));
+                    Log.d("jsonOb",config.toString());
+                    sendConfigEsp(new Button(SetDataEsp.this), requestQueue,address,config);
+                }catch (Exception ex){
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        manual.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try{
+                    JSONObject config = new JSONObject();
+                    config.put("auto", false);
+                    Log.d("jsonOb",config.toString());
+                    sendConfigEsp(new Button(SetDataEsp.this), requestQueue,address,config);
+                }catch (Exception ex){
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        automatico.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try{
+                    JSONObject config = new JSONObject();
+                    config.put("auto", true);
+                    Log.d("jsonOb",config.toString());
+                    sendConfigEsp(new Button(SetDataEsp.this), requestQueue,address,config);
+                }catch (Exception ex){
+                    ex.printStackTrace();
+                }
+            }
+        });
 
 
         Intent intent = getIntent();
@@ -86,9 +142,22 @@ public class SetDataEsp extends AppCompatActivity {
                         txtStatus.setText("Desligado!");
                         btnLigaDesliga.setText("Ligar");
                     }
+                    if(json.has("auto")){
+                        if(json.getBoolean("auto")){
+                            automatico.setEnabled(false);
+                            manual.setEnabled(true);
+                            txtModo.setText("Automático");
+                        }else{
+                            manual.setEnabled(false);
+                            automatico.setEnabled(true);
+                            txtModo.setText("Manual");
+                        }
+                    }
+
                     temp.animateProgressChange((float)json.getDouble("sensor1"),1000);
                     temp.setText(String.format("%.1f",(float)json.getDouble("sensor1")).replace(",",".").concat(" ºC"));
                     txtTempProg.setText(String.valueOf(Math.round(json.getDouble("tempPROG"))));
+                    seekBar.setProgress((int) Math.round(json.getDouble("tempPROG")));
                     loadingDialog.dimissDialog();
 
 
@@ -104,36 +173,6 @@ public class SetDataEsp extends AppCompatActivity {
         });
 
 
-        btnMenos.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {try {
-                JSONObject config = new JSONObject();
-                config.put("tempPROG", Float.parseFloat(txtTempProg.getText().toString())-1);
-
-                Log.d("jsonOb",config.toString());
-                sendConfigEsp(btnMais, requestQueue,address,config);
-
-            }catch (Exception e){
-                Log.d("json error",e.getMessage());
-            }
-            }
-        });
-        btnMais.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                try {
-                    JSONObject config = new JSONObject();
-                    config.put("tempPROG", Float.parseFloat(txtTempProg.getText().toString())+1);
-
-                    Log.d("jsonOb",config.toString());
-                    sendConfigEsp(btnMais, requestQueue,address,config);
-
-                }catch (Exception e){
-                    Log.d("json error",e.getMessage());
-                }
-
-            }
-        });
         btnLigaDesliga.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -258,5 +297,13 @@ public class SetDataEsp extends AppCompatActivity {
     }
     private void printToast(String message, int lenght){
         Toast.makeText(getApplicationContext(),message,lenght).show();
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        Intent a = new Intent(SetDataEsp.this, DashLocal.class);
+        startActivity(a);
+        finish();
     }
 }

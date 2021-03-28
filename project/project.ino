@@ -60,6 +60,7 @@ volatile float tempATUAL = 0.0;
 volatile float lastTempATUAL = 0.0;
 volatile boolean rele = false;
 volatile bool isUpdate = false;
+volatile bool modoViagem = false;
 volatile int numError = 0;
 volatile bool updateValues = false;
 volatile bool automaticMode = false;
@@ -107,6 +108,9 @@ void streamCallback(MultiPathStreamData stream)
         JSONVar infos = JSON.parse(stream.value);
         if (infos.hasOwnProperty("update")) {
           isUpdate = (bool) infos["update"];
+        }
+        if (infos.hasOwnProperty("modoViagem")) {
+          modoViagem = (bool) infos["modoViagem"];
         }
         if (infos.hasOwnProperty("LINHA_1")) {
           LINHA_1 = (bool) infos["LINHA_1"];
@@ -276,18 +280,18 @@ void loadHrs() {
 
 void printDateTime(const RtcDateTime& dt)
 {
-    char datestring[20];
+  char datestring[20];
 
-    snprintf_P(datestring, 
-            countof(datestring),
-            PSTR("%02u/%02u/%04u %02u:%02u:%02u"),
-            dt.Month(),
-            dt.Day(),
-            dt.Year(),
-            dt.Hour(),
-            dt.Minute(),
-            dt.Second() );
-    Serial.print(datestring);
+  snprintf_P(datestring,
+             countof(datestring),
+             PSTR("%02u/%02u/%04u %02u:%02u:%02u"),
+             dt.Month(),
+             dt.Day(),
+             dt.Year(),
+             dt.Hour(),
+             dt.Minute(),
+             dt.Second() );
+  Serial.print(datestring);
 }
 
 
@@ -379,13 +383,13 @@ void taskDim( void * pvParameters ) {
     sensors.requestTemperatures();
     tempATUAL = sensors.getTempCByIndex(0);
     delay(10);
-    while (tempATUAL < - 150) {
+    while (tempATUAL < - 100) {
       sensors.requestTemperatures();
       tempATUAL = sensors.getTempCByIndex(0);
       numError++;
       delay(10);
     }
-    
+
     if (automaticMode) {
       xSemaphoreTake(myMutex, portMAX_DELAY);
       for (int i = 0; i < NSEMANAS; i++) {
@@ -398,9 +402,15 @@ void taskDim( void * pvParameters ) {
             }
           }
         }
-        LINHA_1 = false;
+        LINHA_1 = true;
+        tempPROG = 10.0;
       }
       xSemaphoreGive(myMutex);
+    }
+
+    if (modoViagem) {
+      LINHA_1 = true;
+      tempPROG = 10.0;
     }
 
     if ((millis() - ultimo_millis2) > debounce_delay) {
@@ -573,9 +583,13 @@ void taskConn( void * pvParameters ) {
       if (jso.hasOwnProperty("upgrade")) {
         isUpdate = true;
       }
+      if (jso.hasOwnProperty("auto")) {
+        automaticMode = (bool) jso["auto"];
+      }
 
       ok["linha_1"] = LINHA_1;
       ok["tempPROG"] = tempPROG;
+      ok["auto"] = automaticMode;
       ok["request"] = "ok";
     }
     responseToClient(request, JSON.stringify(ok));
@@ -587,6 +601,7 @@ void taskConn( void * pvParameters ) {
     ok["sensor1"] = tempATUAL;
     ok["linha_1"] = LINHA_1;
     ok["tempPROG"] = tempPROG;
+    ok["auto"] = automaticMode;
     responseToClient(request, JSON.stringify(ok));
   });
 
@@ -717,6 +732,7 @@ void taskConn( void * pvParameters ) {
         json2.set("erro leitura", numError);
         json2.set("auto", automaticMode);
         json2.set("sinal", String(WiFi.RSSI()));
+        json2.set("modoViagem", modoViagem);
 
         if (!Firebase.updateNode(writeData, nodo + "/W/", json2)) {
           Serial.println(writeData.errorReason());

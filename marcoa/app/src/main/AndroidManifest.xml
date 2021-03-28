@@ -37,7 +37,8 @@
         <activity
             android:name="com.marcoa.marcoa.DashLocal"
             android:launchMode="singleInstance"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.DashControl.NoActionBar"/>
         <activity
             android:name="com.marcoa.marcoa.Login"
             android:screenOrientation="portrait"

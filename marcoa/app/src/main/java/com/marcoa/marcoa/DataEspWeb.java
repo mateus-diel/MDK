@@ -47,6 +47,7 @@ public class DataEspWeb extends AppCompatActivity {
     volatile boolean modo, lastModo = false;
     Activity activity;
     boolean modoAtual = false;
+    boolean modoViagem = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,6 +133,13 @@ public class DataEspWeb extends AppCompatActivity {
                         modoWeb.setText("Manual");
                         modoAtual = false;
                         modo=false;
+                    }else if(device.getKey().equals("modoViagem")){
+                        if(Boolean.valueOf(device.getValue().toString().toLowerCase())){
+                            modoViagem = true;
+                            modoWeb.setText("Modo Viagem");
+                        }else{
+                            modoViagem = false;
+                        }
                     }
 
 
@@ -155,7 +163,18 @@ public class DataEspWeb extends AppCompatActivity {
                 if(modoAtual){
                     AlertDialog.Builder dialog = new AlertDialog.Builder(DataEspWeb.this);
                     dialog.setTitle("Aviso");
-                    dialog.setMessage("O dispositivo está trabalhando no modo automático! Se você deseja ajustar manualmente, coloque-o no modo manual!");
+                    dialog.setMessage("O ambiente está trabalhando no modo automático! Se você deseja ajustar manualmente, coloque-o no modo manual!");
+                    dialog.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+                    dialog.create().show();
+                }else if(modoViagem){
+                    AlertDialog.Builder dialog = new AlertDialog.Builder(DataEspWeb.this);
+                    dialog.setTitle("Aviso");
+                    dialog.setMessage("O ambiente está com o modo viagem ativo. Se você deseja ajustar manualmente, desative o modo viagem!");
                     dialog.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
