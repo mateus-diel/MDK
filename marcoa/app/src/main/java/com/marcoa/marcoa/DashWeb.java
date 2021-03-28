@@ -44,12 +44,7 @@ public class DashWeb extends AppCompatActivity {
     SharedPreferences prefs;
     FloatingActionButton prog, sair, contato, modoViagem, personalizarIcones, usuarios;
     FloatingActionMenu floatingMenu;
-
-
-
-
     ProgressDialog progressDialog;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
