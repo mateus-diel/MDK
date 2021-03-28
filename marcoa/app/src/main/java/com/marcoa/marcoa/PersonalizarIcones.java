@@ -24,7 +24,7 @@ import java.util.ArrayList;
 
 public class PersonalizarIcones extends AppCompatActivity {
     static GridView gridView;
-    GridAdapter adapter;
+    private GridAdapter adapter;
     static SharedPreferences prefs;
     static int pos;
     private static Context context;
@@ -42,11 +42,14 @@ public class PersonalizarIcones extends AppCompatActivity {
         ArrayList<Drawable> dw = new ArrayList<>(DashWeb.draw);
         DashWeb.draw.clear();
         for(Drawable d : dw){
-            DrawableCompat.setTint(d, 0xFFF58634);
+
+            DrawableCompat.setTint(d, ContextCompat.getColor(PersonalizarIcones.context,R.color.laranjalogo));
             DashWeb.draw.add(d);
         }
-        adapter = new GridAdapter(PersonalizarIcones.this, DashWeb.names,DashWeb.draw);
+        adapter = new GridAdapter(PersonalizarIcones.context, DashWeb.names,DashWeb.draw);
         gridView.setAdapter(adapter);
+        adapter = new GridAdapter(PersonalizarIcones.context, DashWeb.names,DashWeb.draw);
+        gridView.invalidate();
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {

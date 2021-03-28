@@ -22,7 +22,6 @@
         android:text="Clique no ambiente e selecione o novo icone!"
         android:textColor="@color/white"
         android:textSize="17sp"
-        android:layout_gravity="start"
         android:layout_marginStart="5sp"
         android:textStyle="bold"
         android:layout_marginVertical="5dp"/>

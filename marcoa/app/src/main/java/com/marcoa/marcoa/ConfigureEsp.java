@@ -61,7 +61,6 @@ public class ConfigureEsp extends AppCompatActivity {
     JSONObject config;
     SharedPreferences prefs;
     boolean isAutenticated;
-    static ImageView iconSelect;
     static AlertDialog show;
     static String dirDrawable;
 
@@ -73,41 +72,7 @@ public class ConfigureEsp extends AppCompatActivity {
         queue = Volley.newRequestQueue(this);
         config = new JSONObject();
         isAutenticated = false;
-        iconSelect = findViewById(R.id.iconSelect);
-        iconSelect.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                AlertDialog.Builder icones = new AlertDialog.Builder(ConfigureEsp.this);
-                icones.setTitle("Selecione um icone");
-                icones.setCancelable(false);
-                GridLayout grid = new GridLayout(ConfigureEsp.this);
-                grid.setColumnCount(5);
-                Field[] drawablesFields = R.drawable.class.getFields();
-                ImageView img;
 
-                for (Field field : drawablesFields) {
-                    try {
-                        Log.i("LOG_TAG", "com.your.project.R.drawable." + field.getName());
-                        if(field.getName().contains("iconuserselect")) {
-                            img = new ImageView(ConfigureEsp.this);
-                            img.setImageResource(field.getInt(null));
-                            img.setTag(field.getName());
-                            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(100, 100);
-                            layoutParams.setMargins(10, 10, 10, 10);
-                            img.setLayoutParams(layoutParams);
-                            img.setOnClickListener(ConfigureEsp::onClicIconSelect);
-                            grid.addView(img);
-                            //img.requestLayout();
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                icones.setView(grid);
-                show = icones.show();
-            }
-        });
          prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
          Log.d("email",prefs.getString("email","null"));
          Log.d("senha",prefs.getString("senha","null"));
@@ -219,23 +184,7 @@ public class ConfigureEsp extends AppCompatActivity {
 
     }
 
-    private static void onClicIconSelect(View view) {
-        Field[] drawablesFields = R.drawable.class.getFields();
 
-        for (Field field : drawablesFields) {
-            try {
-                Log.i("LOG_TAG", "com.your.project.R.drawable." + field.getName());
-                if (field.getName().contains(view.getTag().toString())) {
-                    iconSelect.setImageResource(field.getInt(null));
-                    dirDrawable = field.getName();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        show.dismiss();
-
-    }
 
     private void scanWifiList() {
         boolean ok = wifiManager.startScan();
