@@ -2,8 +2,24 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:fab="http://schemas.android.com/apk/res-auto"
+    android:background="@color/cinzaBackground"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".Usuarios">
+
+    <com.github.clans.fab.FloatingActionButton
+        android:id="@+id/addUser"
+        fab:fab_label="Sair"
+        android:visibility="gone"
+        fab:fab_size="mini"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/fab_add"
+        app:fab_colorNormal="@color/laranjalogo"
+        app:fab_colorPressed="@color/colorPrimary"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

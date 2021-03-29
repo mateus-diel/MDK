@@ -45,7 +45,7 @@ public class DashWeb extends AppCompatActivity {
     static GridView gridView;
     Handler mHandler;
     static boolean modoViagemAtivo = false;
-    GridAdapter adapter;
+    public static GridAdapter adapter;
     SharedPreferences prefs;
     FloatingActionButton prog, sair, contato, modoViagem, personalizarIcones, usuarios;
     FloatingActionMenu floatingMenu;
@@ -197,6 +197,21 @@ public class DashWeb extends AppCompatActivity {
         personalizarIcones.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                ArrayList<Drawable> dw = new ArrayList<>(DashWeb.draw);
+
+                Log.d("tamanho dashdraw", Integer.toString(DashWeb.draw.size()));
+                DashWeb.draw.clear();
+                Log.d("tamanho dw draw", Integer.toString(dw.size()));
+                int i =0;
+                int cor = ContextCompat.getColor(DashWeb.this,R.color.laranjalogo);
+                for(Drawable d : dw){
+                    Drawable a = d.getConstantState().newDrawable();
+                    i++;
+                    Log.d("defini o draw", Integer.toString(i));
+
+                    DrawableCompat.setTint(a, cor);
+                    DashWeb.draw.add(a);
+                }
                 floatingMenu.close(true);
                 Intent a = new Intent(getApplicationContext(), PersonalizarIcones.class);
                 startActivity(a);
@@ -248,6 +263,14 @@ public class DashWeb extends AppCompatActivity {
                                 editor.putString("chave_original", prefs.getString("chave", "null"));
                                 editor.putString("chave", snapshot.child("alias").getValue().toString());
                                 floatingMenu.removeMenuButton(usuarios);
+                            }
+                            if (snapshot.hasChild("residencial")) {
+                                Log.d("residencial", snapshot.child("residencial").getValue().toString());
+                                editor.putBoolean("residencial", (boolean)snapshot.child("residencial").getValue());
+                                if(!(boolean)snapshot.child("residencial").getValue()){
+                                    floatingMenu.removeMenuButton(prog);
+                                    floatingMenu.removeMenuButton(modoViagem);
+                                }
                             }
                             editor.apply();
                             Log.d("caminhooo", "cliente/".concat(prefs.getString("chave", "null")));

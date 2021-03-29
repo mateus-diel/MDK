@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.GridLayout;
@@ -23,8 +24,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 
 public class PersonalizarIcones extends AppCompatActivity {
-    static GridView gridView;
-    private GridAdapter adapter;
+    static GridView gridViewP;
     static SharedPreferences prefs;
     static int pos;
     private static Context context;
@@ -36,21 +36,17 @@ public class PersonalizarIcones extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_personalizar_icones);
-        gridView = findViewById(R.id.grid_view_personalizar_icone);
+        gridViewP = findViewById(R.id.grid_view_personalizar_icone);
         prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
         PersonalizarIcones.context = getApplicationContext();
-        ArrayList<Drawable> dw = new ArrayList<>(DashWeb.draw);
-        DashWeb.draw.clear();
-        for(Drawable d : dw){
-
-            DrawableCompat.setTint(d, ContextCompat.getColor(PersonalizarIcones.context,R.color.laranjalogo));
-            DashWeb.draw.add(d);
+        gridViewP.setAdapter(DashWeb.adapter);
+        String nameForIcons;
+        if(prefs.getBoolean("residencial",true)){
+            nameForIcons = "iconuserselect";
+        }else{
+            nameForIcons = "pigiconuser";
         }
-        adapter = new GridAdapter(PersonalizarIcones.context, DashWeb.names,DashWeb.draw);
-        gridView.setAdapter(adapter);
-        adapter = new GridAdapter(PersonalizarIcones.context, DashWeb.names,DashWeb.draw);
-        gridView.invalidate();
-        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        gridViewP.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 pos = position;
@@ -58,12 +54,19 @@ public class PersonalizarIcones extends AppCompatActivity {
                 icones.setTitle("Selecione um icone");
                 GridLayout grid = new GridLayout(PersonalizarIcones.this);
                 grid.setColumnCount(5);
+                GridLayout.LayoutParams param =new GridLayout.LayoutParams();
+                param.height = GridLayout.LayoutParams.WRAP_CONTENT;
+                param.width = GridLayout.LayoutParams.WRAP_CONTENT;
+                param.rightMargin = 5;
+                param.topMargin = 5;
+                param.setGravity(Gravity.CENTER);
+                grid.setLayoutParams(param);
                 Field[] drawablesFields = R.drawable.class.getFields();
                 ImageView img;
 
                 for (Field field : drawablesFields) {
                     try {
-                        if(field.getName().contains("iconuserselect")) {
+                        if(field.getName().contains(nameForIcons)) {
                             img = new ImageView(PersonalizarIcones.this);
                             img.setImageResource(field.getInt(null));
                             img.setColorFilter(ContextCompat.getColor(context, R.color.black), android.graphics.PorterDuff.Mode.SRC_IN);
@@ -84,7 +87,7 @@ public class PersonalizarIcones extends AppCompatActivity {
                 show = icones.show();
             }
         });
-        gridView.invalidate();
+        gridViewP.invalidate();
     }
 
 
@@ -106,7 +109,7 @@ public class PersonalizarIcones extends AppCompatActivity {
                     Drawable wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
                     DrawableCompat.setTint(wrappedDrawable, 0xFFF58634);
                     DashWeb.draw.set(pos,wrappedDrawable);
-                    gridView.invalidateViews();
+                    gridViewP.invalidateViews();
                 }
             } catch (Exception e) {
                 e.printStackTrace();

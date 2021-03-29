@@ -20,10 +20,10 @@ public class GridAdapter extends BaseAdapter {
     private ArrayList<String> number;
     private ArrayList <Drawable> numImg;
 
-    public GridAdapter(Context c, ArrayList<String> number, ArrayList <Drawable> numImg){
-        this.context = c;
-        this.number = number;
-        this.numImg = numImg;
+    public GridAdapter(Context c, ArrayList<String> nome, ArrayList <Drawable> Img){
+        context = c;
+        number = nome;
+        numImg = Img;
     }
     @Override
     public int getCount() {
@@ -50,9 +50,7 @@ public class GridAdapter extends BaseAdapter {
         }
         ImageView imageView = convertView.findViewById(R.id.image_view);
         TextView textView = convertView.findViewById(R.id.text_view);
-        Drawable d = numImg.get(position);
-        DrawableCompat.setTint(d,ContextCompat.getColor(context,R.color.laranjalogo));
-        imageView.setImageDrawable(d);
+        imageView.setImageDrawable(numImg.get(position));
         imageView.setBackgroundColor(ContextCompat.getColor(context, R.color.cinzaBackground));
         textView.setText(number.get(position));
         return convertView;
