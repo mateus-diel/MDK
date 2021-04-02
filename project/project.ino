@@ -81,6 +81,7 @@ volatile int potencia_1 = 0;
 unsigned long ultimo_millis1 = 0;
 unsigned long ultimo_millis2 = 0;
 unsigned long ultimo_millis3 = 0;
+unsigned long millisWifiTimeout = 0;
 unsigned long debounce_delay = 500;
 
 void limpaHorarios() {
@@ -92,10 +93,10 @@ void limpaHorarios() {
 
 void streamCallback(MultiPathStreamData stream)
 {
-  Serial.println();
-  Serial.println("Stream Data1 available...");
-  Serial.println("path: " + stream.dataPath);
-  Serial.println("valuie: " + stream.value);
+  /*Serial.println();
+    Serial.println("Stream Data1 available...");
+    Serial.println("path: " + stream.dataPath);
+    Serial.println("valuie: " + stream.value);*/
 
   size_t numChild = sizeof(childPath) / sizeof(childPath[0]);
 
@@ -103,7 +104,7 @@ void streamCallback(MultiPathStreamData stream)
   {
     if (stream.get(childPath[i]))
     {
-      Serial.println("path: " + stream.dataPath + ", type: " + stream.type + ", value: " + stream.value);
+      //Serial.println("path: " + stream.dataPath + ", type: " + stream.type + ", value: " + stream.value);
       if (stream.dataPath.indexOf(childPath[1]) > -1 && stream.type.indexOf("json") > -1) {
         JSONVar infos = JSON.parse(stream.value);
         if (infos.hasOwnProperty("update")) {
@@ -236,13 +237,13 @@ String readFile(String path) {
     content += char(rfile.read());
   }
   rfile.close();
-  Serial.print("CONTEUDO LIDO: ");
-  Serial.println(content);
+  //Serial.print("CONTEUDO LIDO: ");
+  //Serial.println(content);
   return content;
 }
 
 boolean writeFile(String message, String path) {
-  Serial.printf("Writing file: %s\r\n", path);
+  //Serial.printf("Writing file: %s\r\n", path);
 
   File file = LITTLEFS.open(path, FILE_WRITE);
   if (!file) {
@@ -250,7 +251,7 @@ boolean writeFile(String message, String path) {
     return false;
   }
   if (file.print(message)) {
-    Serial.println("- file written");
+    //Serial.println("- file written");
     return true;
   } else {
     Serial.println("- write failed");
@@ -357,7 +358,7 @@ void taskDim( void * pvParameters ) {
   DimmableLight::setSyncPin(PINO_ZC);
   DimmableLight::begin();
   Rtc.Begin();
-  if (Rtc.GetIsWriteProtected())
+  /*if (Rtc.GetIsWriteProtected())
   {
     Serial.println("RTC was write protected, enabling writing now");
     Rtc.SetIsWriteProtected(false);
@@ -367,13 +368,22 @@ void taskDim( void * pvParameters ) {
   {
     Serial.println("RTC was not actively running, starting now");
     Rtc.SetIsRunning(true);
-  }
+  }*/
 
   while ((bool) configs["default"]) {
     vTaskDelete(NULL);
   }
 
   while (true) {
+    unsigned long mil = 0;
+    xSemaphoreTake(myMutex, portMAX_DELAY);
+    mil = millisWifiTimeout;
+    xSemaphoreGive(myMutex);
+    if ((millis() - mil) > 300000) {
+      Serial.println("Vou reiniciar");
+      ESP.restart();
+    }
+
     if (isUpdate) {
       DimmableLight::pauseStop();
       delay(200);
@@ -422,8 +432,8 @@ void taskDim( void * pvParameters ) {
       Serial.println("ºC");
       Serial.print("Potencia -> " + String(potencia_1) + " :");
       Serial.println(DIMMER_1.getBrightness());
-      Serial.print("date: ");
-      printDateTime(Rtc.GetDateTime());
+      //Serial.print("date: ");
+      //printDateTime(Rtc.GetDateTime());
       Serial.println();
     }
 
@@ -440,7 +450,7 @@ void taskDim( void * pvParameters ) {
       JSONVar itemHrs;
       for (int i = 0; i < NSEMANAS; i++) {
         if (hrs[i].semana.length() > 1) {
-          Serial.println(hrs[i].semana);
+          //Serial.println(hrs[i].semana);
           itemHrs["sem"] = hrs[i].semana;
           itemHrs["temp"] = hrs[i].temp;
           itemHrs["liga"] = hrs[i].liga;
@@ -513,8 +523,8 @@ void taskConn( void * pvParameters ) {
     String((const char*)configs["defaultPassword"]).toCharArray(pass, 8 + 1);
     Serial.println("\nSSID: ");
     Serial.print(ssid);
-    Serial.println("\nsenha: ");
-    Serial.print(pass);
+    //Serial.println("\nsenha: ");
+    //Serial.print(pass);
 
     WiFi.softAP(ssid, pass);
     delay(2000);
@@ -526,17 +536,21 @@ void taskConn( void * pvParameters ) {
     WiFi.begin((const char*) configs["ssid"], (const char*) configs["password"]);
     Serial.print("Wifi e senha: ");
     Serial.print((const char*) configs["ssid"]);
-    Serial.println((const char*) configs["password"]);
+    //Serial.println((const char*) configs["password"]);
     delay(1000);
-
+    int wifi = 0;
     while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
+      delay(1000);
       Serial.println("Connecting to WiFi..");
+      if (wifi > 180) {
+        ESP.restart();
+      }
+      wifi++;
     }
     WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
     WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_LOST_IP);
-    Serial.print("Ip->: ");
-    Serial.println(WiFi.localIP());
+    //Serial.print("Ip->: ");
+    //Serial.println(WiFi.localIP());
   }
 
 
@@ -553,8 +567,8 @@ void taskConn( void * pvParameters ) {
     JSONVar ok;
     ok["request"] = "error";
 
-    Serial.println(t);
-    Serial.println("Json");
+    //Serial.println(t);
+    //Serial.println("Json");
     JSONVar jso =  JSON.parse(t);
     if (jso.hasOwnProperty("configNetwork") && (bool) configs["default"]) {
       configs["default"] = (bool) jso["configNetwork"];
@@ -613,7 +627,7 @@ void taskConn( void * pvParameters ) {
       delay(1000);
       ESP.restart();
     }
-    Serial.println("MDNS begib successful;");
+    //Serial.println("MDNS begib successful;");
   } else {
     if (!MDNS.begin("ESP32")) {
       Serial.println("Error setting up MDNS responder!");
@@ -631,7 +645,7 @@ void taskConn( void * pvParameters ) {
     }*/
 
   MDNS.addService("dimmer", "tcp", 80);
-  Serial.println("HTTP server started");
+  //Serial.println("HTTP server started");
 
   while ((bool) configs["default"]) {
     delay(1);
@@ -662,14 +676,14 @@ void taskConn( void * pvParameters ) {
 
   auth.user.password = senhaa;
 
-  Serial.print("\napi key: ");
-  Serial.println(api_keyy);
-  Serial.print("host ");
-  Serial.println(hostt);
-  Serial.print("email: ");
-  Serial.println(emaill);
-  Serial.print("senha: ");
-  Serial.println(senhaa);
+  /*Serial.print("\napi key: ");
+    Serial.println(api_keyy);
+    Serial.print("host ");
+    Serial.println(hostt);
+    Serial.print("email: ");
+    Serial.println(emaill);
+    Serial.print("senha: ");
+    Serial.println(senhaa);*/
 
   Firebase.begin(&configur, &auth);
   String nodo = "/cliente/" + String((const char *) configs["client_id"]) + "/" + String((const char*) configs["deviceName"]) + "/";
@@ -723,6 +737,9 @@ void taskConn( void * pvParameters ) {
 
     if ((millis() - ultimo_millis3) > 10000 || updateValues) {
       ultimo_millis3 = millis();
+      xSemaphoreTake(myMutex, portMAX_DELAY);
+      millisWifiTimeout = millis();
+      xSemaphoreGive(myMutex);
 
       if (WiFi.status() == WL_CONNECTED) {
         json2.set("tempPROG", tempPROG);
@@ -745,7 +762,7 @@ void taskConn( void * pvParameters ) {
           url.concat(VERSION);
           url.concat("&model=");
           url.concat(MODEL);
-          Serial.println(url);
+          //Serial.println(url);
           t_httpUpdate_return ret = ESPhttpUpdate.update(url);
           switch (ret) {
             case HTTP_UPDATE_FAILED:
