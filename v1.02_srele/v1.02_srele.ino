@@ -34,7 +34,7 @@ typedef struct
 #define CONFIGURATION "/configs.json"
 #define DEVICESINFO "/devices.json"
 #define DAYSINFO "/days.json"
-#define VERSION "1.01"
+#define VERSION "1.02"
 #define MODEL "casa"
 #define NSEMANAS 35
 
@@ -81,6 +81,7 @@ volatile int potencia_1 = 0;
 unsigned long ultimo_millis1 = 0;
 unsigned long ultimo_millis2 = 0;
 unsigned long ultimo_millis3 = 0;
+unsigned long millisWifiTimeout = 0;
 unsigned long debounce_delay = 500;
 
 void limpaHorarios() {
@@ -236,8 +237,8 @@ String readFile(String path) {
     content += char(rfile.read());
   }
   rfile.close();
-  Serial.print("CONTEUDO LIDO: ");
-  Serial.println(content);
+  //Serial.print("CONTEUDO LIDO: ");
+  //Serial.println(content);
   return content;
 }
 
@@ -357,7 +358,7 @@ void taskDim( void * pvParameters ) {
   DimmableLight::setSyncPin(PINO_ZC);
   DimmableLight::begin();
   Rtc.Begin();
-  if (Rtc.GetIsWriteProtected())
+  /*if (Rtc.GetIsWriteProtected())
   {
     Serial.println("RTC was write protected, enabling writing now");
     Rtc.SetIsWriteProtected(false);
@@ -367,13 +368,22 @@ void taskDim( void * pvParameters ) {
   {
     Serial.println("RTC was not actively running, starting now");
     Rtc.SetIsRunning(true);
-  }
+  }*/
 
   while ((bool) configs["default"]) {
     vTaskDelete(NULL);
   }
 
   while (true) {
+    unsigned long mil = 0;
+    xSemaphoreTake(myMutex, portMAX_DELAY);
+    mil = millisWifiTimeout;
+    xSemaphoreGive(myMutex);
+    if ((millis() - mil) > 300000) {
+      Serial.println("Vou reiniciar");
+      ESP.restart();
+    }
+    
     if (isUpdate) {
       DimmableLight::pauseStop();
       delay(200);
@@ -422,8 +432,8 @@ void taskDim( void * pvParameters ) {
       Serial.println("ºC");
       Serial.print("Potencia -> " + String(potencia_1) + " :");
       Serial.println(DIMMER_1.getBrightness());
-      Serial.print("date: ");
-      printDateTime(Rtc.GetDateTime());
+      //Serial.print("date: ");
+      //printDateTime(Rtc.GetDateTime());
       Serial.println();
     }
 
@@ -460,10 +470,10 @@ void taskDim( void * pvParameters ) {
 
     if (tempATUAL < tempPROG - 0.5 && LINHA_1) {
       potencia_1 = 100;
-          potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
-          DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
-          rele = true;
-          
+      potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
+      DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
+      rele = true;
+
     } else if (LINHA_1) {
       rele = false;
       desligaRELE(RELE_1);
@@ -734,7 +744,11 @@ void taskConn( void * pvParameters ) {
         json2.set("sinal", String(WiFi.RSSI()));
         json2.set("modoViagem", modoViagem);
 
-        if (!Firebase.updateNode(writeData, nodo + "/W/", json2)) {
+        if (Firebase.updateNode(writeData, nodo + "/W/", json2)) {
+          xSemaphoreTake(myMutex, portMAX_DELAY);
+          millisWifiTimeout = millis();
+          xSemaphoreGive(myMutex);
+        } else {
           Serial.println(writeData.errorReason());
         }
         Firebase.setTimestamp(writeData, nodo + "/W/Timestamp");
