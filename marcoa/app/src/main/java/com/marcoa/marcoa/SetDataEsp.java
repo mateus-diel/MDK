@@ -63,7 +63,7 @@ public class SetDataEsp extends AppCompatActivity {
         txtStatus = findViewById(R.id.txtLigaDesliga);
         txtTempProg = findViewById(R.id.txtTempProgLocal);
         temp = findViewById(R.id.progessView);
-        temp.setMaxValue(50);
+        temp.setMaxValue(40);
         temp.setProgress(0);
         temp.setTextEnabled(true);
         temp.setText("...");

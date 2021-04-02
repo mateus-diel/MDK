@@ -110,6 +110,7 @@
 
 
         </LinearLayout>
+
         <SeekBar
             android:id="@+id/seekBarLocal"
             android:layout_width="match_parent"
@@ -118,10 +119,11 @@
             android:layout_marginEnd="9dp"
             android:indeterminate="false"
             android:max="40"
-            android:min="5"
+            android:min="0"
             android:progress="35"
             android:progressDrawable="@drawable/track"
             android:thumb="@drawable/thumb" />
+
         <View
             android:id="@+id/view2"
             android:layout_width="match_parent"

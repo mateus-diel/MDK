@@ -42,7 +42,8 @@ public class DataEspWeb extends AppCompatActivity {
     Thread t;
     Intent intent;
     SharedPreferences prefs;
-    volatile int lastTempProg;
+
+    volatile int lastTempProg, tempRecebido = 0;
     volatile boolean lastLigaDesliga, ligaDesliga = false;
     volatile boolean modo, lastModo = false;
     Activity activity;
@@ -88,7 +89,7 @@ public class DataEspWeb extends AppCompatActivity {
         txtStatus = findViewById(R.id.txtLigaDesligaWEB);
         txtTempProg = findViewById(R.id.txtTempProgWEB);
         temp = findViewById(R.id.progessViewWEB);
-        temp.setMaxValue(50);
+        temp.setMaxValue(40);
         temp.setProgress(0);
         temp.setTextEnabled(true);
         temp.setText("...");
@@ -113,11 +114,10 @@ public class DataEspWeb extends AppCompatActivity {
                     }else if(device.getKey().equals("tempATUAL")){
                         temp.animateProgressChange(Float.valueOf(device.getValue().toString()),1000);
                         temp.setText(String.format("%.1f",Float.valueOf(device.getValue().toString())).replace(",",".").concat(" ºC"));
-
                     }else if(device.getKey().equals("tempPROG")){
                         txtTempProg.setText(String.valueOf(Math.round(Double.valueOf(device.getValue().toString()))));
                         seekBar.setProgress(Integer.parseInt(device.getValue().toString()));
-                        lastTempProg = Integer.parseInt(device.getValue().toString());
+                        tempRecebido = Integer.parseInt(device.getValue().toString());
                     }else if(device.getKey().equals("auto") && Boolean.valueOf(device.getValue().toString().toLowerCase())){
                         btnManualWeb.setEnabled(true);
                         btnAutoWeb.setEnabled(false);
@@ -223,12 +223,12 @@ public class DataEspWeb extends AppCompatActivity {
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-                lastTempProg = Integer.parseInt(txtTempProg.getText().toString());
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 progressDialog.setMessage("Definindo temperatura, aguarde...");
+                lastTempProg = Integer.parseInt(txtTempProg.getText().toString());
                 sendTemp(Float.parseFloat(txtTempProg.getText().toString()));
             }
         });
@@ -426,11 +426,11 @@ public class DataEspWeb extends AppCompatActivity {
                 t = new Thread() {
                     public void run() {
                         Log.i("Last temp progh", String.valueOf(lastTempProg));
-                        Log.i("temp prog", String.valueOf(txtTempProg.getText().toString()));
+                        Log.i("tempRecebido", String.valueOf(tempRecebido));
                         //Log.i("modo", String.valueOf(modo));
                         //Log.i("last modo", String.valueOf(lastModo));
                         //while ( || lastLigaDesliga != ligaDesliga || lastModo != modo){
-                        while (lastTempProg != Integer.parseInt(txtTempProg.getText().toString())){
+                        while (lastTempProg != tempRecebido){
                             if(time > timeout){
                                 activity.runOnUiThread(new Runnable()
                                 {
