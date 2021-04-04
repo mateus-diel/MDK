@@ -50,6 +50,7 @@ public class DashWeb extends AppCompatActivity {
     FloatingActionButton prog, sair, contato, modoViagem, personalizarIcones, usuarios;
     FloatingActionMenu floatingMenu;
     ProgressDialog progressDialog;
+    AlertDialog.Builder sistemabloqueado;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,9 +70,7 @@ public class DashWeb extends AppCompatActivity {
         usuarios = findViewById(R.id.floatingUsuariosWeb);
         modoViagem = findViewById(R.id.floatingModoViagemWeb);
         personalizarIcones = findViewById(R.id.floatingPersonalizarWeb);
-        dispositivos = new ArrayList<>();
-        names = new ArrayList<>();
-        draw = new ArrayList<>();
+
         prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
         prog = findViewById(R.id.floatingProgramaçõesWeb);
         floatingMenu = findViewById(R.id.floatingMenuWeb);
@@ -229,14 +228,17 @@ public class DashWeb extends AppCompatActivity {
 
         Log.d("email", prefs.getString("email", "null"));
         Log.d("uuid", prefs.getString("chave", "null"));
-        AlertDialog.Builder passResetDialog = new AlertDialog.Builder(this);
-        passResetDialog.setTitle("Aviso");
-        passResetDialog.setCancelable(false);
-        passResetDialog.setMessage("Sistema não está registrado, entre em contato para maiores informações!");
-        passResetDialog.setPositiveButton("Sair", new DialogInterface.OnClickListener() {
+        sistemabloqueado = new AlertDialog.Builder(this);
+        sistemabloqueado.setTitle("Aviso");
+        sistemabloqueado.setCancelable(false);
+        sistemabloqueado.setMessage("Sistema não está registrado, entre em contato para maiores informações!");
+        sistemabloqueado.setPositiveButton("Sair", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                Intent intent = new Intent(DashWeb.this, Login.class);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putBoolean("autoLogin", false);
+                editor.apply();
+                Intent intent = new Intent(getApplicationContext(), Login.class);
                 startActivity(intent);
                 finish();
             }
@@ -244,115 +246,7 @@ public class DashWeb extends AppCompatActivity {
 
         ref = database.getReference("chaves/".concat(prefs.getString("chave", "null")));
 
-        ref.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists() && snapshot.getValue() != null) {
-                    progressDialog.dismiss();
-                    Log.d("snap", snapshot.toString());
-                    Log.d("snapshot", snapshot.getValue().toString());
 
-                    if (snapshot.hasChild("ativo")) {
-                        if (!Boolean.valueOf(snapshot.child("ativo").getValue().toString().toLowerCase())) {
-                            passResetDialog.create().show();
-                        } else {
-                            SharedPreferences.Editor editor = prefs.edit();
-                            editor.putString("chave_original", "null");
-                            if (snapshot.hasChild("alias")) {
-                                Log.d("alias", snapshot.child("alias").getValue().toString());
-                                editor.putString("chave_original", prefs.getString("chave", "null"));
-                                editor.putString("chave", snapshot.child("alias").getValue().toString());
-                                floatingMenu.removeMenuButton(usuarios);
-                            }
-                            if (snapshot.hasChild("residencial")) {
-                                Log.d("residencial", snapshot.child("residencial").getValue().toString());
-                                editor.putBoolean("residencial", (boolean)snapshot.child("residencial").getValue());
-                                if(!(boolean)snapshot.child("residencial").getValue()){
-                                    floatingMenu.removeMenuButton(prog);
-                                    floatingMenu.removeMenuButton(modoViagem);
-                                }
-                            }
-                            editor.apply();
-                            Log.d("caminhooo", "cliente/".concat(prefs.getString("chave", "null")));
-                            ref1 = database.getReference("cliente/".concat(prefs.getString("chave", "null")));
-                            ref1.addListenerForSingleValueEvent(new ValueEventListener() {
-                                @Override
-                                public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                    if (snapshot.exists()) {
-                                        for (DataSnapshot device : snapshot.getChildren()) {
-                                            Drawable unwrappedDrawable;
-                                            Drawable wrappedDrawable;
-                                            unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, R.drawable.ic_home_iconuserselect);
-                                            wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
-
-                                            if (device.hasChild("W/modoViagem")) {
-                                                modoViagemAtivo = (boolean) device.child("W").child("modoViagem").getValue();
-                                            }
-
-                                            Log.d(" o caminho do cara e ", prefs.getString(prefs.getString("email", "null").concat(device.getKey().toLowerCase().concat("/IconUser")), "null"));
-                                            Log.d("getKey", device.getKey());
-                                            if (!prefs.getString(prefs.getString("email", "null").concat(device.getKey().toLowerCase().concat("/IconUser")), "null").equals("null")) {
-                                                Log.d(" o cara tem icone ", "null");
-
-                                                Field[] drawablesFields = R.drawable.class.getFields();
-
-                                                for (Field field : drawablesFields) {
-                                                    try {
-                                                        if (field.getName().contains(prefs.getString(prefs.getString("email", "null").concat(device.getKey().toLowerCase().concat("/IconUser")), "null"))) {
-                                                            Log.d("É esse aquii", field.getName());
-
-                                                            unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, field.getInt(null));
-                                                            wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
-                                                        }
-                                                    } catch (Exception e) {
-                                                        e.printStackTrace();
-                                                    }
-                                                }
-                                            }
-
-
-                                            if ((Math.abs(Long.valueOf(device.child("W").child("Timestamp").getValue().toString()) - System.currentTimeMillis()) / 1000) < offset) {
-
-                                                DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.laranjalogo));
-                                                names.add(device.getKey().toUpperCase());
-                                                draw.add(wrappedDrawable);
-                                                dispositivos.add(device.getKey().toUpperCase());
-
-                                            } else {
-                                                DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.azulonline));
-                                                //DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.azulonline));
-                                                names.add(device.getKey().toUpperCase());
-                                                draw.add(wrappedDrawable);
-                                                dispositivos.add(device.getKey().toUpperCase());
-                                            }
-                                        }
-                                        if (snapshot.exists()) {
-                                            Log.d("snapppp", snapshot.toString());
-                                        }
-                                        adapter = new GridAdapter(DashWeb.this, names, draw);
-                                        gridView.setAdapter(adapter);
-                                        progressDialog.dismiss();
-                                    }
-                                }
-
-                                @Override
-                                public void onCancelled(@NonNull DatabaseError error) {
-                                    Log.d("snapppp", "canceleddd");
-                                }
-                            });
-                        }
-                    }
-
-                }
-                ref.removeEventListener(this);
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-
-        });
     }
 
 
@@ -370,6 +264,122 @@ public class DashWeb extends AppCompatActivity {
             if (draw.size() > 0) {
 
             }
+        }
+        if(ref != null){
+            dispositivos = new ArrayList<>();
+            names = new ArrayList<>();
+            draw = new ArrayList<>();
+
+            ref.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    if (snapshot.exists() && snapshot.getValue() != null) {
+                        progressDialog.dismiss();
+                        Log.d("snap", snapshot.toString());
+                        Log.d("snapshot", snapshot.getValue().toString());
+
+                        if (snapshot.hasChild("ativo")) {
+                            if (!Boolean.valueOf(snapshot.child("ativo").getValue().toString().toLowerCase())) {
+                                sistemabloqueado.create().show();
+                            } else {
+                                SharedPreferences.Editor editor = prefs.edit();
+                                editor.putString("chave_original", "null");
+                                if (snapshot.hasChild("alias")) {
+                                    Log.d("alias", snapshot.child("alias").getValue().toString());
+                                    editor.putString("chave_original", prefs.getString("chave", "null"));
+                                    editor.putString("chave", snapshot.child("alias").getValue().toString());
+                                    floatingMenu.removeMenuButton(usuarios);
+                                }
+                                if (snapshot.hasChild("residencial")) {
+                                    Log.d("residencial", snapshot.child("residencial").getValue().toString());
+                                    editor.putBoolean("residencial", (boolean)snapshot.child("residencial").getValue());
+                                    if(!(boolean)snapshot.child("residencial").getValue()){
+                                        floatingMenu.removeMenuButton(prog);
+                                        floatingMenu.removeMenuButton(modoViagem);
+                                    }
+                                }
+                                editor.apply();
+                                Log.d("caminhooo", "cliente/".concat(prefs.getString("chave", "null")));
+                                ref1 = database.getReference("cliente/".concat(prefs.getString("chave", "null")));
+                                ref1.addListenerForSingleValueEvent(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                                        if (snapshot.exists()) {
+                                            for (DataSnapshot device : snapshot.getChildren()) {
+                                                Drawable unwrappedDrawable;
+                                                Drawable wrappedDrawable;
+                                                unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, R.drawable.ic_burn);
+                                                wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
+
+                                                if (device.hasChild("W/modoViagem")) {
+                                                    modoViagemAtivo = (boolean) device.child("W").child("modoViagem").getValue();
+                                                }
+
+                                                Log.d(" o caminho do cara e ", prefs.getString(prefs.getString("email", "null").concat(device.getKey().toLowerCase().concat("/IconUser")), "null"));
+                                                Log.d("getKey", device.getKey());
+                                                if (!prefs.getString(prefs.getString("email", "null").concat(device.getKey().toLowerCase().concat("/IconUser")), "null").equals("null")) {
+                                                    Log.d(" o cara tem icone ", "null");
+
+                                                    Field[] drawablesFields = R.drawable.class.getFields();
+
+                                                    for (Field field : drawablesFields) {
+                                                        try {
+                                                            if (field.getName().contains(prefs.getString(prefs.getString("email", "null").concat(device.getKey().toLowerCase().concat("/IconUser")), "null"))) {
+                                                                Log.d("É esse aquii", field.getName());
+
+                                                                unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, field.getInt(null));
+                                                                wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
+                                                            }
+                                                        } catch (Exception e) {
+                                                            e.printStackTrace();
+                                                        }
+                                                    }
+                                                }
+
+
+                                                if ((Math.abs(Long.valueOf(device.child("W").child("Timestamp").getValue().toString()) - System.currentTimeMillis()) / 1000) < offset) {
+
+                                                    DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.laranjalogo));
+                                                    names.add(device.getKey().toUpperCase());
+                                                    draw.add(wrappedDrawable);
+                                                    dispositivos.add(device.getKey().toUpperCase());
+
+                                                } else {
+                                                    DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.azulonline));
+                                                    //DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.azulonline));
+                                                    names.add(device.getKey().toUpperCase());
+                                                    draw.add(wrappedDrawable);
+                                                    dispositivos.add(device.getKey().toUpperCase());
+                                                }
+                                            }
+                                            if (snapshot.exists()) {
+                                                Log.d("snapppp", snapshot.toString());
+                                            }
+                                            adapter = new GridAdapter(DashWeb.this, names, draw);
+                                            gridView.setAdapter(adapter);
+                                            progressDialog.dismiss();
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onCancelled(@NonNull DatabaseError error) {
+                                        Log.d("snapppp", "canceleddd");
+                                    }
+                                });
+                            }
+                        }
+
+                    }
+                    ref.removeEventListener(this);
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError error) {
+
+                }
+
+            });
+
         }
     }
 

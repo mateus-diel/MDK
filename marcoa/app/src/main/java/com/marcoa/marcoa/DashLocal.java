@@ -1,23 +1,23 @@
 package com.marcoa.marcoa;
 
 import android.content.Intent;
-import android.graphics.Point;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.StrictMode;
 import android.util.Log;
-import android.view.Display;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.GridLayout;
+import android.widget.GridView;
+import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
 
 import com.github.clans.fab.FloatingActionButton;
 import com.github.clans.fab.FloatingActionMenu;
@@ -33,15 +33,18 @@ import java.util.Iterator;
 
 
 public class DashLocal extends AppCompatActivity {
-    GridLayout grid;
-    NsdClient nsd;
-    Thread thread;
-    Handler mHandler;
+    private GridView grid;
+    private NsdClient nsd;
+    private Thread thread;
+    private Handler mHandler;
     private Object mPauseLock;
     private boolean mPaused;
     private boolean mFinished;
-    FloatingActionButton sair, btnNovoESP;
-    FloatingActionMenu menu;
+    private GridAdapterLocal adapterLocal;
+    private FloatingActionButton sair, btnNovoESP;
+    private FloatingActionMenu menu;
+    private ArrayList<String> dispositivos;
+    private ArrayList<Drawable> drawables;
 
 
 
@@ -49,7 +52,15 @@ public class DashLocal extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dash);
-        //((GridLayout) findViewById(R.id.gridLayoutforESP)).removeAllViews();
+        dispositivos = new ArrayList<>();
+        drawables = new ArrayList<>();
+        Drawable unwrappedDrawable;
+        Drawable wrappedDrawable;
+        unwrappedDrawable = AppCompatResources.getDrawable(DashLocal.this, R.drawable.ic_burn);
+        wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
+        DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashLocal.this, R.color.laranjalogo));
+        drawables.add(wrappedDrawable);
+
         sair = findViewById(R.id.floatingSairLocal);
         btnNovoESP = findViewById(R.id.floatingNovoDispositivo);
         menu = findViewById(R.id.floatingMenuLocal);
@@ -63,6 +74,7 @@ public class DashLocal extends AppCompatActivity {
             }
         });
 
+
         sair.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -72,82 +84,93 @@ public class DashLocal extends AppCompatActivity {
             }
         });
 
-        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+
+        grid = findViewById(R.id.gridLayoutforESP);
+
+        mHandler = new Handler(Looper.getMainLooper()) {
             @Override
-            public void run() {
-                // Your Code
-            }
-        }, 3000);
+            public void handleMessage(Message message) {
+                if(message.what == 1){
+                    try {
+                        JSONObject json = new JSONObject(message.obj.toString());
+                        Iterator<String> iter = json.keys();
+                        while (iter.hasNext()) {
+                            String key = iter.next();
+                            try {
+                                Object value = json.get(key);
+                                JSONObject jso = new JSONObject(String.valueOf(value));
+                                Log.d("message", jso.toString());
+                                Log.d("Size dispo", Integer.toString(dispositivos.size()));
 
-        mHandler = new Handler() {
-            @Override
-            public void handleMessage(Message msg) {
-                Bundle bundle = msg.getData();
 
-                try {
-                    JSONObject json = new JSONObject(bundle.getString("services"));
-                    Iterator<String> iter = json.keys();
-
-                    while (iter.hasNext()) {
-
-                        String key = iter.next();
-                        try {
-                            Object value = json.get(key);
-                            JSONObject jso = new JSONObject(String.valueOf(value));
-
-                            Display display = getWindowManager().getDefaultDisplay();
-                            Point size = new Point();
-                            display.getSize(size);
-                            int width = size.x;
-                            int height = size.y;
-                            ArrayList<View> allButtons;
-                            allButtons = ((GridLayout) findViewById(R.id.gridLayoutforESP)).getTouchables();
-                            if(allButtons.size()>0){
-                                boolean contain = false;
-                                for(int i =0; i<allButtons.size(); i++){
-                                    Button b = (Button) allButtons.get(i);
-                                    if((jso.get("HostAddress").toString().equals(String.valueOf(b.getTag())))){
-
-                                        contain = true;
-                                        break;
+                                if(dispositivos.size()>0){
+                                    boolean contain = false;
+                                    for (String z : dispositivos){
+                                        if(z.contains(jso.get("HostAddress").toString())){
+                                            contain = true;
+                                            break;
+                                        }
                                     }
-                                }
-                                if(!contain){
-                                    Button z = new Button(getApplicationContext());
-                                    z.setMinHeight(200);
-                                    z.setMinWidth((size.x-50)/3);
-                                    z.setText(jso.get("ServiceName").toString());
-                                    z.setTag(jso.get("HostAddress").toString());
-                                    z.setOnClickListener(DashLocal.this::onClick);
-                                    grid.addView(z);
+                                    if(!contain){
+                                        dispositivos.add(jso.get("ServiceName").toString()+"*/*"+jso.get("HostAddress").toString());
+                                    }
+                                }else{
+                                    dispositivos.add(jso.get("ServiceName").toString()+"*/*"+jso.get("HostAddress").toString());
+                                    Log.d("Nomeee",dispositivos.get(0).substring(0,dispositivos.get(0).indexOf("*/*")));
+                                    Log.d("ipppp",dispositivos.get(0).substring(dispositivos.get(0).indexOf("*/*")+3));
                                 }
 
-                            }else{
-                                Button z = new Button(getApplicationContext());
-                                z.setMinHeight(200);
-                                z.setMinWidth((size.x-50)/3);
-                                z.setText(jso.get("ServiceName").toString());
-                                z.setTag(jso.get("HostAddress").toString());
-                                z.setOnClickListener(DashLocal.this::onClick);
-                                grid.addView(z);
+                            } catch (JSONException e) {
+                                // Something went wrong!
                             }
-
-                        } catch (JSONException e) {
-                            // Something went wrong!
                         }
+                    }catch (Exception e){
+                        e.printStackTrace();
                     }
-
-                }catch (Exception e){
-                    e.printStackTrace();
                 }
+                adapterLocal = new GridAdapterLocal(DashLocal.this, dispositivos, drawables);
+                grid.setAdapter(adapterLocal);
             }
         };
 
-
-        grid = findViewById(R.id.gridLayoutforESP);
         mPauseLock = new Object();
         mPaused = false;
         mFinished = false;
+        grid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                menu.close(true);
+
+                LoadingDialog dialog = new LoadingDialog(DashLocal.this);
+                dialog.startLoadingDialog();
+                Intent intent = new Intent(DashLocal.this, SetDataEsp.class);
+                intent.putExtra("ip", ((Button)view.findViewById(R.id.btnGridLocal)).getTag().toString());
+                intent.putExtra("nome", ((TextView)view.findViewById(R.id.text_view_local)).getText().toString());
+
+                InetAddress in;
+                in = null;
+                try {
+                    in = InetAddress.getByName(((Button)view.findViewById(R.id.btnGridLocal)).getTag().toString());
+                } catch (UnknownHostException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                try {
+                    StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+                    StrictMode.setThreadPolicy(policy);
+                    if (in.isReachable(5000)) {
+                        Log.d("oook respondeu","end");
+                        startActivity(intent);
+                        dialog.dimissDialog();
+                        finish();
+                    } else {
+                        Log.d("nao responde","end");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
 
 
         thread = new Thread(){
@@ -157,14 +180,9 @@ public class DashLocal extends AppCompatActivity {
                 nsd.discoverServices();
 
                 while (!mFinished) {
-                    // Do stuff.
                     try {
-                        Message msg = mHandler.obtainMessage();
-                        Bundle bundle = new Bundle();
-
-                        bundle.putString("services",nsd.getChosenServiceInfo().toString());
-                        msg.setData(bundle);
-                        mHandler.sendMessage(msg);
+                        Message message = mHandler.obtainMessage(1, nsd.getChosenServiceInfo().toString());
+                        message.sendToTarget();
                         Thread.sleep(1000);
 
                     } catch (InterruptedException e) {
@@ -183,7 +201,6 @@ public class DashLocal extends AppCompatActivity {
                         }
                     }
                 }
-
             }
         };
 
@@ -218,43 +235,13 @@ public class DashLocal extends AppCompatActivity {
         super.onStop();
     }
 
-
-    private void onClick(View v) {
-        LoadingDialog dialog = new LoadingDialog(this);
-        dialog.startLoadingDialog();
-        Intent intent = new Intent(DashLocal.this, SetDataEsp.class);
-        intent.putExtra("ip", v.getTag().toString());
-        intent.putExtra("nome", String.valueOf(((Button) v).getText()));
-
-        InetAddress in;
-        in = null;
-        Log.d("ip do tigrao","oi".concat(v.getTag().toString()));
-        // Definimos la ip de la cual haremos el ping
-        try {
-            in = InetAddress.getByName(v.getTag().toString().trim());
-        } catch (UnknownHostException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+    @Override
+    public void onBackPressed() {
+        synchronized (mPauseLock) {
+            mPaused = true;
         }
-        Log.d("ip do tigrao pronto",in.toString());
-        // Definimos un tiempo en el cual ha de responder
-        try {
-            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-            StrictMode.setThreadPolicy(policy);
-            if (in.isReachable(5000)) {
-                Log.d("oook respondeu","end");
-                startActivity(intent);
-                dialog.dimissDialog();
-                finish();
-            } else {
-               Log.d("nao responde","end");
-            }
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-           e.printStackTrace();
-        }
-
+        super.onBackPressed();
+        finish();
     }
-
 }
 

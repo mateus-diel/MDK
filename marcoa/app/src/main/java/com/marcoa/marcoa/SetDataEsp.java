@@ -200,7 +200,7 @@ public class SetDataEsp extends AppCompatActivity {
                 while (!mFinished) {
                     // Do stuff.
                     try {
-                        Thread.sleep(2500);
+                        Thread.sleep(5000);
                     }catch (Exception e){
                         e.printStackTrace();
                     }
