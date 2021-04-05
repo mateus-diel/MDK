@@ -509,6 +509,8 @@ void taskDim( void * pvParameters ) {
 }
 
 void taskConn( void * pvParameters ) {
+  short isReset = 0;
+  
   if ((bool) configs["default"]) {
     WiFi.mode(WIFI_AP);
     delay(1000);
@@ -545,6 +547,18 @@ void taskConn( void * pvParameters ) {
       if (wifi > 180) {
         ESP.restart();
       }
+      /*if (digitalRead(PINORESET) == LOW) {
+      while (digitalRead(PINORESET) == LOW) {
+        delay(1000);
+        isReset++;
+      }
+      }
+    if (isReset > 5) {
+      configs["default"] = true;
+      writeFile(JSON.stringify(configs), CONFIGURATION);
+      Serial.println("RESET BY PIN");
+      ESP.restart();
+    }*/
       wifi++;
     }
     WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
@@ -716,7 +730,6 @@ void taskConn( void * pvParameters ) {
   //Set the reserved size of stack memory in bytes for internal stream callback processing RTOS task.
   //8192 is the minimum size.
   Firebase.setMultiPathStreamCallback(readData, streamCallback, streamTimeoutCallback, 8192);
-  short isReset = 0;
 
   while (true) {
 
@@ -726,13 +739,13 @@ void taskConn( void * pvParameters ) {
         delay(1000);
         isReset++;
       }
-      }*/
+      }
     if (isReset > 5) {
       configs["default"] = true;
       writeFile(JSON.stringify(configs), CONFIGURATION);
       Serial.println("RESET BY PIN");
       ESP.restart();
-    }
+    }*/
 
 
     if ((millis() - ultimo_millis3) > 10000 || updateValues) {
