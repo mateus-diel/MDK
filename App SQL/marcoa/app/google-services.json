@@ -1,0 +1,98 @@
+{
+  "project_info": {
+    "project_number": "903691491416",
+    "firebase_url": "https://espiot-c6099-default-rtdb.firebaseio.com",
+    "project_id": "espiot-c6099",
+    "storage_bucket": "espiot-c6099.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:903691491416:android:2769344a70c2d71b12922d",
+        "android_client_info": {
+          "package_name": "com.acme.dash"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "903691491416-68c0156g9qo323fm8qoor9vvb09nltp2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChpQByooVmstHT9g8dFiBLSQAHVCpK0M0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "903691491416-68c0156g9qo323fm8qoor9vvb09nltp2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:903691491416:android:c5178008a187c00012922d",
+        "android_client_info": {
+          "package_name": "com.example.dashcontrol"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "903691491416-68c0156g9qo323fm8qoor9vvb09nltp2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChpQByooVmstHT9g8dFiBLSQAHVCpK0M0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "903691491416-68c0156g9qo323fm8qoor9vvb09nltp2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:903691491416:android:629986e21075281512922d",
+        "android_client_info": {
+          "package_name": "com.marcoa.marcoa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "903691491416-68c0156g9qo323fm8qoor9vvb09nltp2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChpQByooVmstHT9g8dFiBLSQAHVCpK0M0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "903691491416-68c0156g9qo323fm8qoor9vvb09nltp2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

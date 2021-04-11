@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.marcoa.marcoa">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.DashControl"
+        android:usesCleartextTraffic="true">
+        <activity android:name="com.marcoa.marcoa.Contato"></activity>
+        <activity android:name="com.marcoa.marcoa.Usuarios" />
+        <activity android:name="com.marcoa.marcoa.VerProgramacoesWeb" />
+        <activity android:name="com.marcoa.marcoa.Teste" />
+        <activity android:name="com.marcoa.marcoa.PersonalizarIcones" />
+        <activity android:name="com.marcoa.marcoa.NovaProgramacao" />
+        <activity android:name="com.marcoa.marcoa.DataEspWeb"
+            android:theme="@style/Theme.DashControl.NoActionBar" />
+        <activity
+            android:name="com.marcoa.marcoa.DashWeb"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.DashControl.NoActionBar"/>
+        <activity
+            android:name="com.marcoa.marcoa.CadastrarUsuario"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name="com.marcoa.marcoa.SetDataEsp"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name="com.marcoa.marcoa.DashLocal"
+            android:launchMode="singleInstance"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.DashControl.NoActionBar"/>
+        <activity
+            android:name="com.marcoa.marcoa.Login"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.DashControl.NoActionBar" />
+        <activity
+            android:name="com.marcoa.marcoa.ConfigureEsp"
+            android:screenOrientation="portrait" />
+        <activity android:name="com.marcoa.marcoa.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
