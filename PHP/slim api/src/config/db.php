@@ -4,9 +4,9 @@ class db
 
     public function connect()
     {
-        $host = "187.109.226.100:8585";
+        $host = "";
         $user = "mdk";
-        $pass = "@grimelemon1";
+        $pass = "";
         $dbname = "marcoa";
 
         //connect database using php pdo wrapper 
