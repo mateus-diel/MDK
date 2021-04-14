@@ -76,7 +76,7 @@ public class ConfigureEsp extends AppCompatActivity {
          prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
          Log.d("email",prefs.getString("email","null"));
          Log.d("senha",prefs.getString("senha","null"));
-         Log.d("chave",prefs.getString("chave","null"));
+         Log.d("chave_cliente",prefs.getString("chave","null"));
          if(prefs.getString("email","null").equals("null") || prefs.getString("senha","null").equals("null") || prefs.getString("chave","null").equals("null")){
              AlertDialog.Builder passResetDialog = new AlertDialog.Builder(this);
              passResetDialog.setTitle("Ops!");
@@ -144,7 +144,7 @@ public class ConfigureEsp extends AppCompatActivity {
                     if(isAutenticated){
                         config.put("email", prefs.getString("email","null"));
                         config.put("senha", prefs.getString("senha","null"));
-                        config.put("chave", prefs.getString("chave","null"));
+                        config.put("chave", prefs.getString("chave_cliente","null"));
                     }
                     queue = Volley.newRequestQueue(getApplicationContext());
                     sendConfigEsp(queue,address,config);
