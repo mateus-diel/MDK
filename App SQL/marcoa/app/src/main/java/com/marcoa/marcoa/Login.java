@@ -210,14 +210,14 @@ public class Login extends AppCompatActivity {
             public void onResponse(JSONObject response) {
                 Log.d("sucessso", response.toString());
                 try {
+                    AlertDialog.Builder dial = new AlertDialog.Builder(Login.this);
+                    dial.setTitle("Aviso");
+                    dial.setCancelable(false);
                     JSONObject json = new JSONObject(response.toString());
                     Log.d("json array", json.toString());
 
                     if (json.has("code")) {
                         if (json.getInt("code") == 900) {
-                            AlertDialog.Builder dial = new AlertDialog.Builder(Login.this);
-                            dial.setTitle("Aviso");
-                            dial.setCancelable(false);
                             dial.setMessage("Houve uma falha ao entrar, tente novamente mais tarde!\nCódigo: ".concat(Integer.toString(json.getInt("code"))));
                             dial.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                                 @Override
@@ -227,7 +227,42 @@ public class Login extends AppCompatActivity {
                             });
                             dial.create().show();
                         } else if (json.getInt("code") == 200) {
-                            Log.d("looogueii",json.toString());
+                            if(json.getInt("ativo")==1){
+                                Toast.makeText(Login.this, "Bem vindo!",Toast.LENGTH_LONG).show();
+                                Log.d("Usuário logado", json.getString("usuario"));
+                                Log.d("UUID logado", json.getString("uuid"));
+                                SharedPreferences.Editor editor = prefs.edit();
+                                editor.putString("email", json.getString("usuario"));
+                                editor.putString("senha", pass);
+                                editor.putString("chave", json.getString("uuid"));
+                                editor.putString("chave_cliente", json.getString("uuid_cliente"));
+                                if(check.isChecked()){
+                                    editor.putBoolean("autoLogin", true);
+                                }else{
+                                    editor.putBoolean("autoLogin", false);
+                                }
+                                editor.apply();
+                                Intent intent = new Intent(Login.this, DashWeb.class);
+                                startActivity(intent);
+                            }else{
+                                dial.setMessage("Seu sistema não está ativo! Para maiores informações entre em contato.");
+                                dial.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                    }
+                                });
+                                dial.create().show();
+                            }
+                        } else if (json.getInt("code") == 902) {
+                            dial.setMessage("Usuário e/ou senha incorretos. Tente novamente.");
+                            dial.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                }
+                            });
+                            dial.create().show();
                         }
 
                     }

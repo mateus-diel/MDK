@@ -4,7 +4,7 @@ use marcoa;
 
 drop table if exists cliente;
 CREATE TABLE cliente (
-id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+uuid varchar(40) not null PRIMARY KEY,
 nome VARCHAR(50) NOT NULL,
 telefone VARCHAR(20) NOT NULL,
 email VARCHAR(40) not null unique,
@@ -24,9 +24,9 @@ senha VARCHAR(40) NOT NULL,
 usuario VARCHAR(40),
 endereco VARCHAR(100),
 cpf_cnpj VARCHAR(19),
-id_cliente int unsigned,
+uuid_cliente varchar(40),
 data_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-foreign key (id_cliente) references cliente (id)
+foreign key (uuid_cliente) references cliente (uuid)
 );
 
 drop table if exists historico_usuario;
@@ -42,17 +42,17 @@ foreign key (uuid_usuario) references usuario (uuid)
 drop table if exists dispositivo;
 CREATE TABLE dispositivo (
 uuid varchar(40) not null primary key,
-status tinyint,
-auto tinyint,
-modo_viagem tinyint,
-potencia tinyint,
-ultima_sincronizacao timestamp default current_timestamp,
+status tinyint default 0,
+auto tinyint default 0,
+modo_viagem tinyint default 0,
+potencia tinyint default 0,
+ultima_sincronizacao timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 versao varchar(10),
-temp_prog decimal(5,3) not null,
-temp_atual decimal (5,3),
+temp_prog decimal(5,3) default 30.0,
+temp_atual decimal (5,3) default 0.0,
 ligou_as timestamp,
-erro_leitura int unsigned,
-intensidade_sinal tinyint,
+erro_leitura int unsigned default 0,
+intensidade_sinal tinyint default 0,
 nome VARCHAR(40) not null
 );
 
@@ -91,7 +91,7 @@ create table usuario_dispositivo(
 id bigint unsigned auto_increment primary key,
 uuid_usuario varchar(40),
 uuid_dispositivo varchar(40),
-foreign key(uuid_usuario) references usuario(uuid),
+foreign key(uuid_usuario) references usuario(uuid_cliente),
 foreign key (uuid_dispositivo) references dispositivo (uuid)
 );
 
@@ -99,5 +99,18 @@ DROP TRIGGER IF EXISTS inserir_usuario_cliente;
 CREATE TRIGGER inserir_usuario_cliente 
 AFTER INSERT ON cliente
 FOR EACH ROW
-  INSERT IGNORE INTO usuario (usuario, senha, endereco,cpf_cnpj, id_cliente, nivel,uuid)
-  VALUES (NEW.email, new.senha, new.endereco, new.cpf_cnpj, new.id, 5, uuid());
+  INSERT IGNORE INTO usuario (usuario, senha, endereco,cpf_cnpj, uuid_cliente, nivel,uuid)
+  VALUES (NEW.email, new.senha, new.endereco, new.cpf_cnpj, new.uuid, 5, uuid());
+  
+DROP TRIGGER IF EXISTS gerar_uuid_cliente;
+CREATE TRIGGER gerar_uuid_cliente 
+BEFORE INSERT ON cliente 
+  FOR EACH ROW
+  SET new.uuid = uuid();
+
+DROP TRIGGER IF EXISTS gerar_uuid_dispositivo;
+CREATE TRIGGER gerar_uuid_dispositivo 
+BEFORE INSERT ON dispositivo 
+  FOR EACH ROW
+  SET new.uuid = uuid();
+ 

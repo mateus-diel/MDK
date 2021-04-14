@@ -16,6 +16,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,6 +24,12 @@ import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.github.clans.fab.FloatingActionButton;
 import com.github.clans.fab.FloatingActionMenu;
 import com.google.firebase.database.DataSnapshot;
@@ -31,8 +38,17 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.lang.reflect.Field;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.Locale;
 
 public class DashWeb extends AppCompatActivity {
 
@@ -51,6 +67,7 @@ public class DashWeb extends AppCompatActivity {
     FloatingActionMenu floatingMenu;
     ProgressDialog progressDialog;
     AlertDialog.Builder sistemabloqueado;
+    private RequestQueue requestQueue;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +87,8 @@ public class DashWeb extends AppCompatActivity {
         usuarios = findViewById(R.id.floatingUsuariosWeb);
         modoViagem = findViewById(R.id.floatingModoViagemWeb);
         personalizarIcones = findViewById(R.id.floatingPersonalizarWeb);
+
+        requestQueue = Volley.newRequestQueue(getApplicationContext());
 
         prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
         prog = findViewById(R.id.floatingProgramaçõesWeb);
@@ -107,31 +126,19 @@ public class DashWeb extends AppCompatActivity {
                 passResetDialog.setPositiveButton("Sim", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        database.getReference("cliente/".concat(prefs.getString("chave", "null"))).addListenerForSingleValueEvent(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                if (snapshot.exists()) {
-                                    boolean result = false;
-                                    for (DataSnapshot device : snapshot.getChildren()) {
-                                        if (modoViagemAtivo) {
-                                            database.getReference("cliente/".concat(prefs.getString("chave", "null"))).child(device.getKey()).child("R").child("info").child("modoViagem").setValue(false);
-                                            result = false;
-                                        } else {
-                                            database.getReference("cliente/".concat(prefs.getString("chave", "null"))).child(device.getKey()).child("R").child("info").child("modoViagem").setValue(true);
-                                            result = true;
-                                        }
-                                    }
-                                    modoViagemAtivo = result;
-                                    Message message = mHandler.obtainMessage(1, "Modo viagem definido com sucesso!");
-                                    message.sendToTarget();
-                                }
+                        JSONObject params = new JSONObject();
+                        try {
+                            params.put("id_usuario", prefs.getString("chave", "null"));
+                            params.put("id_cliente", prefs.getString("chave_cliente", "null"));
+                            if(modoViagemAtivo){
+                                params.put("modo_viagem", 0);
+                            }else{
+                                params.put("modo_viagem", 1);
                             }
-
-                            @Override
-                            public void onCancelled(@NonNull DatabaseError error) {
-                                Log.d("snapppp", "canceleddd");
-                            }
-                        });
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        comm(params,"api/dispositivo/modoviagem");
                     }
                 }).setNegativeButton("Não", new DialogInterface.OnClickListener() {
                     @Override
@@ -265,12 +272,20 @@ public class DashWeb extends AppCompatActivity {
 
             }
         }
-        if(ref != null){
+        if(requestQueue != null){
             dispositivos = new ArrayList<>();
             names = new ArrayList<>();
             draw = new ArrayList<>();
 
-            ref.addListenerForSingleValueEvent(new ValueEventListener() {
+            JSONObject params = new JSONObject();
+            try {
+               params.put("id", prefs.getString("chave", "null"));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            comm(params,"api/dispositivo/dados");
+
+           /* ref.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot snapshot) {
                     if (snapshot.exists() && snapshot.getValue() != null) {
@@ -378,12 +393,167 @@ public class DashWeb extends AppCompatActivity {
 
                 }
 
-            });
+            });*/
 
         }
     }
 
     public static ArrayList<String> getDispositivos() {
         return dispositivos;
+    }
+
+    private void comm(JSONObject params, String path){
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, getResources().getString(R.string.server).concat(path), params, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                Log.d("sucessso", response.toString());
+                try {
+                    AlertDialog.Builder dial = new AlertDialog.Builder(DashWeb.this);
+                    dial.setTitle("Aviso");
+                    dial.setCancelable(false);
+                    JSONObject json = new JSONObject(response.toString());
+                    Log.d("json array", json.toString());
+
+                    if (json.has("code")) {
+                        if (json.getInt("code") == 900) {
+                            dial.setMessage("Houve uma falha ao entrar, tente novamente mais tarde!\nCódigo: ".concat(Integer.toString(json.getInt("code"))));
+                            dial.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                }
+                            });
+                            dial.create().show();
+                        } else if (json.getInt("code") == 200) {
+                            names.clear();
+                            draw.clear();
+                            dispositivos.clear();
+                            Iterator<String> iter = json.keys();
+                            while (iter.hasNext()) {
+                                String key = iter.next();
+                                try {
+                                    JSONObject value = null;
+                                    if(!key.equals("code")) {
+                                        value = json.getJSONObject(key);
+                                        if (value.has("uuid")) {
+                                            prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
+                                            Log.d("value of json", value.toString());
+                                            Log.d("keeey ", key);
+                                            Log.d("uuuuidddd ", value.getString("uuid"));
+                                            Drawable unwrappedDrawable;
+                                            Drawable wrappedDrawable;
+                                            unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, R.drawable.ic_burn);
+                                            wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
+
+
+                                            if (value.has("modo_viagem")) {
+                                                Log.d("tem o modo", "viagemmm");
+                                                Log.d("value int", String.valueOf(value.getInt("modo_viagem")));
+                                                Log.d("huehuhe", "viagem");
+                                                modoViagemAtivo = intToBoolean(value.getInt("modo_viagem"));
+                                                Log.d("tem o modo", "viagem");
+
+                                            }
+
+                                            if (prefs != null) {
+                                                Log.d("prefs nao", "esta null");
+                                            } else {
+                                                Log.d("prefs ", "esta null");
+                                            }
+
+                                            Log.d(" o caminho do cara e ", prefs.getString(prefs.getString("email", "null") + (value.getString("uuid") + ("/IconUser")), "null"));
+                                            Log.d("getKey", value.getString("uuid"));
+                                            if (!prefs.getString(prefs.getString("email", "null").concat(value.getString("uuid").concat("/IconUser")), "null").equals("null")) {
+                                                Log.d(" o cara tem icone ", "null");
+
+                                                Field[] drawablesFields = R.drawable.class.getFields();
+
+                                                for (Field field : drawablesFields) {
+                                                    try {
+                                                        if (field.getName().contains(prefs.getString(prefs.getString("email", "null").concat(key.toLowerCase().concat("/IconUser")), "null"))) {
+                                                            Log.d("É esse aquii", field.getName());
+
+                                                            unwrappedDrawable = AppCompatResources.getDrawable(DashWeb.this, field.getInt(null));
+                                                            wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
+                                                        }
+                                                    } catch (Exception e) {
+                                                        e.printStackTrace();
+                                                    }
+                                                }
+                                            }
+
+                                            String target = value.getString("ultima_sincronizacao");
+                                            DateFormat df = new SimpleDateFormat("yyyy-MM-dd kk:mm:ss", Locale.ENGLISH);
+                                            Date result = null;
+                                            try {
+                                                result = df.parse(target);
+                                                Log.d("datee", result.toString());
+                                            } catch (ParseException e) {
+                                                e.printStackTrace();
+                                            }
+
+
+                                            if ((Math.abs(Long.valueOf(result.getTime()) - System.currentTimeMillis()) / 1000) < offset) {
+
+                                                DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.laranjalogo));
+                                                names.add(value.getString("nome").toUpperCase());
+                                                draw.add(wrappedDrawable);
+                                                dispositivos.add(value.getString("nome").toUpperCase());
+
+                                            } else {
+                                                DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.azulonline));
+                                                //DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.azulonline));
+                                                names.add(value.getString("nome").toUpperCase());
+                                                draw.add(wrappedDrawable);
+                                                dispositivos.add(value.getString("nome").toUpperCase());
+                                            }
+
+                                            adapter = new GridAdapter(DashWeb.this, names, draw);
+                                            gridView.setAdapter(adapter);
+                                            gridView.invalidate();
+                                            Log.d("tam names", Integer.toString(names.size()));
+                                            Log.d("tam draw", Integer.toString(draw.size()));
+                                        }
+                                    }
+                                } catch (JSONException e) {
+                                    Log.d("errrooo",e.getMessage());
+                                }
+
+                            }
+
+                        } else if (json.getInt("code") == 902) {
+
+                        }
+
+                    }
+
+                    //loadingDialog.dimissDialog();
+
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                progressDialog.dismiss();
+
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                error.printStackTrace();
+                Log.d("erroooo", error.getMessage());
+                progressDialog.dismiss();
+
+            }
+        });
+
+        requestQueue.add(jsonObjectRequest);
+    }
+
+    private boolean intToBoolean(int a){
+        boolean b = false;
+        if(a == 1){
+            b = true;
+        }
+        return b;
     }
 }
