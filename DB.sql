@@ -12,6 +12,7 @@ modelo VARCHAR(40) default "residencial",
 endereco VARCHAR(100),
 cpf_cnpj VARCHAR(19) not null unique,
 ativo tinyint default 0,
+esp_ativo tinyint default 1,
 senha varchar(40) not null,
 data_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -53,6 +54,7 @@ temp_atual decimal (5,3) default 0.0,
 ligou_as timestamp,
 erro_leitura int unsigned default 0,
 intensidade_sinal tinyint default 0,
+atualizar tinyint default 0,
 nome VARCHAR(40) not null
 );
 
@@ -108,9 +110,4 @@ BEFORE INSERT ON cliente
   FOR EACH ROW
   SET new.uuid = uuid();
 
-DROP TRIGGER IF EXISTS gerar_uuid_dispositivo;
-CREATE TRIGGER gerar_uuid_dispositivo 
-BEFORE INSERT ON dispositivo 
-  FOR EACH ROW
-  SET new.uuid = uuid();
  
