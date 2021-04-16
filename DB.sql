@@ -87,6 +87,7 @@ CREATE TABLE programacoes_residencial (
 liga timestamp,
 desliga timestamp,
 temp_prog decimal(5,3),
+dia_semana tinyint,
 uuid_dispositivo varchar(40) not null,
 id bigint unsigned auto_increment primary key,
 foreign key (uuid_dispositivo) references dispositivo (uuid)
