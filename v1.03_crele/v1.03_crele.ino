@@ -85,6 +85,7 @@ volatile bool updateValues = false;
 volatile bool automaticMode = false;
 volatile short esp_ativo = 1;
 volatile short logado = 0;
+volatile boolean saveConfig = false;
 JSONVar configs;
 JSONVar devices;
 JSONVar times;
@@ -187,8 +188,8 @@ String readFile(String path) {
     content += char(rfile.read());
   }
   rfile.close();
-  //Serial.print("CONTEUDO LIDO: ");
-  //Serial.println(content);
+  Serial.print("\n\n\nCONTEUDO LIDO: ");
+  Serial.println(content+"\n\n\n");
   return content;
 }
 
@@ -204,7 +205,8 @@ boolean writeFile(String message, String path) {
     //Serial.println("- file written");
     return true;
   } else {
-    Serial.println("- write failed");
+    Serial.print("- write failed for: ");
+    Serial.println(path);
     return false;
   }
   file.close();
@@ -268,10 +270,8 @@ void setup() {
   }
 
   if (!(bool) configs["default"]) {
-    api_key = String((const char*)configs["api_key"]);
     email = String((const char*)configs["user_email"]);
     senha = String((const char*)configs["user_senha"]);
-    host = String((const char*)configs["host"]);
     devices = JSON.parse(readFile(DEVICESINFO));
     tempPROG = (double) devices["tempPROG_1"];
     LINHA_1 = (bool) devices["linha_1"];
@@ -345,7 +345,7 @@ void taskDim( void * pvParameters ) {
     sensors.requestTemperatures();
     tempATUAL = sensors.getTempCByIndex(0);
     delay(10);
-    while (tempATUAL < - 100) {
+    while (tempATUAL < - 150) {
       sensors.requestTemperatures();
       tempATUAL = sensors.getTempCByIndex(0);
       numError++;
@@ -400,13 +400,15 @@ void taskDim( void * pvParameters ) {
       Serial.println();
     }
 
-    if ((millis() - ultimo_millis1) > debounce_delay + 1800000) {
+    if ((millis() - ultimo_millis1) > debounce_delay + 1800000 || saveConfig) {
       ultimo_millis1 = millis();
       devices["linha_1"] = LINHA_1;
       devices["tempPROG_1"] = tempPROG;
       DimmableLight::pauseStop();
       delay(10);
       writeFile(JSON.stringify(devices), DEVICESINFO);
+      delay(10);
+      writeFile(JSON.stringify(configs), CONFIGURATION);
       delay(10);
       xSemaphoreTake(myMutex, portMAX_DELAY);
       JSONVar saveHrs;
@@ -426,6 +428,7 @@ void taskDim( void * pvParameters ) {
       delay(10);
       saveHrs = undefined;
       itemHrs = undefined;
+      saveConfig = false;
       DIMMER_1.setBrightness(10);
       DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
     }
@@ -492,7 +495,7 @@ boolean login(String endereco, String email, String senha, String uuid) {
       if (jso.hasOwnProperty("code") && jso.hasOwnProperty("esp_ativo")) {
         if (((int) jso["code"]) == 200) {
           Serial.println("Loguei com sucesso!");
-          esp_ativo = (int) jso["esp_ativo"];
+          esp_ativo = String((const char*) jso["esp_ativo"]).toInt();
           ret = true;
         }
       }
@@ -500,6 +503,14 @@ boolean login(String endereco, String email, String senha, String uuid) {
       Serial.println("Erro HTTP Codigo: " + String(httpCode));
     }
     delete client;
+  }
+  return ret;
+}
+
+boolean intToBoolean(int a){
+  boolean ret = false;
+  if(a == 1){
+    ret = true;
   }
   return ret;
 }
@@ -520,6 +531,12 @@ boolean api(String endereco, JSONVar dados) {
       if (jso.hasOwnProperty("code")) {
         if (((int) jso["code"]) == 200) {
           ret = true;
+        }else if(((int) jso["code"]) == 201){
+          ret = true;
+          tempPROG = String((const char*) jso["temp_prog_esp_ler"]).toDouble();
+          automaticMode = intToBoolean(String((const char*) jso["auto_esp_ler"]).toInt());
+          modoViagem = intToBoolean(String((const char*) jso["modo_viagem_esp_ler"]).toInt());
+          LINHA_1 = intToBoolean(String((const char*) jso["status_esp_ler"]).toInt());
         }
       }
     } else {
@@ -717,31 +734,37 @@ void taskConn( void * pvParameters ) {
   }
 
   while (logado == 0) {
-    if (login("api/login/esp", "mateus.diell@gmail.com", "minhasenha", "bbf8022b-9c7f-11eb-afb0-902b34f2d973")) {
+    Serial.println("Estou logando...");
+    if (login("api/login/esp", String((const char*)configs["user_email"]), String((const char*)configs["user_senha"]), String((const char*)configs["uuid_cliente"]))) {
       logado = 1;
     }
     delay(5000);
   }
 
   if (esp_ativo == 0) {
+    Serial.println("ESP nao esta licenciado.");
     delay(60 * 60 * 1000);//minutos*60*1000
     ESP.restart();
   }
 
   if (String((const char*)configs["uuid_dispositivo"]).indexOf("null") > -1) {
+    Serial.println("Irei me registrar.");
     JSONVar registro;
-    registro["nome"] = String((const char*)configs["email"]);
+    registro["nome"] = String((const char*)configs["deviceName"]);
     registro["uuid_cliente"] = String((const char*)configs["uuid_cliente"]);
     registro["uuid_dispositivo"] = StringUUIDGen();
     while (!api("api/dispositivo/registrar", registro)) {
       delay(10000);
     }
     configs["uuid_dispositivo"] = String((const char*)registro["uuid_dispositivo"]);
+    saveConfig = true;
   }
 
   JSONVar boot;
   boot["uuid_dispositivo"] = String((const char*)configs["uuid_dispositivo"]);
+  boot["versao"] = VERSION;
   while (!api("api/dispositivo/boot", boot)) {
+    Serial.println("Vou dar boot");
     delay(10000);
   }
 
@@ -803,14 +826,15 @@ void taskConn( void * pvParameters ) {
 
       if (WiFi.status() == WL_CONNECTED) {
         JSONVar dados;
-        dados["temp_prog"] = tempPROG;
         dados["temp_atual"] = tempATUAL; //(int) random(0, 40));
         dados["status"] = LINHA_1;
         dados["potencia"] = potencia_1;
         dados["erro_leitua"] = numError;
-        dados["auto"] = automaticMode;
         dados["sinal"] = String(WiFi.RSSI());
-        dados["modoViagem"] = modoViagem;
+        dados["uuid"] = String((const char*)configs["uuid_dispositivo"]);
+        dados["temp_prog"] = tempPROG;
+        dados["auto"] = automaticMode;
+        dados["modo_viagem"] = modoViagem;
 
         if (api("api/dispositivo/set_get", dados)) {
           xSemaphoreTake(myMutex, portMAX_DELAY);
