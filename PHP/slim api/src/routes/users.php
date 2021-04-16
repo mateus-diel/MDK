@@ -87,7 +87,9 @@ $app->post('/api/dispositivo/dados', function (Request $request, Response $repon
     $id = $request->getParam('id');
 
     try {
-        $sql = "select d.uuid, d.status, d.auto, d.modo_viagem, d.ultima_sincronizacao, d.temp_prog, d.temp_atual, d.nome from usuario_dispositivo as ud inner join dispositivo as d on ud.uuid_dispositivo = d.uuid inner join usuario as u on u.uuid_cliente = ud.uuid_usuario where u.uuid = '".$id."';";
+        $sql = "select d.uuid, d.status_esp_gravar, d.auto_esp_gravar, d.modo_viagem_esp_gravar, d.ultima_sincronizacao, d.temp_prog_esp_gravar, d.temp_atual, d.nome
+         from usuario_dispositivo as ud inner join dispositivo as d on ud.uuid_dispositivo = d.uuid
+         inner join usuario as u on u.uuid_cliente = ud.uuid_usuario where u.uuid = '".$id."';";
         
         $db = new db();
         $pdo = $db->connect();
@@ -109,14 +111,15 @@ $app->post('/api/dispositivo/dados', function (Request $request, Response $repon
 
 $app->post('/api/dispositivo/boot', function (Request $request, Response $reponse, array $args) {
     $uuid_dispositivo = $request->getParam('uuid_dispositivo');
+    $versao = $request->getParam('versao');
     try {
     $db = new db();
     $pdo = $db->connect();
-    $sql = "update dispositivo set ligou_as = current_timestamp,  atualizar = 0 where uuid = '?'";
-    $pdo->prepare($sql)->execute([$uuid_dispositivo]);
+    $sql = "update dispositivo set ligou_as = current_timestamp,  atualizar = 0 , versao = '?' where uuid = '?'";
+    $pdo->prepare($sql)->execute([$versao,$uuid_dispositivo]);
     $pdo = null;
     $code = (object) ['code' => 200];
-    echo json_encode(array_merge((array) $user, (array) $code));
+    echo json_encode((array) $code);
     } catch (\PDOException $e) {
         echo '{"text": "' . $e->getMessage() . '", "code":904}';
     }
@@ -158,28 +161,35 @@ try {
 });
 
 $app->post('/api/dispositivo/set_get', function (Request $request, Response $reponse, array $args) {
-    $id_cliente = $request->getParam('id_cliente');
-    $id = $request->getParam('id_usuario');
-$modo_viagem = $request->getParam('modo_viagem');
+    $uuid = $request->getParam('uuid');
+    $potencia = $request->getParam('potencia');
+    $temp_atual = $request->getParam('temp_atual');
+    $erro_leitura = $request->getParam('erro_leitura');
+    $sinal = $request->getParam('sinal');
+    $status = $request->getParam('status');
+    $temp_prog = $request->getParam('temp_prog');
+    $auto = $request->getParam('auto');
+    $modo_viagem = $request->getParam('modo_viagem');
 
 try {
- $sql = "select d.uuid, d.status, d.auto, d.modo_viagem, d.ultima_sincronizacao, d.temp_prog, d.temp_atual, d.nome from usuario_dispositivo as ud inner join dispositivo as d on ud.uuid_dispositivo = d.uuid inner join usuario as u on u.uuid_cliente = ud.uuid_usuario where u.uuid = '".$id."';";
+ $sql_update = "update dispositivo  set potencia = ?, temp_atual = ?, erro_leitura = ?, intensidade_sinal = ?, ultima_sincronizacao = now(), temp_prog_esp_gravar = ?, 
+ auto_esp_gravar = ?, status_esp_gravar = ?, modo_viagem_esp_gravar = ? where uuid = ? ;";
     
- $sql_update = "update dispositivo as d inner join usuario_dispositivo as ud on ud.uuid_dispositivo = d.uuid inner join usuario as u on u.uuid_cliente = ud.uuid_usuario set d.modo_viagem = ".$modo_viagem." where u.uuid_cliente = '".$id_cliente."';";
+ $sql_select = "select status_esp_ler, auto_esp_ler, modo_viagem_esp_ler, temp_prog_esp_ler from dispositivo where uuid ='".$uuid."';";
  
  $db = new db();
  $pdo = $db->connect();
  $pdo->beginTransaction();
- $pdo->query("SET SQL_SAFE_UPDATES = 0;");
- $pdo->query($sql_update);
+ $pdo->prepare($sql_update)->execute([$potencia, $temp_atual, $erro_leitura, $sinal, $temp_prog,$auto,$status,$modo_viagem,$uuid]);
 
- $stmt = $pdo->query($sql);
+
+ $stmt = $pdo->query($sql_select);
  $user = $stmt->fetchAll(PDO::FETCH_OBJ);
     $pdo->commit();
 
-    $code = (object) ['code' => 200];
+    $code = (object) ['code' => 201];
  if(count($user)>0){
-    echo json_encode(array_merge((array) $user, (array) $code));
+    echo json_encode(array_merge((array) $user[0], (array) $code));
 }else{
     echo '{"code":902}';
 }
