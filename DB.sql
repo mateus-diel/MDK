@@ -21,6 +21,7 @@ drop table if exists usuario;
 CREATE TABLE usuario (
 uuid varchar(40) not null PRIMARY KEY,
 nivel tinyint NOT NULL,
+nome VARCHAR(50),
 senha VARCHAR(40) NOT NULL,
 usuario VARCHAR(40),
 endereco VARCHAR(100),
@@ -106,8 +107,8 @@ DROP TRIGGER IF EXISTS inserir_usuario_cliente;
 CREATE TRIGGER inserir_usuario_cliente 
 AFTER INSERT ON cliente
 FOR EACH ROW
-  INSERT IGNORE INTO usuario (usuario, senha, endereco,cpf_cnpj, uuid_cliente, nivel,uuid)
-  VALUES (NEW.email, new.senha, new.endereco, new.cpf_cnpj, new.uuid, 5, uuid());
+  INSERT IGNORE INTO usuario (nome, usuario, senha, endereco,cpf_cnpj, uuid_cliente, nivel,uuid)
+  VALUES (new.nome, NEW.email, new.senha, new.endereco, new.cpf_cnpj, new.uuid, 5, uuid());
   
 DROP TRIGGER IF EXISTS gerar_uuid_cliente;
 CREATE TRIGGER gerar_uuid_cliente 
