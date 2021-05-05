@@ -1,6 +1,6 @@
 {
-    "default":true,
-    "ssid":"Mateus",
+    "default":false,
+    "ssid":"JOAO",
     "password":"home1234",
     "deviceName":"mateus giga 2",
     "defaultPassword":"12345678",

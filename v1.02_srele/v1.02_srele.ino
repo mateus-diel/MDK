@@ -11,8 +11,15 @@
 #include <ESP32httpUpdate.h>
 #include <ThreeWire.h>
 #include <RtcDS1302.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <NTPClient.h>
 
-ThreeWire myWire(13, 14, 12); // IO, SCLK, CE
+WiFiUDP udp;
+NTPClient ntp(udp, "a.st1.ntp.br", -3 * 3600, 60000);
+
+
+ThreeWire myWire(21, 19, 18); // IO, SCLK, CE
 RtcDS1302<ThreeWire> Rtc(myWire);
 
 String childPath[2] = {"/programacoes", "/info"};
@@ -42,6 +49,18 @@ typedef struct
 
 Horarios hrs[NSEMANAS];
 SemaphoreHandle_t myMutex;
+
+//Array simbolo grau
+byte grau[8] = { B00001100,
+                 B00010010,
+                 B00010010,
+                 B00001100,
+                 B00000000,
+                 B00000000,
+                 B00000000,
+                 B00000000,
+               };
+
 
 
 FirebaseData writeData;
@@ -81,6 +100,7 @@ volatile int potencia_1 = 0;
 unsigned long ultimo_millis1 = 0;
 unsigned long ultimo_millis2 = 0;
 unsigned long ultimo_millis3 = 0;
+unsigned long ultimo_millis4 = 0;
 unsigned long millisWifiTimeout = 0;
 unsigned long debounce_delay = 500;
 
@@ -88,6 +108,24 @@ void limpaHorarios() {
   for (int i = 0; i < NSEMANAS; i++) {
     hrs[i].semana = undefined;
   }
+}
+
+#define countof(a) (sizeof(a) / sizeof(a[0]))
+
+void printDateTime(const RtcDateTime& dt)
+{
+  char datestring[20];
+
+  snprintf_P(datestring,
+             countof(datestring),
+             PSTR("%02u/%02u/%04u %02u:%02u:%02u"),
+             dt.Month(),
+             dt.Day(),
+             dt.Year(),
+             dt.Hour(),
+             dt.Minute(),
+             dt.Second() );
+  Serial.print(datestring);
 }
 
 
@@ -277,23 +315,6 @@ void loadHrs() {
 
 }
 
-#define countof(a) (sizeof(a) / sizeof(a[0]))
-
-void printDateTime(const RtcDateTime& dt)
-{
-  char datestring[20];
-
-  snprintf_P(datestring,
-             countof(datestring),
-             PSTR("%02u/%02u/%04u %02u:%02u:%02u"),
-             dt.Month(),
-             dt.Day(),
-             dt.Year(),
-             dt.Hour(),
-             dt.Minute(),
-             dt.Second() );
-  Serial.print(datestring);
-}
 
 
 void setup() {
@@ -335,6 +356,18 @@ void setup() {
 
   pinMode(RELE_1, OUTPUT);
   digitalWrite(RELE_1, LOW);
+  Rtc.Begin();
+  if (Rtc.GetIsWriteProtected())
+  {
+    Serial.println("RTC was write protected, enabling writing now");
+    Rtc.SetIsWriteProtected(false);
+  }
+
+  if (!Rtc.GetIsRunning())
+  {
+    Serial.println("RTC was not actively running, starting now");
+    Rtc.SetIsRunning(true);
+  }
 
   myMutex = xSemaphoreCreateMutex();
   if (myMutex != NULL) {
@@ -357,18 +390,6 @@ void taskDim( void * pvParameters ) {
   DimmableLight DIMMER_1(PINO_DIM_1);
   DimmableLight::setSyncPin(PINO_ZC);
   DimmableLight::begin();
-  Rtc.Begin();
-  /*if (Rtc.GetIsWriteProtected())
-  {
-    Serial.println("RTC was write protected, enabling writing now");
-    Rtc.SetIsWriteProtected(false);
-  }
-
-  if (!Rtc.GetIsRunning())
-  {
-    Serial.println("RTC was not actively running, starting now");
-    Rtc.SetIsRunning(true);
-  }*/
 
   while ((bool) configs["default"]) {
     vTaskDelete(NULL);
@@ -393,7 +414,7 @@ void taskDim( void * pvParameters ) {
     sensors.requestTemperatures();
     tempATUAL = sensors.getTempCByIndex(0);
     delay(10);
-    while (tempATUAL < - 100) {
+    while (tempATUAL < - 150) {
       sensors.requestTemperatures();
       tempATUAL = sensors.getTempCByIndex(0);
       numError++;
@@ -432,8 +453,8 @@ void taskDim( void * pvParameters ) {
       Serial.println("ºC");
       Serial.print("Potencia -> " + String(potencia_1) + " :");
       Serial.println(DIMMER_1.getBrightness());
-      //Serial.print("date: ");
-      //printDateTime(Rtc.GetDateTime());
+      Serial.print("date: ");
+      printDateTime(Rtc.GetDateTime());
       Serial.println();
     }
 
@@ -509,12 +530,23 @@ void taskDim( void * pvParameters ) {
 }
 
 void taskConn( void * pvParameters ) {
+  short isReset = 0;
+  Wire.begin(22, 23);
+  LiquidCrystal_I2C lcd(0x27, 16, 2);
+  lcd.begin();
+  lcd.backlight();
+  
   if ((bool) configs["default"]) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Configurar");
     WiFi.mode(WIFI_AP);
     delay(1000);
     Serial.print("macc: ");
     String mac = WiFi.macAddress();
-    Serial.println(mac);
+    Serial.println(mac);    
+    lcd.setCursor(0, 1);
+    lcd.print(mac);
     Serial.print("Size of: ");
     Serial.println(sizeof(mac));
     char ssid[mac.length() + 1];
@@ -530,7 +562,10 @@ void taskConn( void * pvParameters ) {
     delay(2000);
     Serial.print("AP IP address: ");
     Serial.println(WiFi.softAPIP());
-  } else {
+  } else {    
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Iniciando...");
     WiFi.mode(WIFI_MODE_STA);
     delay(1000);
     WiFi.begin((const char*) configs["ssid"], (const char*) configs["password"]);
@@ -538,11 +573,46 @@ void taskConn( void * pvParameters ) {
     Serial.print((const char*) configs["ssid"]);
     Serial.println((const char*) configs["password"]);
     delay(1000);
-
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Conectando em:");
+    lcd.setCursor(0, 1);
+    lcd.print((const char*) configs["ssid"]);
+    int wifi = 0;
     while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
+      delay(1000);
       Serial.println("Connecting to WiFi..");
+      if (wifi > 180) {
+        ESP.restart();
+      }
+      if (digitalRead(PINORESET) == LOW) {
+        while (digitalRead(PINORESET) == LOW) {
+          delay(1000);
+          isReset++;
+        }
+        }
+        if (isReset > 5) {
+        configs["default"] = true;
+        writeFile(JSON.stringify(configs), CONFIGURATION);
+        Serial.println("RESET BY PIN");
+        ESP.restart();
+        }
+      wifi++;
     }
+    delay(500);
+    ntp.begin();
+    delay(500);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Conectado:");
+    lcd.setCursor(0, 1);
+    lcd.print((const char*) configs["ssid"]);
+    if (ntp.forceUpdate()) {
+      RtcDateTime timee = ntp.getEpochTime();
+      Rtc.SetDateTime(timee-946684800);
+      Serial.println("\nHorario atualizado pela WEB!");
+    }
+    
     WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
     WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_LOST_IP);
     Serial.print("Ip->: ");
@@ -712,17 +782,25 @@ void taskConn( void * pvParameters ) {
   //Set the reserved size of stack memory in bytes for internal stream callback processing RTOS task.
   //8192 is the minimum size.
   Firebase.setMultiPathStreamCallback(readData, streamCallback, streamTimeoutCallback, 8192);
-  short isReset = 0;
 
   while (true) {
+        if ((millis() - ultimo_millis4) > 15 * 60 * 1000) { //minutos*60*1000
+      ultimo_millis4 = millis();
+      if (ntp.forceUpdate()) {
+        //RtcDateTime timee = ntp.getEpochTime();
+        //Rtc.SetDateTime(timee-946684800);
+        //Serial.println("\nHorario atualizado pela WEB!");
+      }
+
+    }
 
 
-    /*if (digitalRead(PINORESET) == LOW) {
+    if (digitalRead(PINORESET) == LOW) {
       while (digitalRead(PINORESET) == LOW) {
         delay(1000);
         isReset++;
       }
-      }*/
+      }
     if (isReset > 5) {
       configs["default"] = true;
       writeFile(JSON.stringify(configs), CONFIGURATION);
@@ -733,6 +811,32 @@ void taskConn( void * pvParameters ) {
 
     if ((millis() - ultimo_millis3) > 10000 || updateValues) {
       ultimo_millis3 = millis();
+      if (LINHA_1) {
+        lcd.clear();
+        lcd.createChar(0, grau);
+        lcd.setCursor(0, 0);
+        lcd.print("T. Prog:");
+        lcd.setCursor(8, 0);
+        lcd.print(tempPROG);
+        lcd.setCursor(14, 0);
+        lcd.write((byte)0);
+        lcd.setCursor(15, 0);
+        lcd.print("C");
+        lcd.setCursor(0, 1);
+        lcd.print("T. Obs:");
+        lcd.setCursor(8, 1);
+        lcd.print(tempATUAL);
+        lcd.setCursor(14, 1);
+        lcd.write((byte)0);
+        lcd.setCursor(15, 1);
+        lcd.print("C");
+      } else {
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Aquecimento");
+        lcd.setCursor(0, 1);
+        lcd.print("desligado!");
+      }
 
       if (WiFi.status() == WL_CONNECTED) {
         json2.set("tempPROG", tempPROG);

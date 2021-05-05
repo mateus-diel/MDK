@@ -42,7 +42,7 @@ const char certificado[] =  "-----BEGIN CERTIFICATE-----\n"\
 
 
 
-ThreeWire myWire(13, 14, 12); // IO, SCLK, CE
+ThreeWire myWire(21, 19, 18); // IO, SCLK, CE
 RtcDS1302<ThreeWire> Rtc(myWire);
 
 String childPath[2] = {"/programacoes", "/info"};

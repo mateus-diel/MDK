@@ -1,12 +1,12 @@
 {
     "default":true,
-    "ssid":"GIGABYTE 2G",
-    "password":"giga2020a",
-    "deviceName":"mateus giga 2",
+    "ssid":"MARCOA2",
+    "password":"marcoa@2021",
+    "deviceName":"sala 9 e 10",
     "defaultPassword":"12345678",
-    "client_id":"Fw8XvAcsCVha5tnfY9mlgJz3sAG2",
+    "client_id":"DnT3tjpKh7XYJkflEO7HT5XZsdD3",
     "host":"https://espiot-c6099-default-rtdb.firebaseio.com",
     "api_key":"AIzaSyCE-9yymf_v5mm1rPkL0IuuJ0XEcEv9A78",
-    "user_email":"mateus.diell@gmail.com",
-    "user_senha":"novasenha"
+    "user_email":"3rcomelli@gmail.com",
+    "user_senha":"3rcomelli"
 }

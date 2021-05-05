@@ -20,7 +20,7 @@ NTPClient ntp(udp, "a.st1.ntp.br", -3 * 3600, 60000);
 
 
 
-ThreeWire myWire(13, 14, 12); // IO, SCLK, CE
+ThreeWire myWire(21,19,18); // IO, SCLK, CE
 RtcDS1302<ThreeWire> Rtc(myWire);
 
 String childPath[2] = {"/programacoes", "/info"};
@@ -107,6 +107,24 @@ void limpaHorarios() {
   for (int i = 0; i < NSEMANAS; i++) {
     hrs[i].semana = undefined;
   }
+}
+
+#define countof(a) (sizeof(a) / sizeof(a[0]))
+
+void printDateTime(const RtcDateTime& dt)
+{
+  char datestring[20];
+
+  snprintf_P(datestring,
+             countof(datestring),
+             PSTR("%02u/%02u/%04u %02u:%02u:%02u"),
+             dt.Month(),
+             dt.Day(),
+             dt.Year(),
+             dt.Hour(),
+             dt.Minute(),
+             dt.Second() );
+  Serial.print(datestring);
 }
 
 void streamCallback(MultiPathStreamData stream)
@@ -231,8 +249,9 @@ String diaDaSemana() {
   /*Serial.print("\n Dia da semana: ");
     Serial.println(String(date.DayOfWeek()));
     printDateTime(date);
-    Serial.println();*/
-  return (String(date.DayOfWeek()));
+    Serial.println();
+  return (String(date.DayOfWeek()));*/
+  return "";
 }
 
 void ligaRELE(short pin) {
@@ -295,23 +314,6 @@ void loadHrs() {
 
 }
 
-#define countof(a) (sizeof(a) / sizeof(a[0]))
-
-void printDateTime(const RtcDateTime& dt)
-{
-  char datestring[20];
-
-  snprintf_P(datestring,
-             countof(datestring),
-             PSTR("%02u/%02u/%04u %02u:%02u:%02u"),
-             dt.Month(),
-             dt.Day(),
-             dt.Year(),
-             dt.Hour(),
-             dt.Minute(),
-             dt.Second() );
-  Serial.print(datestring);
-}
 
 
 void setup() {
@@ -413,7 +415,7 @@ void taskDim( void * pvParameters ) {
     sensors.requestTemperatures();
     tempATUAL = sensors.getTempCByIndex(0);
     delay(10);
-    while (tempATUAL < - 100) {
+    while (tempATUAL < - 150) {
       sensors.requestTemperatures();
       tempATUAL = sensors.getTempCByIndex(0);
       numError++;
@@ -595,7 +597,7 @@ void taskConn( void * pvParameters ) {
       if (wifi > 180) {
         ESP.restart();
       }
-      /*if (digitalRead(PINORESET) == LOW) {
+      if (digitalRead(PINORESET) == LOW) {
         while (digitalRead(PINORESET) == LOW) {
           delay(1000);
           isReset++;
@@ -606,7 +608,7 @@ void taskConn( void * pvParameters ) {
         writeFile(JSON.stringify(configs), CONFIGURATION);
         Serial.println("RESET BY PIN");
         ESP.restart();
-        }*/
+        }
       wifi++;
     }
     delay(500);
@@ -799,15 +801,15 @@ void taskConn( void * pvParameters ) {
     if ((millis() - ultimo_millis3) > 15 * 60 * 1000) { //minutos*60*1000
       ultimo_millis3 = millis();
       if (ntp.forceUpdate()) {
-        RtcDateTime timee = ntp.getEpochTime();
-        Rtc.SetDateTime(timee-946684800);
-        Serial.println("\nHorario atualizado pela WEB!");
+        //RtcDateTime timee = ntp.getEpochTime();
+        //Rtc.SetDateTime(timee-946684800);
+        //Serial.println("\nHorario atualizado pela WEB!");
       }
 
     }
 
 
-    /*if (digitalRead(PINORESET) == LOW) {
+    if (digitalRead(PINORESET) == LOW) {
       while (digitalRead(PINORESET) == LOW) {
         delay(1000);
         isReset++;
@@ -818,7 +820,7 @@ void taskConn( void * pvParameters ) {
       writeFile(JSON.stringify(configs), CONFIGURATION);
       Serial.println("RESET BY PIN");
       ESP.restart();
-      }*/
+      }
 
 
     if ((millis() - ultimo_millis3) > 10000 || updateValues) {
