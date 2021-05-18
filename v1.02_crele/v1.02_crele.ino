@@ -20,7 +20,7 @@ NTPClient ntp(udp, "a.st1.ntp.br", -3 * 3600, 60000);
 
 
 
-ThreeWire myWire(21,19,18); // IO, SCLK, CE
+ThreeWire myWire(21, 19, 18); // IO, SCLK, CE
 RtcDS1302<ThreeWire> Rtc(myWire);
 
 String childPath[2] = {"/programacoes", "/info"};
@@ -250,7 +250,7 @@ String diaDaSemana() {
     Serial.println(String(date.DayOfWeek()));
     printDateTime(date);
     Serial.println();
-  return (String(date.DayOfWeek()));*/
+    return (String(date.DayOfWeek()));*/
   return "";
 }
 
@@ -385,9 +385,17 @@ void loop() {
 
 void taskDim( void * pvParameters ) {
 
+
+
   DimmableLight DIMMER_1(PINO_DIM_1);
   DimmableLight::setSyncPin(PINO_ZC);
   DimmableLight::begin();
+  potencia_1 = 0;
+  DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
+
+
+  desligaRELE(RELE_1);
+
 
 
   while ((bool) configs["default"]) {
@@ -415,7 +423,7 @@ void taskDim( void * pvParameters ) {
     sensors.requestTemperatures();
     tempATUAL = sensors.getTempCByIndex(0);
     delay(10);
-    while (tempATUAL < - 150) {
+    while (tempATUAL < - 100) {
       sensors.requestTemperatures();
       tempATUAL = sensors.getTempCByIndex(0);
       numError++;
@@ -602,13 +610,13 @@ void taskConn( void * pvParameters ) {
           delay(1000);
           isReset++;
         }
-        }
-        if (isReset > 5) {
+      }
+      if (isReset > 5) {
         configs["default"] = true;
         writeFile(JSON.stringify(configs), CONFIGURATION);
         Serial.println("RESET BY PIN");
         ESP.restart();
-        }
+      }
       wifi++;
     }
     delay(500);
@@ -621,7 +629,7 @@ void taskConn( void * pvParameters ) {
     lcd.print((const char*) configs["ssid"]);
     if (ntp.forceUpdate()) {
       RtcDateTime timee = ntp.getEpochTime();
-      Rtc.SetDateTime(timee-946684800);
+      Rtc.SetDateTime(timee - 946684800);
       Serial.println("\nHorario atualizado pela WEB!");
     }
     WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
@@ -814,13 +822,13 @@ void taskConn( void * pvParameters ) {
         delay(1000);
         isReset++;
       }
-      }
-      if (isReset > 5) {
+    }
+    if (isReset > 5) {
       configs["default"] = true;
       writeFile(JSON.stringify(configs), CONFIGURATION);
       Serial.println("RESET BY PIN");
       ESP.restart();
-      }
+    }
 
 
     if ((millis() - ultimo_millis3) > 10000 || updateValues) {
