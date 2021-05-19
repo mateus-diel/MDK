@@ -19,6 +19,7 @@ WiFiUDP udp;
 NTPClient ntp(udp, "a.st1.ntp.br", -3 * 3600, 60000);
 
 
+
 ThreeWire myWire(21, 19, 18); // IO, SCLK, CE
 RtcDS1302<ThreeWire> Rtc(myWire);
 
@@ -62,7 +63,6 @@ byte grau[8] = { B00001100,
                };
 
 
-
 FirebaseData writeData;
 FirebaseData readData;
 String email;
@@ -100,7 +100,6 @@ volatile int potencia_1 = 0;
 unsigned long ultimo_millis1 = 0;
 unsigned long ultimo_millis2 = 0;
 unsigned long ultimo_millis3 = 0;
-unsigned long ultimo_millis4 = 0;
 unsigned long millisWifiTimeout = 0;
 unsigned long debounce_delay = 500;
 
@@ -128,13 +127,12 @@ void printDateTime(const RtcDateTime& dt)
   Serial.print(datestring);
 }
 
-
 void streamCallback(MultiPathStreamData stream)
 {
-  Serial.println();
-  Serial.println("Stream Data1 available...");
-  Serial.println("path: " + stream.dataPath);
-  Serial.println("valuie: " + stream.value);
+  /*Serial.println();
+    Serial.println("Stream Data1 available...");
+    Serial.println("path: " + stream.dataPath);
+    Serial.println("valuie: " + stream.value);*/
 
   size_t numChild = sizeof(childPath) / sizeof(childPath[0]);
 
@@ -142,7 +140,7 @@ void streamCallback(MultiPathStreamData stream)
   {
     if (stream.get(childPath[i]))
     {
-      Serial.println("path: " + stream.dataPath + ", type: " + stream.type + ", value: " + stream.value);
+      //Serial.println("path: " + stream.dataPath + ", type: " + stream.type + ", value: " + stream.value);
       if (stream.dataPath.indexOf(childPath[1]) > -1 && stream.type.indexOf("json") > -1) {
         JSONVar infos = JSON.parse(stream.value);
         if (infos.hasOwnProperty("update")) {
@@ -251,8 +249,9 @@ String diaDaSemana() {
   /*Serial.print("\n Dia da semana: ");
     Serial.println(String(date.DayOfWeek()));
     printDateTime(date);
-    Serial.println();*/
-  return (String(date.DayOfWeek()));
+    Serial.println();
+    return (String(date.DayOfWeek()));*/
+  return "";
 }
 
 void ligaRELE(short pin) {
@@ -281,7 +280,7 @@ String readFile(String path) {
 }
 
 boolean writeFile(String message, String path) {
-  Serial.printf("Writing file: %s\r\n", path);
+  //Serial.printf("Writing file: %s\r\n", path);
 
   File file = LITTLEFS.open(path, FILE_WRITE);
   if (!file) {
@@ -289,7 +288,7 @@ boolean writeFile(String message, String path) {
     return false;
   }
   if (file.print(message)) {
-    Serial.println("- file written");
+    //Serial.println("- file written");
     return true;
   } else {
     Serial.println("- write failed");
@@ -347,7 +346,6 @@ void setup() {
     tempPROG = (double) devices["tempPROG_1"];
     LINHA_1 = (bool) devices["linha_1"];
 
-    sensors.begin();
     loadHrs();
 
     Serial.print("\ntemperatura programada lida: ");
@@ -356,6 +354,10 @@ void setup() {
 
   pinMode(RELE_1, OUTPUT);
   digitalWrite(RELE_1, LOW);
+
+
+
+  myMutex = xSemaphoreCreateMutex();
   Rtc.Begin();
   if (Rtc.GetIsWriteProtected())
   {
@@ -368,17 +370,12 @@ void setup() {
     Serial.println("RTC was not actively running, starting now");
     Rtc.SetIsRunning(true);
   }
-
-  myMutex = xSemaphoreCreateMutex();
   if (myMutex != NULL) {
-    xTaskCreatePinnedToCore( taskDim, "taskDim", 10000, NULL, 1, NULL, 0);
-    delay(500);
     xTaskCreatePinnedToCore( taskConn, "taskConn",  10000,  NULL,  2,  NULL,  1);
     delay(500);
-
+    xTaskCreatePinnedToCore( taskDim, "taskDim", 10000, NULL, 1, NULL, 0);
+    delay(500);
   }
-
-
 }
 
 void loop() {
@@ -387,13 +384,24 @@ void loop() {
 
 void taskDim( void * pvParameters ) {
 
+
+
   DimmableLight DIMMER_1(PINO_DIM_1);
   DimmableLight::setSyncPin(PINO_ZC);
   DimmableLight::begin();
+  potencia_1 = 0;
+  DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
+
+
+  desligaRELE(RELE_1);
+
+
 
   while ((bool) configs["default"]) {
     vTaskDelete(NULL);
   }
+
+
 
   while (true) {
     unsigned long mil = 0;
@@ -404,22 +412,58 @@ void taskDim( void * pvParameters ) {
       Serial.println("Vou reiniciar");
       ESP.restart();
     }
-    
+
     if (isUpdate) {
       DimmableLight::pauseStop();
       delay(200);
       vTaskDelete(NULL);
     }
 
+    short deviceCount = 0;
+    float tempC;
+
+    sensors.begin();
+    Serial.print("Locating devices...");
+    Serial.print("Found ");
+    deviceCount = sensors.getDeviceCount();
+    Serial.print(deviceCount, DEC);
+    Serial.println(" devices.");
     sensors.requestTemperatures();
-    tempATUAL = sensors.getTempCByIndex(0);
     delay(10);
-    while (tempATUAL < - 150) {
-      sensors.requestTemperatures();
-      tempATUAL = sensors.getTempCByIndex(0);
-      numError++;
-      delay(10);
+    tempATUAL = 0.0;
+    for (int i = 0;  i < deviceCount;  i++)    {
+      Serial.print("Sensor ");
+      Serial.print(i + 1);
+      Serial.print(" : ");
+      tempC = sensors.getTempCByIndex(i);
+      short erroSensor = 0;
+      while (tempC < -100) {
+        Serial.println("ERRORS");
+        sensors.requestTemperatures();
+        tempC = sensors.getTempCByIndex(i);
+        if (erroSensor > 10) {
+          deviceCount--;
+          break;
+        }
+        erroSensor++;
+        numError++;
+        delay(1000);
+      }
+      if (!(tempC < -100)) {
+        tempATUAL = tempATUAL + tempC;
+      }
+      Serial.print(tempC);
+      Serial.println(" ºC");
     }
+
+    Serial.print("Media: ");
+    tempATUAL = tempATUAL / deviceCount;
+    Serial.print(tempATUAL);
+    Serial.println(" ºC");
+
+    Serial.println("");
+
+    Serial.println("");
 
     if (automaticMode) {
       xSemaphoreTake(myMutex, portMAX_DELAY);
@@ -443,6 +487,17 @@ void taskDim( void * pvParameters ) {
       LINHA_1 = true;
       tempPROG = 10.0;
     }
+
+    /*lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("T. Prog:");
+      lcd.setCursor(8, 0);
+      lcd.print(tempPROG);
+      lcd.setCursor(0, 1);
+      lcd.print("T. Obs:");
+      lcd.setCursor(7, 1);
+      lcd.print(tempATUAL);*/
+
 
     if ((millis() - ultimo_millis2) > debounce_delay) {
       ultimo_millis2 = millis();
@@ -471,7 +526,7 @@ void taskDim( void * pvParameters ) {
       JSONVar itemHrs;
       for (int i = 0; i < NSEMANAS; i++) {
         if (hrs[i].semana.length() > 1) {
-          Serial.println(hrs[i].semana);
+          //Serial.println(hrs[i].semana);
           itemHrs["sem"] = hrs[i].semana;
           itemHrs["temp"] = hrs[i].temp;
           itemHrs["liga"] = hrs[i].liga;
@@ -490,11 +545,11 @@ void taskDim( void * pvParameters ) {
 
 
     if (tempATUAL < tempPROG - 0.5 && LINHA_1) {
-      potencia_1 = 100;
-      potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
-      DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
+      potencia_1 = 50;
+      DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
+      ligaRELE(RELE_1);
+      //Serial.println("rele ligado");
       rele = true;
-
     } else if (LINHA_1) {
       rele = false;
       desligaRELE(RELE_1);
@@ -535,7 +590,7 @@ void taskConn( void * pvParameters ) {
   LiquidCrystal_I2C lcd(0x27, 16, 2);
   lcd.begin();
   lcd.backlight();
-  
+
   if ((bool) configs["default"]) {
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -544,7 +599,7 @@ void taskConn( void * pvParameters ) {
     delay(1000);
     Serial.print("macc: ");
     String mac = WiFi.macAddress();
-    Serial.println(mac);    
+    Serial.println(mac);
     lcd.setCursor(0, 1);
     lcd.print(mac);
     Serial.print("Size of: ");
@@ -555,14 +610,14 @@ void taskConn( void * pvParameters ) {
     String((const char*)configs["defaultPassword"]).toCharArray(pass, 8 + 1);
     Serial.println("\nSSID: ");
     Serial.print(ssid);
-    Serial.println("\nsenha: ");
-    Serial.print(pass);
+    //Serial.println("\nsenha: ");
+    //Serial.print(pass);
 
     WiFi.softAP(ssid, pass);
     delay(2000);
     Serial.print("AP IP address: ");
     Serial.println(WiFi.softAPIP());
-  } else {    
+  } else {
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Iniciando...");
@@ -571,7 +626,7 @@ void taskConn( void * pvParameters ) {
     WiFi.begin((const char*) configs["ssid"], (const char*) configs["password"]);
     Serial.print("Wifi e senha: ");
     Serial.print((const char*) configs["ssid"]);
-    Serial.println((const char*) configs["password"]);
+    //Serial.println((const char*) configs["password"]);
     delay(1000);
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -587,17 +642,16 @@ void taskConn( void * pvParameters ) {
       }
       if (digitalRead(PINORESET) == LOW) {
         while (digitalRead(PINORESET) == LOW) {
-          Serial.println("reset presionadooo");
           delay(1000);
           isReset++;
         }
-        }
-        if (isReset > 5) {
+      }
+      if (isReset > 5) {
         configs["default"] = true;
         writeFile(JSON.stringify(configs), CONFIGURATION);
         Serial.println("RESET BY PIN");
         ESP.restart();
-        }
+      }
       wifi++;
     }
     delay(500);
@@ -610,15 +664,16 @@ void taskConn( void * pvParameters ) {
     lcd.print((const char*) configs["ssid"]);
     if (ntp.forceUpdate()) {
       RtcDateTime timee = ntp.getEpochTime();
-      Rtc.SetDateTime(timee-946684800);
+      Rtc.SetDateTime(timee - 946684800);
       Serial.println("\nHorario atualizado pela WEB!");
     }
-    
     WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
     WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_LOST_IP);
-    Serial.print("Ip->: ");
-    Serial.println(WiFi.localIP());
+    //Serial.print("Ip->: ");
+    //Serial.println(WiFi.localIP());
   }
+
+
 
 
   server.on(
@@ -634,8 +689,8 @@ void taskConn( void * pvParameters ) {
     JSONVar ok;
     ok["request"] = "error";
 
-    Serial.println(t);
-    Serial.println("Json");
+    //Serial.println(t);
+    //Serial.println("Json");
     JSONVar jso =  JSON.parse(t);
     if (jso.hasOwnProperty("configNetwork") && (bool) configs["default"]) {
       configs["default"] = (bool) jso["configNetwork"];
@@ -694,7 +749,7 @@ void taskConn( void * pvParameters ) {
       delay(1000);
       ESP.restart();
     }
-    Serial.println("MDNS begib successful;");
+    //Serial.println("MDNS begib successful;");
   } else {
     if (!MDNS.begin("ESP32")) {
       Serial.println("Error setting up MDNS responder!");
@@ -705,14 +760,10 @@ void taskConn( void * pvParameters ) {
 
   Serial.println("mDNS responder started");
   Serial.println("TCP server started");
-  /*
-    if ((millis() - ultimo_millis3) > 5000) { // se ja passou determinado tempo que o botao foi precionado
-      ultimo_millis3 = millis();
-      MDNS.addService("dimmer", "tcp", 80);
-    }*/
+
 
   MDNS.addService("dimmer", "tcp", 80);
-  Serial.println("HTTP server started");
+  //Serial.println("HTTP server started");
 
   while ((bool) configs["default"]) {
     delay(1);
@@ -743,14 +794,14 @@ void taskConn( void * pvParameters ) {
 
   auth.user.password = senhaa;
 
-  Serial.print("\napi key: ");
-  Serial.println(api_keyy);
-  Serial.print("host ");
-  Serial.println(hostt);
-  Serial.print("email: ");
-  Serial.println(emaill);
-  Serial.print("senha: ");
-  Serial.println(senhaa);
+  /*Serial.print("\napi key: ");
+    Serial.println(api_keyy);
+    Serial.print("host ");
+    Serial.println(hostt);
+    Serial.print("email: ");
+    Serial.println(emaill);
+    Serial.print("senha: ");
+    Serial.println(senhaa);*/
 
   Firebase.begin(&configur, &auth);
   String nodo = "/cliente/" + String((const char *) configs["client_id"]) + "/" + String((const char*) configs["deviceName"]) + "/";
@@ -784,9 +835,14 @@ void taskConn( void * pvParameters ) {
   //8192 is the minimum size.
   Firebase.setMultiPathStreamCallback(readData, streamCallback, streamTimeoutCallback, 8192);
 
+
+
+
+
   while (true) {
-        if ((millis() - ultimo_millis4) > 15 * 60 * 1000) { //minutos*60*1000
-      ultimo_millis4 = millis();
+
+    if ((millis() - ultimo_millis3) > 15 * 60 * 1000) { //minutos*60*1000
+      ultimo_millis3 = millis();
       if (ntp.forceUpdate()) {
         //RtcDateTime timee = ntp.getEpochTime();
         //Rtc.SetDateTime(timee-946684800);
@@ -801,7 +857,7 @@ void taskConn( void * pvParameters ) {
         delay(1000);
         isReset++;
       }
-      }
+    }
     if (isReset > 5) {
       configs["default"] = true;
       writeFile(JSON.stringify(configs), CONFIGURATION);
@@ -812,6 +868,9 @@ void taskConn( void * pvParameters ) {
 
     if ((millis() - ultimo_millis3) > 10000 || updateValues) {
       ultimo_millis3 = millis();
+      Wire.begin(22, 23);
+      lcd.begin();
+      lcd.backlight();
       if (LINHA_1) {
         lcd.clear();
         lcd.createChar(0, grau);
@@ -864,7 +923,7 @@ void taskConn( void * pvParameters ) {
           url.concat(VERSION);
           url.concat("&model=");
           url.concat(MODEL);
-          Serial.println(url);
+          //Serial.println(url);
           t_httpUpdate_return ret = ESPhttpUpdate.update(url);
           switch (ret) {
             case HTTP_UPDATE_FAILED:

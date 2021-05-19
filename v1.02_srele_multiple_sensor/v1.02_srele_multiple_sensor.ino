@@ -347,7 +347,6 @@ void setup() {
     tempPROG = (double) devices["tempPROG_1"];
     LINHA_1 = (bool) devices["linha_1"];
 
-    sensors.begin();
     loadHrs();
 
     Serial.print("\ntemperatura programada lida: ");
@@ -404,22 +403,59 @@ void taskDim( void * pvParameters ) {
       Serial.println("Vou reiniciar");
       ESP.restart();
     }
-    
+
     if (isUpdate) {
       DimmableLight::pauseStop();
       delay(200);
       vTaskDelete(NULL);
     }
 
+    short deviceCount = 0;
+    float tempC;
+
+    sensors.begin();
+    Serial.print("Locating devices...");
+    Serial.print("Found ");
+    deviceCount = sensors.getDeviceCount();
+    Serial.print(deviceCount, DEC);
+    Serial.println(" devices.");
     sensors.requestTemperatures();
-    tempATUAL = sensors.getTempCByIndex(0);
     delay(10);
-    while (tempATUAL < - 100) {
-      sensors.requestTemperatures();
-      tempATUAL = sensors.getTempCByIndex(0);
-      numError++;
-      delay(10);
+    tempATUAL = 0.0;
+    for (int i = 0;  i < deviceCount;  i++)    {
+      Serial.print("Sensor ");
+      Serial.print(i + 1);
+      Serial.print(" : ");
+      tempC = sensors.getTempCByIndex(i);
+      short erroSensor = 0;
+      while (tempC < -100) {
+        Serial.println("ERRORS");
+        sensors.requestTemperatures();
+        tempC = sensors.getTempCByIndex(i);
+        if (erroSensor > 10) {
+          deviceCount--;
+          break;
+        }
+        erroSensor++;
+        numError++;
+        delay(1000);
+      }
+      if (!(tempC < -100)) {
+        tempATUAL = tempATUAL + tempC;
+      }
+      Serial.print(tempC);
+      Serial.println(" ºC");
     }
+
+    Serial.print("Media: ");
+    tempATUAL = tempATUAL / deviceCount;
+    Serial.print(tempATUAL);
+    Serial.println(" ºC");
+
+    Serial.println("");
+
+    Serial.println("");
+
 
     if (automaticMode) {
       xSemaphoreTake(myMutex, portMAX_DELAY);
@@ -535,7 +571,7 @@ void taskConn( void * pvParameters ) {
   LiquidCrystal_I2C lcd(0x27, 16, 2);
   lcd.begin();
   lcd.backlight();
-  
+
   if ((bool) configs["default"]) {
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -544,7 +580,7 @@ void taskConn( void * pvParameters ) {
     delay(1000);
     Serial.print("macc: ");
     String mac = WiFi.macAddress();
-    Serial.println(mac);    
+    Serial.println(mac);
     lcd.setCursor(0, 1);
     lcd.print(mac);
     Serial.print("Size of: ");
@@ -562,7 +598,7 @@ void taskConn( void * pvParameters ) {
     delay(2000);
     Serial.print("AP IP address: ");
     Serial.println(WiFi.softAPIP());
-  } else {    
+  } else {
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Iniciando...");
@@ -587,16 +623,17 @@ void taskConn( void * pvParameters ) {
       }
       if (digitalRead(PINORESET) == LOW) {
         while (digitalRead(PINORESET) == LOW) {
+          Serial.println("reset presionadooo");
           delay(1000);
           isReset++;
         }
-        }
-        if (isReset > 5) {
+      }
+      if (isReset > 5) {
         configs["default"] = true;
         writeFile(JSON.stringify(configs), CONFIGURATION);
         Serial.println("RESET BY PIN");
         ESP.restart();
-        }
+      }
       wifi++;
     }
     delay(500);
@@ -609,10 +646,10 @@ void taskConn( void * pvParameters ) {
     lcd.print((const char*) configs["ssid"]);
     if (ntp.forceUpdate()) {
       RtcDateTime timee = ntp.getEpochTime();
-      Rtc.SetDateTime(timee-946684800);
+      Rtc.SetDateTime(timee - 946684800);
       Serial.println("\nHorario atualizado pela WEB!");
     }
-    
+
     WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
     WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_LOST_IP);
     Serial.print("Ip->: ");
@@ -784,7 +821,7 @@ void taskConn( void * pvParameters ) {
   Firebase.setMultiPathStreamCallback(readData, streamCallback, streamTimeoutCallback, 8192);
 
   while (true) {
-        if ((millis() - ultimo_millis4) > 15 * 60 * 1000) { //minutos*60*1000
+    if ((millis() - ultimo_millis4) > 15 * 60 * 1000) { //minutos*60*1000
       ultimo_millis4 = millis();
       if (ntp.forceUpdate()) {
         //RtcDateTime timee = ntp.getEpochTime();
@@ -800,7 +837,7 @@ void taskConn( void * pvParameters ) {
         delay(1000);
         isReset++;
       }
-      }
+    }
     if (isReset > 5) {
       configs["default"] = true;
       writeFile(JSON.stringify(configs), CONFIGURATION);
@@ -811,6 +848,9 @@ void taskConn( void * pvParameters ) {
 
     if ((millis() - ultimo_millis3) > 10000 || updateValues) {
       ultimo_millis3 = millis();
+      Wire.begin(22, 23);
+      lcd.begin();
+      lcd.backlight();
       if (LINHA_1) {
         lcd.clear();
         lcd.createChar(0, grau);
