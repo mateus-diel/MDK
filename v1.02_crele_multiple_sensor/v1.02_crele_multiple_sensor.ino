@@ -431,39 +431,44 @@ void taskDim( void * pvParameters ) {
     sensors.requestTemperatures();
     delay(10);
     tempATUAL = 0.0;
-    for (int i = 0;  i < deviceCount;  i++)    {
-      Serial.print("Sensor ");
-      Serial.print(i + 1);
-      Serial.print(" : ");
-      tempC = sensors.getTempCByIndex(i);
-      short erroSensor = 0;
-      while (tempC < -100) {
-        Serial.println("ERRORS");
-        sensors.requestTemperatures();
+    if (deviceCount != 0) {
+      for (int i = 0;  i < deviceCount;  i++)    {
+        Serial.print("Sensor ");
+        Serial.print(i + 1);
+        Serial.print(" : ");
         tempC = sensors.getTempCByIndex(i);
-        if (erroSensor > 10) {
-          deviceCount--;
-          break;
+        short erroSensor = 0;
+        while (tempC < -100) {
+          Serial.println("ERRO DE LEITURA");
+          sensors.requestTemperatures();
+          tempC = sensors.getTempCByIndex(i);
+          if (erroSensor > 20) {
+            deviceCount--;
+            break;
+          }
+          erroSensor++;
+          numError++;
+          delay(700);
         }
-        erroSensor++;
-        numError++;
-        delay(1000);
+        if (!(tempC < -100)) {
+          tempATUAL = tempATUAL + tempC;
+        }
+        Serial.print(tempC);
+        Serial.println(" ºC");
       }
-      if (!(tempC < -100)) {
-        tempATUAL = tempATUAL + tempC;
-      }
-      Serial.print(tempC);
+
+      Serial.print("Media: ");
+      tempATUAL = tempATUAL / deviceCount;
+      Serial.print(tempATUAL);
       Serial.println(" ºC");
+
+      Serial.println("");
+
+      Serial.println("");
+    } else {
+      Serial.println("nao foram encontrados sensores");
+      tempATUAL = 0.0;
     }
-
-    Serial.print("Media: ");
-    tempATUAL = tempATUAL / deviceCount;
-    Serial.print(tempATUAL);
-    Serial.println(" ºC");
-
-    Serial.println("");
-
-    Serial.println("");
 
     if (automaticMode) {
       xSemaphoreTake(myMutex, portMAX_DELAY);
