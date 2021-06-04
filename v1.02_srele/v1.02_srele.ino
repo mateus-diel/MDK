@@ -41,8 +41,8 @@ typedef struct
 #define CONFIGURATION "/configs.json"
 #define DEVICESINFO "/devices.json"
 #define DAYSINFO "/days.json"
-#define VERSION "1.02"
-#define MODEL "casa"
+#define VERSION "1.02_srele_single_b"
+#define MODEL "suino"
 #define NSEMANAS 35
 
 
@@ -73,13 +73,16 @@ String host;
 AsyncWebServer  server(80);
 
 short RELE_1 = 16;
+short qtd_sensor = 0;
 
 volatile float tempPROG = 35.0;
 volatile float tempATUAL = 0.0;
 volatile float lastTempATUAL = 0.0;
 volatile boolean rele = false;
+volatile bool reset_now = false;
 volatile bool isUpdate = false;
 volatile bool modoViagem = false;
+volatile bool sensor_timeout = false;
 volatile int numError = 0;
 volatile bool updateValues = false;
 volatile bool automaticMode = false;
@@ -103,6 +106,10 @@ unsigned long ultimo_millis3 = 0;
 unsigned long ultimo_millis4 = 0;
 unsigned long millisWifiTimeout = 0;
 unsigned long debounce_delay = 500;
+unsigned long millis_ntp = 0;
+unsigned long millis_triac = 0;
+unsigned long millis_lcd = 0;
+unsigned long millis_sensor_timeout = 0;
 
 void limpaHorarios() {
   for (int i = 0; i < NSEMANAS; i++) {
@@ -348,6 +355,8 @@ void setup() {
     LINHA_1 = (bool) devices["linha_1"];
 
     sensors.begin();
+    delay(750);
+    qtd_sensor = sensors.getDeviceCount();
     loadHrs();
 
     Serial.print("\ntemperatura programada lida: ");
@@ -404,22 +413,92 @@ void taskDim( void * pvParameters ) {
       Serial.println("Vou reiniciar");
       ESP.restart();
     }
-    
-    if (isUpdate) {
-      DimmableLight::pauseStop();
-      delay(200);
-      vTaskDelete(NULL);
+
+    if (isUpdate || reset_now) {
+      if (isUpdate) {
+        DimmableLight::pauseStop();
+        delay(200);
+        vTaskDelete(NULL);
+      } else {
+        DimmableLight::pauseStop();
+        delay(200);
+        configs["default"] = true;
+        writeFile(JSON.stringify(configs), CONFIGURATION);
+        Serial.println("RESET BY PIN");
+        ESP.restart();
+      }
     }
 
-    sensors.requestTemperatures();
-    tempATUAL = sensors.getTempCByIndex(0);
-    delay(10);
-    while (tempATUAL < - 150) {
-      sensors.requestTemperatures();
-      tempATUAL = sensors.getTempCByIndex(0);
-      numError++;
-      delay(10);
+    /*while (true) {
+      delay(1000);
+      potencia_1 = 50;
+      potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
+      DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
+      rele = false;
+      desligaRELE(RELE_1);
+      if (isUpdate || reset_now) {
+        if (isUpdate) {
+          DimmableLight::pauseStop();
+          delay(200);
+          vTaskDelete(NULL);
+        } else {
+          DimmableLight::pauseStop();
+          delay(200);
+          configs["default"] = true;
+          writeFile(JSON.stringify(configs), CONFIGURATION);
+          Serial.println("RESET BY PIN");
+          ESP.restart();
+        }
+      }
     }
+*/
+
+
+    millis_sensor_timeout = millis();
+
+    sensors.begin();
+    delay(800);
+    qtd_sensor = sensors.getDeviceCount();
+    while (qtd_sensor < 1) {
+      if ((millis() - millis_sensor_timeout) > 300000) {
+        sensor_timeout = true;
+        potencia_1 = 0;
+        potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
+        DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
+        rele = true;
+        desligaRELE(RELE_1);
+      }
+      sensors.begin();
+      delay(800);
+      qtd_sensor = sensors.getDeviceCount();
+    }
+
+    float t = 0.0;
+    if (qtd_sensor > 0) {
+      sensors.requestTemperatures();
+      delay(800);
+      t = sensors.getTempCByIndex(0);
+      delay(800);
+      while (t < - 80 || t > 80) {
+        //300000 5 minutos
+        if ((millis() - millis_sensor_timeout) > 300000) {
+          sensor_timeout = true;
+          potencia_1 = 0;
+          potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
+          DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
+          rele = true;
+          desligaRELE(RELE_1);
+        }
+        sensors.requestTemperatures();
+        delay(800);
+        t = sensors.getTempCByIndex(0);
+        numError++;
+      }
+    }
+
+    millis_sensor_timeout = millis();
+    sensor_timeout = false;
+    tempATUAL = t;
 
     if (automaticMode) {
       xSemaphoreTake(myMutex, portMAX_DELAY);
@@ -453,8 +532,8 @@ void taskDim( void * pvParameters ) {
       Serial.println("ºC");
       Serial.print("Potencia -> " + String(potencia_1) + " :");
       Serial.println(DIMMER_1.getBrightness());
-      Serial.print("date: ");
-      printDateTime(Rtc.GetDateTime());
+      //Serial.print("date: ");
+      //printDateTime(Rtc.GetDateTime());
       Serial.println();
     }
 
@@ -535,7 +614,7 @@ void taskConn( void * pvParameters ) {
   LiquidCrystal_I2C lcd(0x27, 16, 2);
   lcd.begin();
   lcd.backlight();
-  
+
   if ((bool) configs["default"]) {
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -544,7 +623,7 @@ void taskConn( void * pvParameters ) {
     delay(1000);
     Serial.print("macc: ");
     String mac = WiFi.macAddress();
-    Serial.println(mac);    
+    Serial.println(mac);
     lcd.setCursor(0, 1);
     lcd.print(mac);
     Serial.print("Size of: ");
@@ -562,7 +641,7 @@ void taskConn( void * pvParameters ) {
     delay(2000);
     Serial.print("AP IP address: ");
     Serial.println(WiFi.softAPIP());
-  } else {    
+  } else {
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Iniciando...");
@@ -591,13 +670,13 @@ void taskConn( void * pvParameters ) {
           delay(1000);
           isReset++;
         }
-        }
-        if (isReset > 5) {
+      }
+      if (isReset > 5) {
         configs["default"] = true;
         writeFile(JSON.stringify(configs), CONFIGURATION);
         Serial.println("RESET BY PIN");
         ESP.restart();
-        }
+      }
       wifi++;
     }
     delay(500);
@@ -610,10 +689,10 @@ void taskConn( void * pvParameters ) {
     lcd.print((const char*) configs["ssid"]);
     if (ntp.forceUpdate()) {
       RtcDateTime timee = ntp.getEpochTime();
-      Rtc.SetDateTime(timee-946684800);
+      Rtc.SetDateTime(timee - 946684800);
       Serial.println("\nHorario atualizado pela WEB!");
     }
-    
+
     WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
     WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_LOST_IP);
     Serial.print("Ip->: ");
@@ -785,14 +864,13 @@ void taskConn( void * pvParameters ) {
   Firebase.setMultiPathStreamCallback(readData, streamCallback, streamTimeoutCallback, 8192);
 
   while (true) {
-        if ((millis() - ultimo_millis4) > 15 * 60 * 1000) { //minutos*60*1000
-      ultimo_millis4 = millis();
+    if ((millis() - millis_ntp) > 15 * 60 * 1000) { //minutos*60*1000
+      millis_ntp = millis();
       if (ntp.forceUpdate()) {
-        //RtcDateTime timee = ntp.getEpochTime();
-        //Rtc.SetDateTime(timee-946684800);
-        //Serial.println("\nHorario atualizado pela WEB!");
+        RtcDateTime timee = ntp.getEpochTime();
+        Rtc.SetDateTime(timee - 946684800);
+        Serial.println("\nHorario atualizado pela WEB!");
       }
-
     }
 
 
@@ -800,37 +878,44 @@ void taskConn( void * pvParameters ) {
       while (digitalRead(PINORESET) == LOW) {
         delay(1000);
         isReset++;
+        if (isReset > 5) {
+          reset_now = true;
+        }
       }
-      }
-    if (isReset > 5) {
-      configs["default"] = true;
-      writeFile(JSON.stringify(configs), CONFIGURATION);
-      Serial.println("RESET BY PIN");
-      ESP.restart();
     }
 
-
-    if ((millis() - ultimo_millis3) > 10000 || updateValues) {
-      ultimo_millis3 = millis();
+    if ((millis() - millis_lcd) > 1000) {
+      millis_lcd = millis();
+      Wire.begin(22, 23);
+      lcd.begin();
+      lcd.backlight();
       if (LINHA_1) {
-        lcd.clear();
-        lcd.createChar(0, grau);
-        lcd.setCursor(0, 0);
-        lcd.print("T. Prog:");
-        lcd.setCursor(8, 0);
-        lcd.print(tempPROG);
-        lcd.setCursor(14, 0);
-        lcd.write((byte)0);
-        lcd.setCursor(15, 0);
-        lcd.print("C");
-        lcd.setCursor(0, 1);
-        lcd.print("T. Obs:");
-        lcd.setCursor(8, 1);
-        lcd.print(tempATUAL);
-        lcd.setCursor(14, 1);
-        lcd.write((byte)0);
-        lcd.setCursor(15, 1);
-        lcd.print("C");
+        if (sensor_timeout) {
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("Verifique");
+          lcd.setCursor(0, 1);
+          lcd.print("Sensor!");
+        } else {
+          lcd.clear();
+          lcd.createChar(0, grau);
+          lcd.setCursor(0, 0);
+          lcd.print("T. Prog:");
+          lcd.setCursor(8, 0);
+          lcd.print(tempPROG);
+          lcd.setCursor(14, 0);
+          lcd.write((byte)0);
+          lcd.setCursor(15, 0);
+          lcd.print("C");
+          lcd.setCursor(0, 1);
+          lcd.print("T. Obs:");
+          lcd.setCursor(8, 1);
+          lcd.print(tempATUAL);
+          lcd.setCursor(14, 1);
+          lcd.write((byte)0);
+          lcd.setCursor(15, 1);
+          lcd.print("C");
+        }
       } else {
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -838,6 +923,11 @@ void taskConn( void * pvParameters ) {
         lcd.setCursor(0, 1);
         lcd.print("desligado!");
       }
+    }
+
+
+    if ((millis() - ultimo_millis3) > 10000 || updateValues) {
+      ultimo_millis3 = millis();
 
       if (WiFi.status() == WL_CONNECTED) {
         json2.set("tempPROG", tempPROG);
@@ -848,6 +938,7 @@ void taskConn( void * pvParameters ) {
         json2.set("auto", automaticMode);
         json2.set("sinal", String(WiFi.RSSI()));
         json2.set("modoViagem", modoViagem);
+        json2.set("qtdsensor", String(qtd_sensor));
 
         if (Firebase.updateNode(writeData, nodo + "/W/", json2)) {
           xSemaphoreTake(myMutex, portMAX_DELAY);

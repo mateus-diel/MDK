@@ -20,25 +20,25 @@ WiFiUDP udp;
 NTPClient ntp(udp, "a.st1.ntp.br", -3 * 3600, 60000);
 
 const char certificado[] =  "-----BEGIN CERTIFICATE-----\n"\
-"MIIDSjCCAjKgAwIBAgIQRK+wgNajJ7qJMDmGLvhAazANBgkqhkiG9w0BAQUFADA/\n"\
-"MSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT\n"\
-"DkRTVCBSb290IENBIFgzMB4XDTAwMDkzMDIxMTIxOVoXDTIxMDkzMDE0MDExNVow\n"\
-"PzEkMCIGA1UEChMbRGlnaXRhbCBTaWduYXR1cmUgVHJ1c3QgQ28uMRcwFQYDVQQD\n"\
-"Ew5EU1QgUm9vdCBDQSBYMzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB\n"\
-"AN+v6ZdQCINXtMxiZfaQguzH0yxrMMpb7NnDfcdAwRgUi+DoM3ZJKuM/IUmTrE4O\n"\
-"rz5Iy2Xu/NMhD2XSKtkyj4zl93ewEnu1lcCJo6m67XMuegwGMoOifooUMM0RoOEq\n"\
-"OLl5CjH9UL2AZd+3UWODyOKIYepLYYHsUmu5ouJLGiifSKOeDNoJjj4XLh7dIN9b\n"\
-"xiqKqy69cK3FCxolkHRyxXtqqzTWMIn/5WgTe1QLyNau7Fqckh49ZLOMxt+/yUFw\n"\
-"7BZy1SbsOFU5Q9D8/RhcQPGX69Wam40dutolucbY38EVAjqr2m7xPi71XAicPNaD\n"\
-"aeQQmxkqtilX4+U9m5/wAl0CAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNV\n"\
-"HQ8BAf8EBAMCAQYwHQYDVR0OBBYEFMSnsaR7LHH62+FLkHX/xBVghYkQMA0GCSqG\n"\
-"SIb3DQEBBQUAA4IBAQCjGiybFwBcqR7uKGY3Or+Dxz9LwwmglSBd49lZRNI+DT69\n"\
-"ikugdB/OEIKcdBodfpga3csTS7MgROSR6cz8faXbauX+5v3gTt23ADq1cEmv8uXr\n"\
-"AvHRAosZy5Q6XkjEGB5YGV8eAlrwDPGxrancWYaLbumR9YbK+rlmM6pZW87ipxZz\n"\
-"R8srzJmwN0jP41ZL9c8PDHIyh8bwRLtTcm1D9SZImlJnt1ir/md2cXjbDaJWFBM5\n"\
-"JDGFoqgCWjBH4d1QB7wCCZAA62RjYJsWvIjJEubSfZGL+T0yjWW06XyxV3bqxbYo\n"\
-"Ob8VZRzI9neWagqNdwvYkQsEjgfbKbYK7p2CNTUQ\n"\
-"-----END CERTIFICATE-----\n";
+                            "MIIDSjCCAjKgAwIBAgIQRK+wgNajJ7qJMDmGLvhAazANBgkqhkiG9w0BAQUFADA/\n"\
+                            "MSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT\n"\
+                            "DkRTVCBSb290IENBIFgzMB4XDTAwMDkzMDIxMTIxOVoXDTIxMDkzMDE0MDExNVow\n"\
+                            "PzEkMCIGA1UEChMbRGlnaXRhbCBTaWduYXR1cmUgVHJ1c3QgQ28uMRcwFQYDVQQD\n"\
+                            "Ew5EU1QgUm9vdCBDQSBYMzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB\n"\
+                            "AN+v6ZdQCINXtMxiZfaQguzH0yxrMMpb7NnDfcdAwRgUi+DoM3ZJKuM/IUmTrE4O\n"\
+                            "rz5Iy2Xu/NMhD2XSKtkyj4zl93ewEnu1lcCJo6m67XMuegwGMoOifooUMM0RoOEq\n"\
+                            "OLl5CjH9UL2AZd+3UWODyOKIYepLYYHsUmu5ouJLGiifSKOeDNoJjj4XLh7dIN9b\n"\
+                            "xiqKqy69cK3FCxolkHRyxXtqqzTWMIn/5WgTe1QLyNau7Fqckh49ZLOMxt+/yUFw\n"\
+                            "7BZy1SbsOFU5Q9D8/RhcQPGX69Wam40dutolucbY38EVAjqr2m7xPi71XAicPNaD\n"\
+                            "aeQQmxkqtilX4+U9m5/wAl0CAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNV\n"\
+                            "HQ8BAf8EBAMCAQYwHQYDVR0OBBYEFMSnsaR7LHH62+FLkHX/xBVghYkQMA0GCSqG\n"\
+                            "SIb3DQEBBQUAA4IBAQCjGiybFwBcqR7uKGY3Or+Dxz9LwwmglSBd49lZRNI+DT69\n"\
+                            "ikugdB/OEIKcdBodfpga3csTS7MgROSR6cz8faXbauX+5v3gTt23ADq1cEmv8uXr\n"\
+                            "AvHRAosZy5Q6XkjEGB5YGV8eAlrwDPGxrancWYaLbumR9YbK+rlmM6pZW87ipxZz\n"\
+                            "R8srzJmwN0jP41ZL9c8PDHIyh8bwRLtTcm1D9SZImlJnt1ir/md2cXjbDaJWFBM5\n"\
+                            "JDGFoqgCWjBH4d1QB7wCCZAA62RjYJsWvIjJEubSfZGL+T0yjWW06XyxV3bqxbYo\n"\
+                            "Ob8VZRzI9neWagqNdwvYkQsEjgfbKbYK7p2CNTUQ\n"\
+                            "-----END CERTIFICATE-----\n";
 
 
 
@@ -210,7 +210,7 @@ String readFile(String path) {
   }
   rfile.close();
   Serial.print("\n\n\nCONTEUDO LIDO: ");
-  Serial.println(content+"\n\n\n");
+  Serial.println(content + "\n\n\n");
   return content;
 }
 
@@ -528,12 +528,19 @@ boolean login(String endereco, String email, String senha, String uuid) {
   return ret;
 }
 
-boolean intToBoolean(int a){
+boolean intToBoolean(int a) {
   boolean ret = false;
-  if(a == 1){
+  if (a == 1) {
     ret = true;
   }
   return ret;
+}
+
+boolean isValidNumber (String str) {
+  for (byte i = 0; i < str.length (); i ++) {
+    if (!isDigit(str.charAt (i))) return false;
+  }
+  return true;
 }
 
 boolean api(String endereco, JSONVar dados) {
@@ -553,12 +560,31 @@ boolean api(String endereco, JSONVar dados) {
       if (jso.hasOwnProperty("code")) {
         if (((int) jso["code"]) == 200) {
           ret = true;
-        }else if(((int) jso["code"]) == 201){
+        } else if (((int) jso["code"]) == 201) {
           ret = true;
-          tempPROG = String((const char*) jso["temp_prog_esp_ler"]).toDouble();
-          automaticMode = intToBoolean(String((const char*) jso["auto_esp_ler"]).toInt());
-          modoViagem = intToBoolean(String((const char*) jso["modo_viagem_esp_ler"]).toInt());
-          LINHA_1 = intToBoolean(String((const char*) jso["status_esp_ler"]).toInt());
+          JSONVar dados =  jso["dispositivo"];
+          tempPROG = String((const char*) dados["temp_prog_esp_ler"]).toDouble();
+          automaticMode = intToBoolean(String((const char*) dados["auto_esp_ler"]).toInt());
+          modoViagem = intToBoolean(String((const char*) dados["modo_viagem_esp_ler"]).toInt());
+          LINHA_1 = intToBoolean(String((const char*) dados["status_esp_ler"]).toInt());
+          JSONVar k = jso.keys();
+          byte pos = 0;
+          for (int i = 0; i < k.length(); i++) {
+            if (isValidNumber(String((const char*)k[i]))) {
+              JSONVar prog = jso[k[i]];
+              if (prog.hasOwnProperty("dia_semana")) {
+                Serial.println(prog);
+                Serial.println(String((const char*) prog["temp_prog"]).toDouble());
+                xSemaphoreTake(myMutex, portMAX_DELAY);
+                hrs[pos].semana = String((const char*) prog["dia_semana"]);
+                hrs[pos].temp = String((const char*) prog["temp_prog"]).toDouble();
+                hrs[pos].liga = String((const char*) prog["liga"]);
+                hrs[pos].desliga = String((const char*) prog["desliga"]);
+                xSemaphoreGive(myMutex);
+                pos++;
+              }
+            }
+          }
         }
       }
     } else {

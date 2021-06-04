@@ -42,8 +42,8 @@ typedef struct
 #define CONFIGURATION "/configs.json"
 #define DEVICESINFO "/devices.json"
 #define DAYSINFO "/days.json"
-#define VERSION "1.02"
-#define MODEL "casa"
+#define VERSION "1.02.crele.multiple.c"
+#define MODEL "suino"
 #define NSEMANAS 35
 
 
@@ -79,6 +79,7 @@ volatile float tempATUAL = 0.0;
 volatile float lastTempATUAL = 0.0;
 volatile boolean rele = false;
 volatile bool isUpdate = false;
+volatile bool reset_now = false;
 volatile bool modoViagem = false;
 volatile int numError = 0;
 volatile bool updateValues = false;
@@ -100,7 +101,10 @@ volatile int potencia_1 = 0;
 unsigned long ultimo_millis1 = 0;
 unsigned long ultimo_millis2 = 0;
 unsigned long ultimo_millis3 = 0;
+unsigned long millis_ntp = 0;
+unsigned long millis_triac = 0;
 unsigned long millisWifiTimeout = 0;
+unsigned long millis_lcd = 0;
 unsigned long debounce_delay = 500;
 
 void limpaHorarios() {
@@ -383,25 +387,16 @@ void loop() {
 }
 
 void taskDim( void * pvParameters ) {
-
-
-
   DimmableLight DIMMER_1(PINO_DIM_1);
   DimmableLight::setSyncPin(PINO_ZC);
   DimmableLight::begin();
   potencia_1 = 0;
   DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
-
-
   desligaRELE(RELE_1);
-
-
 
   while ((bool) configs["default"]) {
     vTaskDelete(NULL);
   }
-
-
 
   while (true) {
     unsigned long mil = 0;
@@ -409,38 +404,43 @@ void taskDim( void * pvParameters ) {
     mil = millisWifiTimeout;
     xSemaphoreGive(myMutex);
     if ((millis() - mil) > 300000) {
-      Serial.println("Vou reiniciar");
+      Serial.println("Vou reiniciar, sem conexao wifi.");
       ESP.restart();
     }
 
-    if (isUpdate) {
-      DimmableLight::pauseStop();
-      delay(200);
-      vTaskDelete(NULL);
+    if (isUpdate || reset_now) {
+      if (isUpdate) {
+        DimmableLight::pauseStop();
+        delay(200);
+        vTaskDelete(NULL);
+      } else {
+        DimmableLight::pauseStop();
+        delay(200);
+        configs["default"] = true;
+        writeFile(JSON.stringify(configs), CONFIGURATION);
+        Serial.println("RESET BY PIN");
+        ESP.restart();
+      }
     }
 
     short deviceCount = 0;
     float tempC;
 
     sensors.begin();
-    Serial.print("Locating devices...");
-    Serial.print("Found ");
+    delay(800);
     deviceCount = sensors.getDeviceCount();
-    Serial.print(deviceCount, DEC);
-    Serial.println(" devices.");
-    sensors.requestTemperatures();
     delay(10);
-    tempATUAL = 0.0;
+    sensors.requestTemperatures();
+    delay(800);
+    boolean c = true;
     if (deviceCount != 0) {
       for (int i = 0;  i < deviceCount;  i++)    {
-        Serial.print("Sensor ");
-        Serial.print(i + 1);
-        Serial.print(" : ");
         tempC = sensors.getTempCByIndex(i);
         short erroSensor = 0;
-        while (tempC < -100) {
+        while (tempC < -80 || tempC > 80) {
           Serial.println("ERRO DE LEITURA");
           sensors.requestTemperatures();
+          delay(800);
           tempC = sensors.getTempCByIndex(i);
           if (erroSensor > 20) {
             deviceCount--;
@@ -448,27 +448,41 @@ void taskDim( void * pvParameters ) {
           }
           erroSensor++;
           numError++;
-          delay(700);
         }
-        if (!(tempC < -100)) {
+        if (!(tempC < -80 || tempC > 80)) {
+          if (c) {
+            c = false;
+            tempATUAL = 0.0;
+          }
           tempATUAL = tempATUAL + tempC;
         }
-        Serial.print(tempC);
-        Serial.println(" ºC");
       }
 
-      Serial.print("Media: ");
-      tempATUAL = tempATUAL / deviceCount;
-      Serial.print(tempATUAL);
-      Serial.println(" ºC");
+      if (deviceCount != 0) {
+        Serial.print("Media: ");
+        tempATUAL = tempATUAL / deviceCount;
+        Serial.print(tempATUAL);
+        Serial.println(" ºC");
+      } else {
+        Serial.println("não foi possivl ler as temps dos sensores");
+      }
 
-      Serial.println("");
-
-      Serial.println("");
-    } else {
-      Serial.println("nao foram encontrados sensores");
-      tempATUAL = 0.0;
     }
+
+    /*delay(750);
+      sensors.requestTemperatures();
+      delay(750);
+      float t = 0.0;
+      t = sensors.getTempCByIndex(0);
+      delay(10);
+      while (t < - 100) {
+      sensors.requestTemperatures();
+      t = sensors.getTempCByIndex(0);
+      numError++;
+      delay(750);
+      }
+
+      tempATUAL = t;*/
 
     if (automaticMode) {
       xSemaphoreTake(myMutex, portMAX_DELAY);
@@ -493,17 +507,6 @@ void taskDim( void * pvParameters ) {
       tempPROG = 10.0;
     }
 
-    /*lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("T. Prog:");
-      lcd.setCursor(8, 0);
-      lcd.print(tempPROG);
-      lcd.setCursor(0, 1);
-      lcd.print("T. Obs:");
-      lcd.setCursor(7, 1);
-      lcd.print(tempATUAL);*/
-
-
     if ((millis() - ultimo_millis2) > debounce_delay) {
       ultimo_millis2 = millis();
       Serial.print(tempATUAL);
@@ -518,6 +521,7 @@ void taskDim( void * pvParameters ) {
       Serial.println();
     }
 
+    //a cada 30 minutos salva os dados na memoria do esp
     if ((millis() - ultimo_millis1) > debounce_delay + 1800000) {
       ultimo_millis1 = millis();
       devices["linha_1"] = LINHA_1;
@@ -549,43 +553,51 @@ void taskDim( void * pvParameters ) {
     }
 
 
-    if (tempATUAL < tempPROG - 0.5 && LINHA_1) {
-      potencia_1 = 50;
-      DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
-      ligaRELE(RELE_1);
-      //Serial.println("rele ligado");
-      rele = true;
-    } else if (LINHA_1) {
-      rele = false;
-      desligaRELE(RELE_1);
-      if (tempATUAL != lastTempATUAL) {
-        //Serial.println("Temp diff");
-        if (tempATUAL < lastTempATUAL && tempATUAL < tempPROG - 0.0) {
-          potencia_1 = potencia_1 + 10;
-          potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
-          DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
-          //Serial.println("aumentando potencia");
-        } else if (tempATUAL > tempPROG - 0.1) {
-          /*potencia_1 = potencia_1 - 10;
+    //a cada 5 segunos atualiza os dados do triac, se possivel em 5 segundos... Pois tem os delays acima.
+    if ((millis() - millis_triac) > 5000) {
+      millis_triac = millis();
+      if (tempATUAL < tempPROG - 0.5 && LINHA_1) {
+        potencia_1 = 50;
+        DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
+        ligaRELE(RELE_1);
+        //Serial.println("rele ligado");
+        rele = true;
+      } else if (LINHA_1) {
+        rele = false;
+        desligaRELE(RELE_1);
+        if (tempATUAL != lastTempATUAL) {
+          //Serial.println("Temp diff");
+          if (tempATUAL < lastTempATUAL && tempATUAL < tempPROG - 0.0) {
+            potencia_1 = potencia_1 + 10;
             potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
             DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
-            //Serial.println("baixando potencia");*/
-          potencia_1 = 0;
-          potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
-          DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
+            //Serial.println("aumentando potencia");
+          } else if (tempATUAL > tempPROG - 0.1) {
+            /*potencia_1 = potencia_1 - 10;
+              potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
+              DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
+              //Serial.println("baixando potencia");*/
+            potencia_1 = 0;
+            potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
+            DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
+          }
+          lastTempATUAL = tempATUAL;
         }
-        lastTempATUAL = tempATUAL;
+        //Serial.println("rele desligado");
+      } else {
+        rele = false;
+        desligaRELE(RELE_1);
+        potencia_1 = 0;
+        DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
+        //Serial.println("desliga rele e lampada");
       }
-      //Serial.println("rele desligado");
-    } else {
-      rele = false;
-      desligaRELE(RELE_1);
-      potencia_1 = 0;
-      DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
-      //Serial.println("desliga rele e lampada");
     }
 
-    delay(5000);
+    //3456000000 40 dias em milissegundos, esp conta até 48 dias
+    if (millis() > 3456000000) {
+      ESP.restart();
+    }
+    delay(1);
   }
 }
 
@@ -649,13 +661,10 @@ void taskConn( void * pvParameters ) {
         while (digitalRead(PINORESET) == LOW) {
           delay(1000);
           isReset++;
+          if (isReset > 5) {
+            reset_now = true;
+          }
         }
-      }
-      if (isReset > 5) {
-        configs["default"] = true;
-        writeFile(JSON.stringify(configs), CONFIGURATION);
-        Serial.println("RESET BY PIN");
-        ESP.restart();
       }
       wifi++;
     }
@@ -845,34 +854,27 @@ void taskConn( void * pvParameters ) {
 
 
   while (true) {
-
-    if ((millis() - ultimo_millis3) > 15 * 60 * 1000) { //minutos*60*1000
-      ultimo_millis3 = millis();
+    if ((millis() - millis_ntp) > 15 * 60 * 1000) { //minutos*60*1000
+      millis_ntp = millis();
       if (ntp.forceUpdate()) {
-        //RtcDateTime timee = ntp.getEpochTime();
-        //Rtc.SetDateTime(timee-946684800);
-        //Serial.println("\nHorario atualizado pela WEB!");
+        RtcDateTime timee = ntp.getEpochTime();
+        Rtc.SetDateTime(timee - 946684800);
+        Serial.println("\nHorario atualizado pela WEB!");
       }
-
     }
-
 
     if (digitalRead(PINORESET) == LOW) {
       while (digitalRead(PINORESET) == LOW) {
         delay(1000);
         isReset++;
+        if (isReset > 5) {
+          reset_now = true;
+        }
       }
     }
-    if (isReset > 5) {
-      configs["default"] = true;
-      writeFile(JSON.stringify(configs), CONFIGURATION);
-      Serial.println("RESET BY PIN");
-      ESP.restart();
-    }
 
-
-    if ((millis() - ultimo_millis3) > 10000 || updateValues) {
-      ultimo_millis3 = millis();
+    if ((millis() - millis_lcd) > 1000) {
+      millis_lcd = millis();
       Wire.begin(22, 23);
       lcd.begin();
       lcd.backlight();
@@ -902,6 +904,10 @@ void taskConn( void * pvParameters ) {
         lcd.setCursor(0, 1);
         lcd.print("desligado!");
       }
+    }
+
+    if ((millis() - ultimo_millis3) > 10000 || updateValues) {
+      ultimo_millis3 = millis();
 
       if (WiFi.status() == WL_CONNECTED) {
         json2.set("tempPROG", tempPROG);
@@ -924,6 +930,7 @@ void taskConn( void * pvParameters ) {
         writeData.stopWiFiClient();
 
         if (isUpdate) {
+          delay(5000);
           String url = "http://update.gigabyte.inf.br/update.php?ver=";
           url.concat(VERSION);
           url.concat("&model=");

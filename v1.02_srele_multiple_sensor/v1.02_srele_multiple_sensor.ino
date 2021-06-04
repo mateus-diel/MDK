@@ -41,8 +41,8 @@ typedef struct
 #define CONFIGURATION "/configs.json"
 #define DEVICESINFO "/devices.json"
 #define DAYSINFO "/days.json"
-#define VERSION "1.02"
-#define MODEL "casa"
+#define VERSION "1.02.srele.multiple"
+#define MODEL "suino"
 #define NSEMANAS 35
 
 
@@ -413,24 +413,17 @@ void taskDim( void * pvParameters ) {
     float tempC;
 
     sensors.begin();
-    Serial.print("Locating devices...");
-    Serial.print("Found ");
     deviceCount = sensors.getDeviceCount();
-    Serial.print(deviceCount, DEC);
-    Serial.println(" devices.");
     sensors.requestTemperatures();
     delay(10);
     tempATUAL = 0.0;
     if (deviceCount != 0) {
       for (int i = 0;  i < deviceCount;  i++)    {
-        Serial.print("Sensor ");
-        Serial.print(i + 1);
-        Serial.print(" : ");
         tempC = sensors.getTempCByIndex(i);
         short erroSensor = 0;
         while (tempC < -100) {
-          Serial.println("ERRO DE LEITURA");
           sensors.requestTemperatures();
+          delay(700);
           tempC = sensors.getTempCByIndex(i);
           if (erroSensor > 20) {
             deviceCount--;
@@ -438,25 +431,17 @@ void taskDim( void * pvParameters ) {
           }
           erroSensor++;
           numError++;
-          delay(700);
         }
         if (!(tempC < -100)) {
           tempATUAL = tempATUAL + tempC;
         }
-        Serial.print(tempC);
-        Serial.println(" ºC");
       }
 
       Serial.print("Media: ");
       tempATUAL = tempATUAL / deviceCount;
       Serial.print(tempATUAL);
       Serial.println(" ºC");
-
-      Serial.println("");
-
-      Serial.println("");
     } else {
-      Serial.println("nao foram encontrados sensores");
       tempATUAL = 0.0;
     }
 
