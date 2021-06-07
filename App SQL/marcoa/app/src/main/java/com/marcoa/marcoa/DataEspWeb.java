@@ -14,10 +14,17 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DataSnapshot;
@@ -27,6 +34,9 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.owl93.dpb.CircularProgressView;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class DataEspWeb extends AppCompatActivity {
     CircularProgressView temp;
     Button btnLigaDesliga, btnVerProg, btnManualWeb, btnAutoWeb;
@@ -34,14 +44,16 @@ public class DataEspWeb extends AppCompatActivity {
     TextView txtStatus, modoWeb;
     TextView txtTempProg;
     ProgressDialog dial;
-    private static FirebaseDatabase database;
-    private static DatabaseReference ref;
-    private static ValueEventListener listener;
     ProgressDialog progressDialog;
     SeekBar seekBar;
-    Thread t;
+    Thread t, thread;
     Intent intent;
+    int timeoutEsp = 20;
     SharedPreferences prefs;
+    private Object mPauseLock;
+    private boolean mPaused;
+    private boolean mFinished;
+    RequestQueue requestQueue;
 
     volatile int lastTempProg, tempRecebido = 0;
     volatile boolean lastLigaDesliga, ligaDesliga = false;
@@ -56,7 +68,7 @@ public class DataEspWeb extends AppCompatActivity {
         setContentView(R.layout.activity_data_esp_web);
         activity = this;
 
-       //androidx.appcompat.app.ActionBar actionBar = getSupportActionBar();
+        //androidx.appcompat.app.ActionBar actionBar = getSupportActionBar();
         //getSupportActionBar().setDisplayShowTitleEnabled(false);
 
         //actionBar.setDisplayShowCustomEnabled(true);
@@ -69,15 +81,15 @@ public class DataEspWeb extends AppCompatActivity {
         btnManualWeb = findViewById(R.id.btnManualWeb);
         modoWeb = findViewById(R.id.txtModoWeb);
 
+
+        mPauseLock = new Object();
+        mPaused = false;
+        mFinished = false;
+
         intent = getIntent();
 
 
-
-
-
-        database = FirebaseDatabase.getInstance();
-
-         prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
+        prefs = getSharedPreferences("preferencias", Context.MODE_PRIVATE);
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Por favor, aguarde...");
 
@@ -93,9 +105,9 @@ public class DataEspWeb extends AppCompatActivity {
         temp.setProgress(0);
         temp.setTextEnabled(true);
         temp.setText("...");
-        txtLocal.setText(intent.getStringExtra("deviceName").toUpperCase());
+        txtLocal.setText(intent.getStringExtra("deviceName").substring(intent.getStringExtra("deviceName").indexOf("*/*") + 3).toUpperCase());
         Log.d("nome do dispositivo", intent.getStringExtra("deviceName"));
-        listener =  new ValueEventListener() {
+        /*listener =  new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 for (DataSnapshot device: snapshot.getChildren()) {
@@ -151,16 +163,16 @@ public class DataEspWeb extends AppCompatActivity {
             public void onCancelled(@NonNull DatabaseError error) {
 
             }
-        };
+        };*/
 
-        ref = database.getReference("cliente/".concat(prefs.getString("chave","null")).concat("/").concat(intent.getStringExtra("deviceName").toLowerCase()).concat("/W"));
-        Log.d("Caminho do cliente","cliente/".concat(prefs.getString("chave","null")).concat("/").concat(intent.getStringExtra("deviceName")).concat("/W") );
+        //ref = database.getReference("cliente/".concat(prefs.getString("chave","null")).concat("/").concat(intent.getStringExtra("deviceName").toLowerCase()).concat("/W"));
+        Log.d("Caminho do cliente", "cliente/".concat(prefs.getString("chave", "null")).concat("/").concat(intent.getStringExtra("deviceName")).concat("/W"));
 
 
         btnLigaDesliga.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(modoAtual){
+                if (modoAtual) {
                     AlertDialog.Builder dialog = new AlertDialog.Builder(DataEspWeb.this);
                     dialog.setTitle("Aviso");
                     dialog.setMessage("O ambiente está trabalhando no modo automático! Se você deseja ajustar manualmente, coloque-o no modo manual!");
@@ -171,7 +183,7 @@ public class DataEspWeb extends AppCompatActivity {
                         }
                     });
                     dialog.create().show();
-                }else if(modoViagem){
+                } else if (modoViagem) {
                     AlertDialog.Builder dialog = new AlertDialog.Builder(DataEspWeb.this);
                     dialog.setTitle("Aviso");
                     dialog.setMessage("O ambiente está com o modo viagem ativo. Se você deseja ajustar manualmente, desative o modo viagem!");
@@ -182,13 +194,13 @@ public class DataEspWeb extends AppCompatActivity {
                         }
                     });
                     dialog.create().show();
-                }else{
-                    if(btnLigaDesliga.getText().toString().toLowerCase().equals("desligar")){
+                } else {
+                    if (btnLigaDesliga.getText().toString().toLowerCase().equals("desligar")) {
                         sendLigaDesliga(false);
                         ligaDesliga = false;
                         lastLigaDesliga = true;
 
-                    }else{
+                    } else {
                         sendLigaDesliga(true);
                         lastLigaDesliga = false;
                         ligaDesliga = true;
@@ -219,7 +231,9 @@ public class DataEspWeb extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 txtTempProg.setText(Integer.toString(progress));
 
-            };
+            }
+
+            ;
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
@@ -227,7 +241,6 @@ public class DataEspWeb extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                progressDialog.setMessage("Definindo temperatura, aguarde...");
                 lastTempProg = Integer.parseInt(txtTempProg.getText().toString());
                 sendTemp(Float.parseFloat(txtTempProg.getText().toString()));
             }
@@ -272,11 +285,130 @@ public class DataEspWeb extends AppCompatActivity {
         btnVerProg.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent i =  new Intent(DataEspWeb.this, VerProgramacoesWeb.class);
-                i.putExtra("deviceName", txtLocal.getText().toString());
+                Intent i = new Intent(DataEspWeb.this, VerProgramacoesWeb.class);
+                Log.d("passei na intent", intent.getStringExtra("deviceName"));
+                i.putExtra("deviceName", intent.getStringExtra("deviceName"));
                 startActivity(i);
             }
         });
+
+        JSONObject params = new JSONObject();
+        try {
+            params.put("uuid", intent.getStringExtra("deviceName").substring(0, intent.getStringExtra("deviceName").indexOf("*/*")));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        requestQueue = Volley.newRequestQueue(getApplicationContext());
+
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, getResources().getString(R.string.server).concat("api/dispositivo/dados/esp"), params, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                Log.d("sucessso", response.toString());
+                progressDialog.dismiss();
+                try {
+
+                    JSONObject json = new JSONObject(response.toString());
+                    Log.d("json array", json.toString());
+
+                    if (json.has("code")) {
+                        if (json.getInt("code") == 900) {
+
+                        } else if (json.getInt("code") == 200) {
+                            JSONObject dispositivo = json.getJSONObject("0");
+                            if (dispositivo.has("temp_atual")) {
+                                temp.animateProgressChange((float) dispositivo.getDouble("temp_atual"), 1000);
+                                temp.setText(String.format("%.1f", (float) dispositivo.getDouble("temp_atual")).replace(",", ".").concat(" ºC"));
+                            }
+                            if (dispositivo.has("temp_prog_esp_ler")) {
+                                txtTempProg.setText(String.valueOf(Math.round(dispositivo.getDouble("temp_prog_esp_ler"))));
+                                seekBar.setProgress((int) Math.round(dispositivo.getDouble("temp_prog_esp_ler")));
+                            }
+                            if (dispositivo.has("status_esp_ler")) {
+                                if (intToBoolean(dispositivo.getInt("status_esp_ler"))) {
+                                    txtStatus.setText("Ligado!");
+                                    seekBar.setEnabled(true);
+                                    btnLigaDesliga.setText("Desligar");
+                                } else {
+                                    txtStatus.setText("Desligado!");
+                                    btnLigaDesliga.setText("Ligar");
+                                    seekBar.setEnabled(false);
+                                }
+                            }
+                            if (dispositivo.has("modo_viagem_esp_ler")) {
+                                if (intToBoolean(dispositivo.getInt("modo_viagem_esp_ler"))) {
+                                    modoViagem = true;
+                                    modoWeb.setText("Modo Viagem");
+                                } else {
+                                    modoViagem = false;
+                                }
+                            }
+
+                            if (dispositivo.has("auto_esp_ler")) {
+                                if (intToBoolean(dispositivo.getInt("auto_esp_ler"))) {
+                                    btnManualWeb.setEnabled(true);
+                                    btnAutoWeb.setEnabled(false);
+                                    seekBar.setEnabled(false);
+                                    modoWeb.setText("Automático");
+                                    txtStatus.setText("Automático");
+                                    modoAtual = true;
+                                    modo = true;
+                                } else {
+                                    btnManualWeb.setEnabled(false);
+                                    btnAutoWeb.setEnabled(true);
+                                    seekBar.setEnabled(true);
+                                    modoWeb.setText("Manual");
+                                    modoAtual = false;
+                                    modo = false;
+                                }
+                            }
+                        }
+                    }
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                progressDialog.dismiss();
+                error.printStackTrace();
+                Log.d("erroooo", error.getMessage());
+
+            }
+        });
+
+        thread = new Thread() {
+            public void run() {
+
+                while (!mFinished) {
+                    //do stuff
+                    requestQueue.add(jsonObjectRequest);
+                    try {
+                        Thread.sleep(10000);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    synchronized (mPauseLock) {
+                        while (mPaused) {
+
+                            try {
+                                mPauseLock.wait();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+
+            }
+        };
+
+        thread.start();
+
+
     }
 
     private void sendLigaDesliga(boolean state) {
@@ -284,6 +416,21 @@ public class DataEspWeb extends AppCompatActivity {
         dial.setMessage("Por favor aguarde, estamos contatando o dispositivo...");
         dial.setCanceledOnTouchOutside(false);
         dial.show();
+
+
+        JSONObject params = new JSONObject();
+        try {
+            params.put("uuid", intent.getStringExtra("deviceName").substring(0, intent.getStringExtra("deviceName").indexOf("*/*")));
+            params.put("acao", "liga");
+            params.put("valor", booleanToInt(state));
+            Log.d("parametros", params.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        comm(params);
+
+        /*
 
         database.getReference().child("cliente").child(prefs.getString("chave","null")).child(intent.getStringExtra("deviceName")).child("R").child("info").child("LINHA_1").setValue(state).addOnSuccessListener(new OnSuccessListener<Void>() {
 
@@ -342,11 +489,29 @@ public class DataEspWeb extends AppCompatActivity {
                 dial.dismiss();
                 message("Houve um erro, não foi possível contatar o dispositivo!");
             }
-        });
+        });*/
     }
 
     private void sendModo(boolean state) {
         dial = new ProgressDialog(this);
+        dial.setMessage("Por favor aguarde, estamos contatando o dispositivo...");
+        dial.setCanceledOnTouchOutside(false);
+        dial.show();
+
+
+        JSONObject params = new JSONObject();
+        try {
+            params.put("uuid", intent.getStringExtra("deviceName").substring(0, intent.getStringExtra("deviceName").indexOf("*/*")));
+            params.put("acao", "modoAutomatico");
+            params.put("valor", booleanToInt(state));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        comm(params);
+
+
+        /*dial = new ProgressDialog(this);
         dial.setMessage("Por favor aguarde, estamos contatando o dispositivo...");
         dial.setCanceledOnTouchOutside(false);
         dial.show();
@@ -408,11 +573,27 @@ public class DataEspWeb extends AppCompatActivity {
                 dial.dismiss();
                 message("Houve um erro, não foi possível contatar o dispositivo!");
             }
-        });
+        });*/
     }
 
     private void sendTemp(Float state) {
         dial = new ProgressDialog(this);
+        dial.setMessage("Por favor aguarde, estamos contatando o dispositivo...");
+        dial.setCanceledOnTouchOutside(false);
+        dial.show();
+
+
+        JSONObject params = new JSONObject();
+        try {
+            params.put("uuid", intent.getStringExtra("deviceName").substring(0, intent.getStringExtra("deviceName").indexOf("*/*")));
+            params.put("acao", "temp");
+            params.put("valor", state);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        comm(params);
+        /*dial = new ProgressDialog(this);
         dial.setMessage("Por favor aguarde, estamos contatando o dispositivo...");
         dial.setCanceledOnTouchOutside(false);
         dial.show();
@@ -472,7 +653,30 @@ public class DataEspWeb extends AppCompatActivity {
                 dial.dismiss();
                 message("Houve um erro, não foi possível contatar o dispositivo!");
             }
+        });*/
+    }
+
+    private void comm(JSONObject params) {
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, getResources().getString(R.string.server).concat("api/dispositivo/dados/set"), params, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                dial.dismiss();
+                checkInfo(response);
+                Log.d("sucessso", response.toString());
+
+
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                error.printStackTrace();
+                Log.d("erroooo", error.getMessage());
+                dial.dismiss();
+
+            }
         });
+
+        requestQueue.add(jsonObjectRequest);
     }
 
     private void message(String msg) {
@@ -490,24 +694,110 @@ public class DataEspWeb extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if(listener!=null){
-            ref.removeEventListener(listener);
-            Log.d("removi o listener", "verdade");
+        synchronized (mPauseLock) {
+            mPaused = true;
         }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if(temp != null){
+        synchronized (mPauseLock) {
+            mPaused = false;
+            mPauseLock.notifyAll();
+        }
+        if (temp != null) {
             temp.invalidate();
             temp.postInvalidate();
             temp.refreshDrawableState();
         }
-        if(listener!=null){
-            Log.d("adicionei o listener", "verdade");
-            ref.addValueEventListener(listener);
-        }
 
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        Intent a = new Intent(DataEspWeb.this, DashWeb.class);
+        startActivity(a);
+        finish();
+    }
+
+    private boolean intToBoolean(int a) {
+        boolean res = false;
+        if (a > 0) {
+            res = true;
+        }
+        return res;
+    }
+
+    private int booleanToInt(boolean b) {
+        int a = 0;
+        if (b) {
+            a = 1;
+        }
+        return a;
+    }
+
+    private void checkInfo(JSONObject response){
+        try{
+            JSONObject json = new JSONObject(response.toString());
+            Log.d("json array", json.toString());
+
+            if (json.has("code")) {
+                if (json.getInt("code") == 900) {
+
+                } else if (json.getInt("code") == 200) {
+                    JSONObject dispositivo = json.getJSONObject("0");
+                    if (dispositivo.has("temp_atual")) {
+                        temp.animateProgressChange((float) dispositivo.getDouble("temp_atual"), 1000);
+                        temp.setText(String.format("%.1f", (float) dispositivo.getDouble("temp_atual")).replace(",", ".").concat(" ºC"));
+                    }
+                    if (dispositivo.has("temp_prog_esp_ler")) {
+                        txtTempProg.setText(String.valueOf(Math.round(dispositivo.getDouble("temp_prog_esp_ler"))));
+                        seekBar.setProgress((int) Math.round(dispositivo.getDouble("temp_prog_esp_ler")));
+                    }
+                    if (dispositivo.has("status_esp_ler")) {
+                        if (intToBoolean(dispositivo.getInt("status_esp_ler"))) {
+                            txtStatus.setText("Ligado!");
+                            seekBar.setEnabled(true);
+                            btnLigaDesliga.setText("Desligar");
+                        } else {
+                            txtStatus.setText("Desligado!");
+                            btnLigaDesliga.setText("Ligar");
+                            seekBar.setEnabled(false);
+                        }
+                    }
+                    if (dispositivo.has("modo_viagem_esp_ler")) {
+                        if (intToBoolean(dispositivo.getInt("modo_viagem_esp_ler"))) {
+                            modoViagem = true;
+                            modoWeb.setText("Modo Viagem");
+                        } else {
+                            modoViagem = false;
+                        }
+                    }
+
+                    if (dispositivo.has("auto_esp_ler")) {
+                        if (intToBoolean(dispositivo.getInt("auto_esp_ler"))) {
+                            btnManualWeb.setEnabled(true);
+                            btnAutoWeb.setEnabled(false);
+                            seekBar.setEnabled(false);
+                            modoWeb.setText("Automático");
+                            txtStatus.setText("Automático");
+                            modoAtual = true;
+                            modo = true;
+                        } else {
+                            btnManualWeb.setEnabled(false);
+                            btnAutoWeb.setEnabled(true);
+                            seekBar.setEnabled(true);
+                            modoWeb.setText("Manual");
+                            modoAtual = false;
+                            modo = false;
+                        }
+                    }
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 }

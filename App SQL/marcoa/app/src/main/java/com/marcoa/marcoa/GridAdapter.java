@@ -52,7 +52,7 @@ public class GridAdapter extends BaseAdapter {
         TextView textView = convertView.findViewById(R.id.text_view);
         imageView.setImageDrawable(numImg.get(position));
         imageView.setBackgroundColor(ContextCompat.getColor(context, R.color.cinzaBackground));
-        textView.setText(number.get(position));
+        textView.setText(number.get(position).substring(number.get(position).indexOf("*/*")+3));
         return convertView;
     }
 }

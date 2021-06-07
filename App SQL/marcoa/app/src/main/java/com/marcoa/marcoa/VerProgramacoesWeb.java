@@ -18,15 +18,25 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -43,6 +53,7 @@ public class VerProgramacoesWeb extends AppCompatActivity {
     String dispositivo;
     AlertDialog.Builder dialog;
     AlertDialog show;
+    private RequestQueue requestQueue;
     ProgressDialog progressDialog;
     static int lastExpadedPosition = -1;
 
@@ -96,10 +107,11 @@ public class VerProgramacoesWeb extends AppCompatActivity {
         editor.putString("deviceNameForAdapter", dispositivo.toLowerCase());
         editor.apply();
         database = FirebaseDatabase.getInstance();
-        nomeDisp.setText(dispositivo.toUpperCase());
+        nomeDisp.setText(intent.getStringExtra("deviceName").substring(intent.getStringExtra("deviceName").indexOf("*/*") + 3).toUpperCase());
+        requestQueue = Volley.newRequestQueue(getApplicationContext());
 
-        updateList();
-
+        //updateList();
+        update();
 
         //criarGrupos();
         //criarColecoes();
@@ -109,6 +121,110 @@ public class VerProgramacoesWeb extends AppCompatActivity {
 
 
 
+    }
+
+    private void update(){
+
+        JSONObject params = new JSONObject();
+        try {
+            params.put("uuid_dispositivo", intent.getStringExtra("deviceName").substring(0, intent.getStringExtra("deviceName").indexOf("*/*")));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        Log.d("paramss", params.toString());
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, getResources().getString(R.string.server).concat("api/dispositivo/ver_programacoes"), params, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                Log.d("sucessso", response.toString());
+                try {
+                    AlertDialog.Builder dial = new AlertDialog.Builder(VerProgramacoesWeb.this);
+                    dial.setTitle("Aviso");
+                    dial.setCancelable(false);
+                    JSONObject json = new JSONObject(response.toString());
+                    Log.d("json array", json.toString());
+
+                    if (json.has("code")) {
+                        if (json.getInt("code") == 900) {
+                            dial.setMessage("Houve uma falha ao carregar os dados, tente novamente mais tarde!\nCódigo: ".concat(Integer.toString(json.getInt("code"))));
+                            dial.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                }
+                            });
+                            dial.create().show();
+                        } else if (json.getInt("code") == 200) {
+                            Iterator<String> iter = json.keys();
+                            while (iter.hasNext()) {
+                                String key = iter.next();
+                                Log.d("keeeeeey", key);
+                                if (!key.equalsIgnoreCase("code")){
+                                    JSONObject value = json.getJSONObject(key);
+                                    grupos.add(diaSemana(Integer.parseInt(value.getString("dia_semana"))));
+                                    List<String> hr =  new ArrayList<>();
+
+                                    //hr.add(d.child("liga").getValue().toString().concat("*").concat(d.child("desliga").getValue().toString()).concat("%").concat(d.child("tempPROG").getValue().toString()).concat("*/*").concat(d.getKey()));
+                                    hr.add(value.getString("liga").concat("*").concat(value.getString("desliga")).concat("%").concat(value.getString("temp_prog")).concat("*/*").concat(value.getString("id")));
+                                /*Log.d("childrens key", d.getKey());
+                                Log.d("childrens  values", d.toString());
+                                Log.d("Liga", d.child("liga").getValue().toString());
+                                Log.d("desliga", d.child("desliga").getValue().toString());
+                                Log.d("tempPROG", d.child("tempPROG").getValue().toString());*/
+                                    Log.d("adicionado na hora", value.getString("liga").concat("*").concat(value.getString("desliga")).concat("%").concat(value.getString("temp_prog")).concat("*/*").concat(value.getString("id")));
+                                    colecao.put(diaSemana(Integer.parseInt(value.getString("dia_semana"))),hr);
+
+                                }
+
+
+
+                            }
+                            expandableListView=findViewById(R.id.listViewProgramacoesDispositivos);
+                            expandableListAdapter= new MyExpandableListAdapter(VerProgramacoesWeb.this,  grupos, colecao);
+                            expandableListView.setAdapter(expandableListAdapter);
+                            expandableListView.setOnGroupExpandListener(new ExpandableListView.OnGroupExpandListener() {
+                                @Override
+                                public void onGroupExpand(int groupPosition) {
+                                    if(lastExpadedPosition  != -1  && groupPosition !=  lastExpadedPosition){
+                                        expandableListView.collapseGroup(lastExpadedPosition);
+                                    }
+                                    lastExpadedPosition =  groupPosition;
+                                }
+                            });
+                            expandableListView.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
+                                @Override
+                                public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
+                                    String selected=expandableListAdapter.getChild(groupPosition,childPosition).toString();
+                                    Toast.makeText(VerProgramacoesWeb.this,selected,Toast.LENGTH_SHORT).show();
+                                    return true;
+                                }
+                            });
+
+                        }else if (json.getInt("code") == 902) {
+                            dialog.create().show();
+                        }
+
+                    }
+
+                    //loadingDialog.dimissDialog();
+
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                progressDialog.dismiss();
+
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                error.printStackTrace();
+                Log.d("erroooo", error.getMessage());
+                progressDialog.dismiss();
+
+            }
+        });
+
+        requestQueue.add(jsonObjectRequest);
     }
 
     private void updateList() {
@@ -198,7 +314,26 @@ public class VerProgramacoesWeb extends AppCompatActivity {
         }else if(num.contains("0a")){
             return "Domingo";
         }
-    return "";
+        return "";
+    }
+
+    private String diaSemana(int num){
+        if(num==1){
+            return "Segunda";
+        }else if(num==2){
+            return "Terça";
+        }else if(num==3){
+            return "Quarta";
+        }else if(num==4){
+            return "Quinta";
+        }else if(num==5){
+            return "Sexta";
+        }else if(num==6){
+            return "Sábado";
+        }else if(num==0){
+            return "Domingo";
+        }
+        return "";
     }
 
     /*private void criarColecoes() {
@@ -244,7 +379,8 @@ public class VerProgramacoesWeb extends AppCompatActivity {
         if(expandableListView == null){
             Log.d("A epandable é nulaa"," ave marinaha");
         }else{
-            updateList();
+            //updateList();
+            update();
         }
     }
 

@@ -182,10 +182,10 @@ String diaDaSemana() {
     return "-1";
   }
   RtcDateTime date = Rtc.GetDateTime();
-  /*Serial.print("\n Dia da semana: ");
-    Serial.println(String(date.DayOfWeek()));
-    printDateTime(date);
-    Serial.println();*/
+  Serial.print("\n Dia da semana: ");
+  Serial.println(String(date.DayOfWeek()));
+  printDateTime(date);
+  Serial.println();
   return (String(date.DayOfWeek()));
 }
 
@@ -376,7 +376,7 @@ void taskDim( void * pvParameters ) {
     if (automaticMode) {
       xSemaphoreTake(myMutex, portMAX_DELAY);
       for (int i = 0; i < NSEMANAS; i++) {
-        if (hrs[i].semana.length() > 1) {
+        if (hrs[i].semana.length() > 0) {
           if (hrs[i].semana.indexOf(diaDaSemana()) > -1 && diaDaSemana().toInt() > -1 ) {
             if (estaEntre(hrs[i].liga, hrs[i].desliga)) {
               LINHA_1 = true;
@@ -395,16 +395,6 @@ void taskDim( void * pvParameters ) {
       LINHA_1 = true;
       tempPROG = 10.0;
     }
-
-    /*lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("T. Prog:");
-      lcd.setCursor(8, 0);
-      lcd.print(tempPROG);
-      lcd.setCursor(0, 1);
-      lcd.print("T. Obs:");
-      lcd.setCursor(7, 1);
-      lcd.print(tempATUAL);*/
 
 
     if ((millis() - ultimo_millis2) > debounce_delay) {
@@ -563,8 +553,10 @@ boolean api(String endereco, JSONVar dados) {
         } else if (((int) jso["code"]) == 201) {
           ret = true;
           JSONVar dados =  jso["dispositivo"];
-          tempPROG = String((const char*) dados["temp_prog_esp_ler"]).toDouble();
           automaticMode = intToBoolean(String((const char*) dados["auto_esp_ler"]).toInt());
+          if (!automaticMode) {
+            tempPROG = String((const char*) dados["temp_prog_esp_ler"]).toDouble();
+          }
           modoViagem = intToBoolean(String((const char*) dados["modo_viagem_esp_ler"]).toInt());
           LINHA_1 = intToBoolean(String((const char*) dados["status_esp_ler"]).toInt());
           JSONVar k = jso.keys();
@@ -580,6 +572,16 @@ boolean api(String endereco, JSONVar dados) {
                 hrs[pos].temp = String((const char*) prog["temp_prog"]).toDouble();
                 hrs[pos].liga = String((const char*) prog["liga"]);
                 hrs[pos].desliga = String((const char*) prog["desliga"]);
+                Serial.print("\n\n");
+                Serial.print("semana:" );
+                Serial.println(hrs[pos].semana);
+                Serial.print("liha:" );
+                Serial.println(hrs[pos].liga);
+                Serial.print("desliga:" );
+                Serial.println(hrs[pos].desliga);
+                Serial.print("temp:" );
+                Serial.println(hrs[pos].temp);
+                Serial.println("\n\n");
                 xSemaphoreGive(myMutex);
                 pos++;
               }
@@ -780,6 +782,19 @@ void taskConn( void * pvParameters ) {
     delay(1);
   }
 
+  if (String((const char*)configs["uuid_dispositivo"]).indexOf("null") > -1) {
+    Serial.println("Irei me registrar.");
+    JSONVar registro;
+    registro["nome"] = String((const char*)configs["deviceName"]);
+    registro["uuid_cliente"] = String((const char*)configs["uuid_cliente"]);
+    registro["uuid_dispositivo"] = StringUUIDGen();
+    while (!api("api/dispositivo/registrar", registro)) {
+      delay(10000);
+    }
+    configs["uuid_dispositivo"] = String((const char*)registro["uuid_dispositivo"]);
+    saveConfig = true;
+  }
+
   while (logado == 0) {
     Serial.println("Estou logando...");
     if (login("api/login/esp", String((const char*)configs["user_email"]), String((const char*)configs["user_senha"]), String((const char*)configs["uuid_cliente"]))) {
@@ -792,19 +807,6 @@ void taskConn( void * pvParameters ) {
     Serial.println("ESP nao esta licenciado.");
     delay(60 * 60 * 1000);//minutos*60*1000
     ESP.restart();
-  }
-
-  if (String((const char*)configs["uuid_dispositivo"]).indexOf("null") > -1) {
-    Serial.println("Irei me registrar.");
-    JSONVar registro;
-    registro["nome"] = String((const char*)configs["deviceName"]);
-    registro["uuid_cliente"] = String((const char*)configs["uuid_cliente"]);
-    registro["uuid_dispositivo"] = StringUUIDGen();
-    while (!api("api/dispositivo/registrar", registro)) {
-      delay(10000);
-    }
-    configs["uuid_dispositivo"] = String((const char*)registro["uuid_dispositivo"]);
-    saveConfig = true;
   }
 
   JSONVar boot;
@@ -856,7 +858,7 @@ void taskConn( void * pvParameters ) {
         lcd.setCursor(15, 0);
         lcd.print("C");
         lcd.setCursor(0, 1);
-        lcd.print("T. Obs:");
+        lcd.print("T. Real:");
         lcd.setCursor(8, 1);
         lcd.print(tempATUAL);
         lcd.setCursor(14, 1);

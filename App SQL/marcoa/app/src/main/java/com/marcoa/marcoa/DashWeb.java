@@ -183,7 +183,8 @@ public class DashWeb extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 floatingMenu.close(true);
                 Intent intent = new Intent(getApplicationContext(), DataEspWeb.class);
-                intent.putExtra("deviceName", names.get(position).toLowerCase());
+                intent.putExtra("deviceName", names.get(position));
+                Log.d("cliquei no item", names.get(position));
                 startActivity(intent);
             }
         });
@@ -279,7 +280,7 @@ public class DashWeb extends AppCompatActivity {
 
             JSONObject params = new JSONObject();
             try {
-               params.put("id", prefs.getString("chave", "null"));
+               params.put("uuid", prefs.getString("chave", "null"));
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -446,11 +447,11 @@ public class DashWeb extends AppCompatActivity {
                                             wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
 
 
-                                            if (value.has("modo_viagem")) {
+                                            if (value.has("modo_viagem_esp_ler")) {
                                                 Log.d("tem o modo", "viagemmm");
-                                                Log.d("value int", String.valueOf(value.getInt("modo_viagem")));
+                                                Log.d("value int", String.valueOf(value.getInt("modo_viagem_esp_ler")));
                                                 Log.d("huehuhe", "viagem");
-                                                modoViagemAtivo = intToBoolean(value.getInt("modo_viagem"));
+                                                modoViagemAtivo = intToBoolean(value.getInt("modo_viagem_esp_ler"));
                                                 Log.d("tem o modo", "viagem");
 
                                             }
@@ -496,17 +497,14 @@ public class DashWeb extends AppCompatActivity {
                                             if ((Math.abs(Long.valueOf(result.getTime()) - System.currentTimeMillis()) / 1000) < offset) {
 
                                                 DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.laranjalogo));
-                                                names.add(value.getString("nome").toUpperCase());
-                                                draw.add(wrappedDrawable);
-                                                dispositivos.add(value.getString("nome").toUpperCase());
 
                                             } else {
                                                 DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.azulonline));
                                                 //DrawableCompat.setTint(wrappedDrawable, ContextCompat.getColor(DashWeb.this, R.color.azulonline));
-                                                names.add(value.getString("nome").toUpperCase());
-                                                draw.add(wrappedDrawable);
-                                                dispositivos.add(value.getString("nome").toUpperCase());
                                             }
+                                            names.add(value.getString("uuid").concat("*/*").concat(value.getString("nome").toUpperCase()));
+                                            draw.add(wrappedDrawable);
+                                            dispositivos.add(value.getString("nome").toUpperCase());
 
                                             adapter = new GridAdapter(DashWeb.this, names, draw);
                                             gridView.setAdapter(adapter);
