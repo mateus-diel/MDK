@@ -234,6 +234,7 @@ public class Login extends AppCompatActivity {
                                 SharedPreferences.Editor editor = prefs.edit();
                                 editor.putString("email", json.getString("usuario"));
                                 editor.putString("senha", pass);
+                                editor.putString("modelo", json.getString("modelo"));
                                 editor.putString("chave", json.getString("uuid"));
                                 editor.putString("chave_cliente", json.getString("uuid_cliente"));
                                 if(check.isChecked()){

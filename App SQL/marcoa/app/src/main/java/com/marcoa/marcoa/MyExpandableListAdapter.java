@@ -1,6 +1,7 @@
 package com.marcoa.marcoa;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -17,10 +18,18 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+
+import org.json.JSONObject;
 
 import java.util.List;
 import java.util.Map;
@@ -32,9 +41,11 @@ public class MyExpandableListAdapter extends BaseExpandableListAdapter {
     private FirebaseDatabase database;
     private DatabaseReference ref;
     private SharedPreferences prefs;
+    private RequestQueue requestQueue;
 
     public MyExpandableListAdapter(Context ctx, List<String> g, Map<String, List<String>> c) {
     this.context =  ctx;
+    requestQueue = Volley.newRequestQueue(this.context);
     this.mobileCollection = c;
     this.groupList=  g;
     }
@@ -112,36 +123,29 @@ public class MyExpandableListAdapter extends BaseExpandableListAdapter {
             @Override
             public void onClick(View v) {
                 AlertDialog.Builder builder =new AlertDialog.Builder(context);
+                ProgressDialog aguarde =new ProgressDialog(context);
+                aguarde.setMessage("Aguarde enquanto localizo o horário!");
                 builder.setMessage("Quer apagar este horário?");
                 builder.setCancelable(true);
                 builder.setPositiveButton("Sim", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        database = FirebaseDatabase.getInstance();
                         prefs = context.getSharedPreferences("preferencias", Context.MODE_PRIVATE);
                         Log.d("chave na adapt", prefs.getString("chave","null"));
                         String dsp = prefs.getString("deviceNameForAdapter","null").toLowerCase();
 
-                        database.getReference().child("cliente").child(prefs.getString("chave","null")).child(dsp).child("R").child("programacoes").child(getNumericSemana(groupList.get(groupPosition).toString())).child(((Button)v).getTag().toString()).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void aVoid) {
-                                Log.d("groupPosition", String.valueOf(groupPosition));
-                                Log.d("childPosition", String.valueOf(childPosition));
-                                List<String> filho = mobileCollection.get(groupList.get(groupPosition));
-                                filho.remove(childPosition);
-                                Log.d("filho size", String.valueOf(filho.size()));
-                                if(filho.size()==0){
-                                    mobileCollection.remove(groupList.get(groupPosition));
-                                    groupList.remove(groupPosition);
-                                }
-                                notifyDataSetChanged();
-                            }
-                        }).addOnFailureListener(new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
+                        JSONObject params = new JSONObject();
+                        try {
+                            params.put("uuid_dispositivo", prefs.getString("uuid_dispositivo","null"));
+                            params.put("modelo", prefs.getString("modelo","null"));
+                            params.put("id",((Button)v).getTag().toString());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        aguarde.show();
 
-                            }
-                        });
+                        comm(params, groupPosition, childPosition,aguarde);
+
                         dialog.dismiss();
                     }
                 }).setNegativeButton("Não", new DialogInterface.OnClickListener() {
@@ -194,5 +198,37 @@ public class MyExpandableListAdapter extends BaseExpandableListAdapter {
             return "0a";
         }
             return  "10a";
+    }
+
+    private void comm(JSONObject params, int groupPosition, int childPosition, ProgressDialog p) {
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, this.context.getResources().getString(R.string.server).concat("api/dispositivo/deleta_programacao"), params, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+
+                Log.d("sucessso", response.toString());
+                Log.d("groupPosition", String.valueOf(groupPosition));
+                Log.d("childPosition", String.valueOf(childPosition));
+                List<String> filho = mobileCollection.get(groupList.get(groupPosition));
+                filho.remove(childPosition);
+                Log.d("filho size", String.valueOf(filho.size()));
+                if(filho.size()==0){
+                    mobileCollection.remove(groupList.get(groupPosition));
+                    groupList.remove(groupPosition);
+                }
+                notifyDataSetChanged();
+                p.dismiss();
+
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                error.printStackTrace();
+                Log.d("erroooo", error.getMessage());
+                p.dismiss();
+
+            }
+        });
+
+        requestQueue.add(jsonObjectRequest);
     }
 }

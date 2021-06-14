@@ -105,6 +105,7 @@ public class VerProgramacoesWeb extends AppCompatActivity {
         dispositivo = intent.getStringExtra("deviceName").toLowerCase();
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("deviceNameForAdapter", dispositivo.toLowerCase());
+        editor.putString("uuid_dispositivo", intent.getStringExtra("deviceName").substring(0, intent.getStringExtra("deviceName").indexOf("*/*")));
         editor.apply();
         database = FirebaseDatabase.getInstance();
         nomeDisp.setText(intent.getStringExtra("deviceName").substring(intent.getStringExtra("deviceName").indexOf("*/*") + 3).toUpperCase());
@@ -155,29 +156,45 @@ public class VerProgramacoesWeb extends AppCompatActivity {
                             dial.create().show();
                         } else if (json.getInt("code") == 200) {
                             Iterator<String> iter = json.keys();
+                            int lastDiaSemana = -10;
+                            List<String> hr = null;
                             while (iter.hasNext()) {
                                 String key = iter.next();
                                 Log.d("keeeeeey", key);
                                 if (!key.equalsIgnoreCase("code")){
                                     JSONObject value = json.getJSONObject(key);
-                                    grupos.add(diaSemana(Integer.parseInt(value.getString("dia_semana"))));
-                                    List<String> hr =  new ArrayList<>();
+
+                                    if(lastDiaSemana != Integer.parseInt(value.getString("dia_semana"))){
+                                        if(lastDiaSemana != -10){
+                                            colecao.put(diaSemana(lastDiaSemana),hr);
+                                        }
+                                        grupos.add(diaSemana(Integer.parseInt(value.getString("dia_semana"))));
+                                        lastDiaSemana = Integer.parseInt(value.getString("dia_semana"));
+                                        hr =  new ArrayList<>();
+                                    }
 
                                     //hr.add(d.child("liga").getValue().toString().concat("*").concat(d.child("desliga").getValue().toString()).concat("%").concat(d.child("tempPROG").getValue().toString()).concat("*/*").concat(d.getKey()));
-                                    hr.add(value.getString("liga").concat("*").concat(value.getString("desliga")).concat("%").concat(value.getString("temp_prog")).concat("*/*").concat(value.getString("id")));
+
+                                    hr.add(value.getString("temp_prog").concat(" ºC de ").concat(value.getString("liga")).concat(" até ").concat(value.getString("desliga")).concat("*/*").concat(value.getString("id")));
+                                    Log.d("valor da hrr: ", hr.get(0));
+                                    //hr.add(value.getString("liga").concat("*").concat(value.getString("desliga")).concat("%").concat(value.getString("temp_prog")).concat("*/*").concat(value.getString("id")));
                                 /*Log.d("childrens key", d.getKey());
                                 Log.d("childrens  values", d.toString());
                                 Log.d("Liga", d.child("liga").getValue().toString());
                                 Log.d("desliga", d.child("desliga").getValue().toString());
                                 Log.d("tempPROG", d.child("tempPROG").getValue().toString());*/
                                     Log.d("adicionado na hora", value.getString("liga").concat("*").concat(value.getString("desliga")).concat("%").concat(value.getString("temp_prog")).concat("*/*").concat(value.getString("id")));
-                                    colecao.put(diaSemana(Integer.parseInt(value.getString("dia_semana"))),hr);
+
+
+                                    //hr.add(z.substring(z.indexOf("%")+1,z.indexOf("*/*")).concat(" ºC de ").concat(z.substring(0,z.indexOf("*"))).concat(" até ").concat(z.substring(z.indexOf("*")+1,z.indexOf("%"))).concat(z.substring(z.indexOf("*/*"),z.length())));
+
 
                                 }
 
 
 
                             }
+                            colecao.put(diaSemana(lastDiaSemana),hr);
                             expandableListView=findViewById(R.id.listViewProgramacoesDispositivos);
                             expandableListAdapter= new MyExpandableListAdapter(VerProgramacoesWeb.this,  grupos, colecao);
                             expandableListView.setAdapter(expandableListAdapter);

@@ -504,7 +504,8 @@ public class DashWeb extends AppCompatActivity {
                                             }
                                             names.add(value.getString("uuid").concat("*/*").concat(value.getString("nome").toUpperCase()));
                                             draw.add(wrappedDrawable);
-                                            dispositivos.add(value.getString("nome").toUpperCase());
+                                            dispositivos.add(value.getString("uuid").concat("*/*").concat(value.getString("nome").toUpperCase()));
+                                            //dispositivos.add(value.getString("nome").toUpperCase());
 
                                             adapter = new GridAdapter(DashWeb.this, names, draw);
                                             gridView.setAdapter(adapter);

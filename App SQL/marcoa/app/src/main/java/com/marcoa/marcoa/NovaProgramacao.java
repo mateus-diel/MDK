@@ -44,6 +44,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 
 import static org.apache.commons.text.CharacterPredicates.DIGITS;
 import static org.apache.commons.text.CharacterPredicates.LETTERS;
@@ -62,6 +63,7 @@ public class NovaProgramacao extends AppCompatActivity {
     SharedPreferences prefs;
     Handler mHandler;
     ProgressDialog progressDialog;
+    private Map<String, String> nomeDispositivoUUID;
     private FirebaseDatabase database;
     private DatabaseReference ref;
     private List<String> conflito;
@@ -155,15 +157,23 @@ public class NovaProgramacao extends AppCompatActivity {
 
         listView = findViewById(R.id.listViewDispositivos);
         salvarProgramacao = findViewById(R.id.buttonSalvarProgramacao);
+        nomeDispositivoUUID = new HashMap<>();
+        ArrayList<String> dev = new ArrayList<>();
+        for(String t : DashWeb.getDispositivos()){
+            nomeDispositivoUUID.put(t.substring(t.indexOf("*/*")+3),t.substring(0, t.indexOf("*/*")));
+            dev.add(t.substring(t.indexOf("*/*")+3));
+        }
+
         if (intent.getIntExtra("op", -1) == 1) {
             ArrayList<String> arrayList = new ArrayList<>();
-            arrayList.add(prefs.getString("deviceNameForAdapter", "null").toUpperCase());
+            String str = prefs.getString("deviceNameForAdapter", "null");
+            arrayList.add(str.substring(str.indexOf("*/*")+3).toUpperCase());
             adapter = new ArrayAdapter<String>(this, R.layout.list_item_multiple_choice, arrayList);
             listView.setItemChecked(0, true);
             listView.setAdapter(adapter);
             listView.setItemChecked(0, true);
         } else {
-            adapter = new ArrayAdapter<String>(this, R.layout.list_item_multiple_choice, DashWeb.getDispositivos());
+            adapter = new ArrayAdapter<String>(this, R.layout.list_item_multiple_choice, dev);
             listView.setAdapter(adapter);
         }
         //adapter  = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_multiple_choice, new String[]{"ambiente 1", "ambiente 2", "ambiente 3", "ambiente 4", "ambiente 5", "ambiente 6", "ambiente 7", "ambiente 8", "ambiente 9", "ambiente 10"});
@@ -292,98 +302,27 @@ public class NovaProgramacao extends AppCompatActivity {
 
                             }
 
-
-                          /*  for (int i = 0; i < ambientesSelecionados.size(); i++) {
-                                if (mutableData.hasChild(ambientesSelecionados.get(i).toLowerCase())) {
-                                    Log.d("tem o ambinete", "selecionado");
-                                    for (int z = 0; z < diasSelecionados.size(); z++) {
-                                        if (mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").hasChild(String.valueOf(diasSelecionados.get(z)))) {
-
-                                            for (MutableData child : mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(String.valueOf(diasSelecionados.get(z))).getChildren()) {
-                                                Log.d("childdd", child.getKey());
-                                                Log.d("liga", child.child("liga").getValue().toString());
-                                                Log.d("ddesliga", child.child("desliga").getValue().toString());
-                                                Log.d("temp", child.child("tempPROG").getValue().toString());
-
-                                                SimpleDateFormat df = new SimpleDateFormat("HH:mm");
-                                                try {
-                                                    Date bancoLiga = df.parse(child.child("liga").getValue().toString());
-                                                    Date bancoDesliga = df.parse(child.child("desliga").getValue().toString());
-                                                    Date vaiLigar = df.parse(tv1.getText().toString());
-                                                    Date vaiDesligar = df.parse(tv2.getText().toString());
-
-                                                    if (vaiLigar.after(bancoLiga) && vaiLigar.before(bancoDesliga)) {
-                                                        Log.d("abortou", "no primeiro");
-                                                        conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
-                                                        //Transaction.abort();
-                                                        //break;
-                                                    }
-                                                    if (vaiDesligar.getTime() - 1 > bancoLiga.getTime() && vaiDesligar.getTime() - 1 < bancoDesliga.getTime()) {
-
-                                                        Log.d("abortou", "no segundo");
-                                                        conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
-                                                    }
-
-                                                    if (vaiLigar.getTime() < bancoLiga.getTime() && vaiDesligar.getTime() > bancoDesliga.getTime()) {
-                                                        conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
-                                                    }
-
-                                                    if (vaiDesligar.after(bancoLiga) && vaiDesligar.before(bancoDesliga)) {
-
-                                                        //Transaction.abort();
-                                                        // break;
-                                                    }
-                                                    Log.d("passou", "no segundo");
-
-
-                                                } catch (Exception e) {
-                                                }
-
-
-                                            }
-
-                                        }
-                                    }
-
-                                } else {
-                                    Log.d("Aqui da pra add", " de boias pq nao tem no banco ainda");
-                                }
-
-                            }*/
-
                             Log.d("conflitooo", conflito.toString());
 
 
                             if (mutableData.getChildrenCount() > 0) {
-                            /*Log.d("tem o filho","do capiroto");
-                            mutableData.child("PC").child("programacoes").child("10").child(UUID.randomUUID().toString()).child("liga").setValue("544562156");*/
-                                for (int i = 0; i < ambientesSelecionados.size(); i++) {
+                            for (int i = 0; i < ambientesSelecionados.size(); i++) {
 
                                     for (int z = 0; z < diasSelecionados.size(); z++) {
                                         if (!conflito.contains(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))))) {
-                                            // mutableData.child(ambientesSelecionados.get(i)).child("programacoes").child(diasSelecionados.get(z).toString()).child(UUID.randomUUID().toString()).child("liga").setValue("");
-
-                                            //mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(diasSelecionados.get(z).toString()).child(UUID.randomUUID().toString()).setValue(hrs);
                                             mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(diasSelecionados.get(z).toString().concat("a")).child(generator.generate(10)).setValue(hrs);
                                         }
                                     }
-
                                 }
                             }
-
-
                             Log.d("estou retornando", "do capiroto");
-
                             return Transaction.success(mutableData);
                         }
 
                         @Override
                         public void onComplete(@Nullable DatabaseError error, boolean committed, @Nullable DataSnapshot currentData) {
                             Log.d("on complete", currentData.toString());
-
                         }
-
-
                     });
 
 
@@ -479,11 +418,8 @@ public class NovaProgramacao extends AppCompatActivity {
                                                         if (vaiLigar.after(bancoLiga) && vaiLigar.before(bancoDesliga)) {
                                                             Log.d("abortou", "no primeiro");
                                                             conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
-                                                            //Transaction.abort();
-                                                            //break;
                                                         }
                                                         if (vaiDesligar.getTime() - 1 > bancoLiga.getTime() && vaiDesligar.getTime() - 1 < bancoDesliga.getTime()) {
-
                                                             Log.d("abortou", "no segundo");
                                                             conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
                                                         }
@@ -494,29 +430,19 @@ public class NovaProgramacao extends AppCompatActivity {
 
                                                         if (vaiDesligar.after(bancoLiga) && vaiDesligar.before(bancoDesliga)) {
                                                             conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
-                                                            //Transaction.abort();
-                                                            // break;
                                                         }
                                                         Log.d("passou", "no segundo");
-
-
                                                     } catch (Exception e) {
                                                     }
-
-
                                                 }
-
                                             }
                                         }
-
                                     }
                                 }
                                 LinkedHashSet<String> hashSet = new LinkedHashSet<>(conflito);
                                 conflito = new ArrayList<>(hashSet);
-
                                 LinkedHashSet<String> hash = new LinkedHashSet<>(maximum);
                                 maximum = new ArrayList<>(hash);
-
                                 Log.d("conflitooo", conflito.toString());
                                 Log.d("dias slecionados", diasSelecionados.toString());
                                 String adicionado = "\nAdicionado com sucesso para:\n";
@@ -527,18 +453,12 @@ public class NovaProgramacao extends AppCompatActivity {
                                 String resposta = "";
 
                                 if (mutableData.getChildrenCount() > 0) {
-                            /*Log.d("tem o filho","do capiroto");
-                            mutableData.child("PC").child("programacoes").child("10").child(UUID.randomUUID().toString()).child("liga").setValue("544562156");*/
                                     for (int i = 0; i < ambientesSelecionados.size(); i++) {
-
                                         for (int z = 0; z < diasSelecionados.size(); z++) {
                                             if (!conflito.contains(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z)))) && !maximum.contains(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))))) {
                                                 Log.d("trueee hehe", "vdd");
                                                 add = true;
                                                 adicionado += ambientesSelecionados.get(i).toUpperCase().concat(" - ").concat(getDayWeek(diasSelecionados.get(z))).concat("\n");
-                                                // mutableData.child(ambientesSelecionados.get(i)).child("programacoes").child(diasSelecionados.get(z).toString()).child(UUID.randomUUID().toString()).child("liga").setValue("");
-
-                                                //mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(diasSelecionados.get(z).toString()).child(UUID.randomUUID().toString()).setValue(hrs);
                                                 mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(diasSelecionados.get(z).toString().concat("a")).child(generator.generate(10)).setValue(hrs);
                                             }
                                         }
@@ -550,15 +470,6 @@ public class NovaProgramacao extends AppCompatActivity {
                                     for (String z : conflito) {
                                         res += z.substring(0, z.length() - 1).concat(" - ").concat(getDayWeek(Integer.parseInt(z.substring(z.length() - 1, z.length())))).concat("\n");
                                     }
-
-
-                          /*  String va = "Não é possível atualizar esse horário pois já existe uma programação definida:\n";
-                            for(String k : conflito){
-                                va+= "Liga: "+mutableData.child(k).child("liga").getValue().toString()+ " - Desliga: "+mutableData.child(k).child("desliga").getValue().toString()+"\n";
-                            }
-                            Message message = mHandler.obtainMessage(1, va);
-                            message.sendToTarget();
-*/
                                 }
                                 if (add) {
                                     resposta = resposta + adicionado;
@@ -566,7 +477,6 @@ public class NovaProgramacao extends AppCompatActivity {
                                 if (addError) {
                                     resposta = resposta + res;
                                 }
-
                                 String limit = "\nVocê só pode ter cinco programações por dispositivo, os seguintes já possuem cinco, remova ou edite a programação:\n";
                                 if(maximum.size()>0){
                                     limitMax = true;
@@ -588,13 +498,8 @@ public class NovaProgramacao extends AppCompatActivity {
                         @Override
                         public void onComplete(@Nullable DatabaseError error, boolean committed, @Nullable DataSnapshot currentData) {
                             Log.d("on complete", currentData.toString());
-
                         }
-
-
                     });
-
-
                 }
             }
         });
@@ -616,8 +521,6 @@ public class NovaProgramacao extends AppCompatActivity {
             }
         });
         seekBar.setProgress(20);
-
-
         tv1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -673,15 +576,12 @@ public class NovaProgramacao extends AppCompatActivity {
                         seekBar.setProgress(Integer.parseInt(snapshot.child("tempPROG").getValue().toString()));
                     }
                 }
-
                 @Override
                 public void onCancelled(@NonNull DatabaseError error) {
 
                 }
             });
-
         }
-
     }
 
     void showAlert(String title, String message) {
