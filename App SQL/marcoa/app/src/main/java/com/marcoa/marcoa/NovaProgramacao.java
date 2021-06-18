@@ -18,15 +18,24 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.ExpandableListView;
 import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -36,12 +45,15 @@ import com.google.firebase.database.Transaction;
 import com.google.firebase.database.ValueEventListener;
 
 import org.apache.commons.text.RandomStringGenerator;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -63,10 +75,12 @@ public class NovaProgramacao extends AppCompatActivity {
     SharedPreferences prefs;
     Handler mHandler;
     ProgressDialog progressDialog;
+    RequestQueue requestQueue;
     private Map<String, String> nomeDispositivoUUID;
     private FirebaseDatabase database;
     private DatabaseReference ref;
     private List<String> conflito;
+    JSONObject programacoes;
     private List<String> maximum;
     private View.OnClickListener listenerForCheck = new View.OnClickListener() {
         @Override
@@ -99,6 +113,7 @@ public class NovaProgramacao extends AppCompatActivity {
         database = FirebaseDatabase.getInstance();
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Por favor, aguarde...");
+        requestQueue = Volley.newRequestQueue(getApplicationContext());
 
         progressDialog.setCanceledOnTouchOutside(false);
 
@@ -201,7 +216,19 @@ public class NovaProgramacao extends AppCompatActivity {
             }
         });
 
-        ref = database.getReference("cliente/").child(prefs.getString("chave", "null"));
+
+
+        JSONObject params = new JSONObject();
+        programacoes = new JSONObject();
+        try {
+            params.put("uuid_cliente",prefs.getString("chave_cliente","null"));
+            params.put("req","carregaProgramacoes");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        comm(params,"api/dispositivo/ver_todas_programacoes");
+        Log.d("paramss", params.toString());
+
         salvarProgramacao.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -306,7 +333,7 @@ public class NovaProgramacao extends AppCompatActivity {
 
 
                             if (mutableData.getChildrenCount() > 0) {
-                            for (int i = 0; i < ambientesSelecionados.size(); i++) {
+                                for (int i = 0; i < ambientesSelecionados.size(); i++) {
 
                                     for (int z = 0; z < diasSelecionados.size(); z++) {
                                         if (!conflito.contains(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))))) {
@@ -382,127 +409,495 @@ public class NovaProgramacao extends AppCompatActivity {
                         return;
                     }
 
+                    for (int i = 0; i < ambientesSelecionados.size(); i++) {
+                            for (int z = 0; z < diasSelecionados.size(); z++) {
 
-                    database.getReference("cliente/").child(prefs.getString("chave", "null")).child("/").runTransaction(new Transaction.Handler() {
-                        @Override
-                        public Transaction.Result doTransaction(MutableData mutableData) {
-                            if (mutableData.getValue() != null) {
 
-                                Log.d("mutable string", mutableData.toString());
-                                Log.d("child count", Long.toString(mutableData.getChildrenCount()));
+                                Iterator<String> iter = programacoes.keys();
+                                while (iter.hasNext()) {
+                                    String key = iter.next();
+                                    Log.d("key:",key);
+                                    if(!key.contains("code")){
+                                        try{
+                                            JSONObject ob = programacoes.getJSONObject(key);
+                                            Log.d("ob:",ob.toString());
+                                            if(ambientesSelecionados.get(i).equalsIgnoreCase(ob.getString("nome")) && diasSelecionados.get(z) == Integer.parseInt(ob.getString( "dia_semana"))){
+                                                SimpleDateFormat df = new SimpleDateFormat("HH:mm");
+                                                try {
+                                                    Date bancoLiga = df.parse(ob.getString("liga"));
+                                                    Date bancoDesliga = df.parse(ob.getString("desliga"));
+                                                    Date vaiLigar = df.parse(tv1.getText().toString());
+                                                    Date vaiDesligar = df.parse(tv2.getText().toString());
 
-                                for (int i = 0; i < ambientesSelecionados.size(); i++) {
-                                    if (mutableData.hasChild(ambientesSelecionados.get(i).toLowerCase())) {
-                                        Log.d("tem o ambinete", "selecionado");
-                                        for (int z = 0; z < diasSelecionados.size(); z++) {
-                                            if (mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").hasChild(String.valueOf(diasSelecionados.get(z)).concat("a"))) {
-                                                if(mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(String.valueOf(diasSelecionados.get(z)).concat("a")).getChildrenCount()>4){
-                                                    Log.d("pausei tem muito", "vdd");
-                                                    maximum.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
-                                                    break;
-                                                }
-
-                                                for (MutableData child : mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(String.valueOf(diasSelecionados.get(z)).concat("a")).getChildren()) {
-                                                    Log.d("childdd", child.getKey());
-                                                    Log.d("liga", child.child("liga").getValue().toString());
-                                                    Log.d("ddesliga", child.child("desliga").getValue().toString());
-                                                    Log.d("temp", child.child("tempPROG").getValue().toString());
-
-                                                    SimpleDateFormat df = new SimpleDateFormat("HH:mm");
-                                                    try {
-                                                        Date bancoLiga = df.parse(child.child("liga").getValue().toString());
-                                                        Date bancoDesliga = df.parse(child.child("desliga").getValue().toString());
-                                                        Date vaiLigar = df.parse(tv1.getText().toString());
-                                                        Date vaiDesligar = df.parse(tv2.getText().toString());
-
-                                                        if (vaiLigar.after(bancoLiga) && vaiLigar.before(bancoDesliga)) {
-                                                            Log.d("abortou", "no primeiro");
-                                                            conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
+                                                    if (vaiLigar.after(bancoLiga) && vaiLigar.before(bancoDesliga)) {
+                                                        Log.d("abortou", "no primeiro");
+                                                        if (!conflito.contains(ob.getString("id"))) {
+                                                            conflito.add(ob.getString("id"));
                                                         }
-                                                        if (vaiDesligar.getTime() - 1 > bancoLiga.getTime() && vaiDesligar.getTime() - 1 < bancoDesliga.getTime()) {
-                                                            Log.d("abortou", "no segundo");
-                                                            conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
-                                                        }
-
-                                                        if (vaiLigar.getTime() < bancoLiga.getTime() && vaiDesligar.getTime() > bancoDesliga.getTime()) {
-                                                            conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
-                                                        }
-
-                                                        if (vaiDesligar.after(bancoLiga) && vaiDesligar.before(bancoDesliga)) {
-                                                            conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
-                                                        }
-                                                        Log.d("passou", "no segundo");
-                                                    } catch (Exception e) {
+                                                        //Transaction.abort();
+                                                        //break;
                                                     }
+                                                    if (vaiDesligar.getTime() - 1 > bancoLiga.getTime() && vaiDesligar.getTime() - 1 < bancoDesliga.getTime()) {
+
+                                                        Log.d("abortou", "no segundo");
+                                                        if (!conflito.contains(ob.getString("id"))) {
+                                                            conflito.add(ob.getString("id"));
+                                                        }
+                                                    }
+
+                                                    if (vaiLigar.getTime() < bancoLiga.getTime() && vaiDesligar.getTime() > bancoDesliga.getTime()) {
+                                                        if (!conflito.contains(ob.getString("id"))) {
+                                                            conflito.add(ob.getString("id"));
+                                                        }
+                                                    }
+
+                                                    if (vaiDesligar.after(bancoLiga) && vaiDesligar.before(bancoDesliga)) {
+                                                        if (!conflito.contains(ob.getString("id"))) {
+                                                            conflito.add(ob.getString("id"));
+                                                        }
+                                                        //Transaction.abort();
+                                                        // break;
+                                                    }
+                                                    Log.d("passou", "no segundo");
+
+
+                                                } catch (Exception e) {
                                                 }
+
+                                                Log.d("tem conflito: ",conflito.get(0));
                                             }
+                                        }catch (Exception e){
+
                                         }
-                                    }
-                                }
-                                LinkedHashSet<String> hashSet = new LinkedHashSet<>(conflito);
-                                conflito = new ArrayList<>(hashSet);
-                                LinkedHashSet<String> hash = new LinkedHashSet<>(maximum);
-                                maximum = new ArrayList<>(hash);
-                                Log.d("conflitooo", conflito.toString());
-                                Log.d("dias slecionados", diasSelecionados.toString());
-                                String adicionado = "\nAdicionado com sucesso para:\n";
-                                String res = "\nNão foi possível adicionar esta programação para o dispositivo nos dias a seguir pois já há alguma programação neste horário:\n";
-                                boolean add = false;
-                                boolean addError = false;
-                                boolean limitMax = false;
-                                String resposta = "";
 
-                                if (mutableData.getChildrenCount() > 0) {
-                                    for (int i = 0; i < ambientesSelecionados.size(); i++) {
-                                        for (int z = 0; z < diasSelecionados.size(); z++) {
-                                            if (!conflito.contains(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z)))) && !maximum.contains(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))))) {
-                                                Log.d("trueee hehe", "vdd");
-                                                add = true;
-                                                adicionado += ambientesSelecionados.get(i).toUpperCase().concat(" - ").concat(getDayWeek(diasSelecionados.get(z))).concat("\n");
-                                                mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(diasSelecionados.get(z).toString().concat("a")).child(generator.generate(10)).setValue(hrs);
-                                            }
-                                        }
                                     }
                                 }
 
-                                if (conflito.size() > 0) {
-                                    addError = true;
-                                    for (String z : conflito) {
-                                        res += z.substring(0, z.length() - 1).concat(" - ").concat(getDayWeek(Integer.parseInt(z.substring(z.length() - 1, z.length())))).concat("\n");
-                                    }
-                                }
-                                if (add) {
-                                    resposta = resposta + adicionado;
-                                }
-                                if (addError) {
-                                    resposta = resposta + res;
-                                }
-                                String limit = "\nVocê só pode ter cinco programações por dispositivo, os seguintes já possuem cinco, remova ou edite a programação:\n";
-                                if(maximum.size()>0){
-                                    limitMax = true;
-                                    for (String z : maximum) {
-                                        limit += z.substring(0, z.length() - 1).concat(" - ").concat(getDayWeek(Integer.parseInt(z.substring(z.length() - 1, z.length())))).concat("\n");
-                                    }
-                                }
-                                if (limitMax) {
-                                    resposta = resposta + limit;
-                                }
-                                Message message = mHandler.obtainMessage(1, resposta);
-                                message.sendToTarget();
-
-                                Log.d("estou retornando", "do capiroto");
                             }
-                            return Transaction.success(mutableData);
-                        }
 
-                        @Override
-                        public void onComplete(@Nullable DatabaseError error, boolean committed, @Nullable DataSnapshot currentData) {
-                            Log.d("on complete", currentData.toString());
+
+                    }
+
+
+                    LinkedHashSet<String> hash = new LinkedHashSet<>(maximum);
+                    maximum = new ArrayList<>(hash);
+                    Log.d("conflitooo", conflito.toString());
+                    Log.d("dias slecionados", diasSelecionados.toString());
+                    String adicionado = "\nAdicionado com sucesso para:\n";
+                    String res = "\nOperação não realizada.\nNão foi possível adicionar esta programação para o dispositivo nos dias a seguir pois já há alguma programação neste horário:\n";
+                    boolean add = false;
+                    boolean addError = false;
+                    boolean limitMax = false;
+                    String resposta = "";
+
+                    Map<String,Integer> qtd = new HashMap<>();
+
+                    Iterator<String> itera = programacoes.keys();
+                    while (itera.hasNext()) {
+                        String key = itera.next();
+                        Log.d("key:",key);
+                        if(!key.contains("code")) {
+                            try{
+                                JSONObject ob = programacoes.getJSONObject(key);
+                                if(diasSelecionados.contains(Integer.parseInt(ob.getString("dia_semana"))) && ambientesSelecionados.contains(ob.getString("nome").toUpperCase())){
+                                    if(qtd.containsKey(ob.getString("nome").concat(ob.getString("dia_semana")))){
+                                        qtd.put(ob.getString("nome").concat(ob.getString("dia_semana")),qtd.get(ob.getString("nome").concat(ob.getString("dia_semana")))+1);
+                                    }else{
+                                        qtd.put(ob.getString("nome").concat(ob.getString("dia_semana")),1);
+                                    }
+                                }
+                            }catch (Exception e){
+                                e.printStackTrace();
+                            }
+
                         }
-                    });
+                    }
+
+
+
+
+
+                    if (conflito.size() > 0) {
+                        addError = true;
+                        for (String z : conflito) {
+                            Iterator<String> iter = programacoes.keys();
+                            while (iter.hasNext()) {
+                                String key = iter.next();
+                                Log.d("key:",key);
+                                if(!key.contains("code")) {
+                                    try{
+                                        JSONObject ob = programacoes.getJSONObject(key);
+                                        if(ob.getString("id").equalsIgnoreCase(z)){
+                                            res += ob.getString("nome").toUpperCase().concat(" - ").concat(getDayWeek(Integer.parseInt(ob.getString("dia_semana")))).concat(" de: ").concat(ob.getString("liga")).concat(" até ").concat(ob.getString("desliga")).concat(".\n");
+                                        }
+                                    }catch (Exception e){
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (add) {
+                        resposta = resposta + adicionado;
+                    }
+                    if (addError) {
+                        resposta = resposta + res;
+                    }
+                    String limit = "\nVocê só pode ter cinco programações em um mesmo dia em um dispositivo, os seguintes já possuem cinco, remova ou edite a programação:\n";
+                    if(maximum.size()>0){
+                        limitMax = true;
+                        for (String z : maximum) {
+                            limit += z.substring(0, z.length() - 1).concat(" - ").concat(getDayWeek(Integer.parseInt(z.substring(z.length() - 1, z.length())))).concat("\n");
+                        }
+                    }
+                    for (Map.Entry<String, Integer> set : qtd.entrySet()) {
+                        if(set.getValue()>=5){
+                            limitMax = true;
+                            limit += set.getKey().substring(0,set.getKey().length()-1).toUpperCase().concat(", na ").concat(getDayWeek(Integer.parseInt(set.getKey().substring(set.getKey().length()-1)))).concat(".\n");
+                        }
+                    }
+                    if (limitMax) {
+                        resposta = resposta + limit;
+                    }
+                    if(limitMax||addError){
+                        Message message = mHandler.obtainMessage(1, resposta);
+                        message.sendToTarget();
+                    }else {
+                        try{
+                            JSONObject dias = new JSONObject();
+                            for(Integer z : diasSelecionados){
+                               dias.put(String.valueOf(z),z);
+                            }
+
+                            JSONObject devices = new JSONObject();
+
+                            for (String z : ambientesSelecionados) {
+                                for(String id : DashWeb.getDispositivos()){
+                                    if(id.substring(id.indexOf("*/*")+3).equalsIgnoreCase(z)){
+                                        devices.put(id.substring(0,id.indexOf("*/*")),z);
+                                        break;
+                                    }
+                                }
+
+                            }
+
+
+
+
+                            JSONObject p = new JSONObject();
+                            p.put("liga",tv1.getText().toString());
+                            p.put("desliga",tv2.getText().toString());
+                            p.put("dias",dias.toString());
+                            p.put("dispositivos",devices.toString());
+                            p.put("modelo",prefs.getString("modelo","null"));
+                            p.put("temperatura",tempProgAgendamento.getText().toString());
+                            Log.d("adicionadoo ",p.toString());
+                            Message message = mHandler.obtainMessage(1, p.toString());
+                            message.sendToTarget();
+                            comm(p,"api/dispositivo/adiciona_programacoes");
+                        }catch (Exception w){
+                            w.printStackTrace();
+                        }
+                    }
+
+
+
                 }
             }
         });
+
+
+
+/*        salvarProgramacao.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                progressDialog.show();
+                ambientesSelecionados = new ArrayList<>();
+                diasSelecionados = new ArrayList<>();
+                conflito = new ArrayList<>();
+                maximum = new ArrayList<>();
+                HashMap<String, Object> hrs = new HashMap<>();
+                hrs.put("liga", tv1.getText().toString());
+                hrs.put("desliga", tv2.getText().toString());
+                hrs.put("tempPROG", tempProgAgendamento.getText().toString());
+
+                if (intent.getIntExtra("op", -1) == 1) {
+
+
+
+        database.getReference().child("cliente").child(prefs.getString("chave", "null")).child(prefs.getString("deviceNameForAdapter", "null").toLowerCase()).child("R").child("programacoes").child(intent.getStringExtra("numSemana")).runTransaction(new Transaction.Handler() {
+            @Override
+            public Transaction.Result doTransaction(MutableData mutableData) {
+                if (mutableData.getValue() != null) {
+                    Log.d("mutable string", mutableData.toString());
+                    Log.d("child count", Long.toString(mutableData.getChildrenCount()));
+
+                    for (MutableData child : mutableData.getChildren()) {
+                        Log.d("Mutable data keey", child.getKey());
+                        Log.d("Mutable data val", child.getValue().toString());
+                        if (!child.getKey().toString().contains(intent.getStringExtra("chaveHora"))) {
+                            SimpleDateFormat df = new SimpleDateFormat("HH:mm");
+                            try {
+                                Date bancoLiga = df.parse(child.child("liga").getValue().toString());
+                                Date bancoDesliga = df.parse(child.child("desliga").getValue().toString());
+                                Date vaiLigar = df.parse(tv1.getText().toString());
+                                Date vaiDesligar = df.parse(tv2.getText().toString());
+
+                                if (vaiLigar.after(bancoLiga) && vaiLigar.before(bancoDesliga)) {
+                                    Log.d("abortou", "no primeiro");
+                                    if (!conflito.contains(child.getKey())) {
+                                        conflito.add(child.getKey());
+                                    }
+                                    //Transaction.abort();
+                                    //break;
+                                }
+                                if (vaiDesligar.getTime() - 1 > bancoLiga.getTime() && vaiDesligar.getTime() - 1 < bancoDesliga.getTime()) {
+
+                                    Log.d("abortou", "no segundo");
+                                    if (!conflito.contains(child.getKey())) {
+                                        conflito.add(child.getKey());
+                                    }
+                                }
+
+                                if (vaiLigar.getTime() < bancoLiga.getTime() && vaiDesligar.getTime() > bancoDesliga.getTime()) {
+                                    if (!conflito.contains(child.getKey())) {
+                                        conflito.add(child.getKey());
+                                    }
+                                }
+
+                                if (vaiDesligar.after(bancoLiga) && vaiDesligar.before(bancoDesliga)) {
+                                    if (!conflito.contains(child.getKey())) {
+                                        conflito.add(child.getKey());
+                                    }
+                                    //Transaction.abort();
+                                    // break;
+                                }
+                                Log.d("passou", "no segundo");
+
+
+                            } catch (Exception e) {
+                            }
+
+                        }
+                    }
+                    Log.d("Tem conflito qtd", Integer.toString(conflito.size()));
+                    if (conflito.size() == 0) {
+                        mutableData.child(intent.getStringExtra("chaveHora")).setValue(hrs);
+                        Message message = mHandler.obtainMessage(2, "Dados salvos com sucesso!");
+                        message.sendToTarget();
+
+                    } else {
+                        String va = "Não é possível atualizar esse horário pois já existe uma programação definida:\n";
+                        for (String k : conflito) {
+                            va += "Liga: " + mutableData.child(k).child("liga").getValue().toString() + " - Desliga: " + mutableData.child(k).child("desliga").getValue().toString() + "\n";
+                        }
+                        Message message = mHandler.obtainMessage(1, va);
+                        message.sendToTarget();
+                    }
+
+                }
+
+                Log.d("conflitooo", conflito.toString());
+
+
+                if (mutableData.getChildrenCount() > 0) {
+                    for (int i = 0; i < ambientesSelecionados.size(); i++) {
+
+                        for (int z = 0; z < diasSelecionados.size(); z++) {
+                            if (!conflito.contains(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))))) {
+                                mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(diasSelecionados.get(z).toString().concat("a")).child(generator.generate(10)).setValue(hrs);
+                            }
+                        }
+                    }
+                }
+                Log.d("estou retornando", "do capiroto");
+                return Transaction.success(mutableData);
+            }
+
+            @Override
+            public void onComplete(@Nullable DatabaseError error, boolean committed, @Nullable DataSnapshot currentData) {
+                Log.d("on complete", currentData.toString());
+            }
+        });
+
+
+    } else {
+        for (int i = 0; i < listView.getCount(); i++) {
+            if (listView.isItemChecked(i)) {
+                Log.d(" item na pos ", listView.getItemAtPosition(i).toString());
+                ambientesSelecionados.add(listView.getItemAtPosition(i).toString());
+            }
+        }
+        if (cSeg.isChecked()) {
+            diasSelecionados.add(1);
+        }
+        if (cTer.isChecked()) {
+            diasSelecionados.add(2);
+        }
+        if (cQua.isChecked()) {
+            diasSelecionados.add(3);
+        }
+        if (cQui.isChecked()) {
+            diasSelecionados.add(4);
+        }
+        if (cSex.isChecked()) {
+            diasSelecionados.add(5);
+        }
+        if (cSab.isChecked()) {
+            diasSelecionados.add(6);
+        }
+        if (cDom.isChecked()) {
+            diasSelecionados.add(0);
+        }
+        Log.d(" leng hora ", Integer.toString(tv1.getText().toString().length()));
+        if (diasSelecionados.size() < 1) {
+            showAlert("Aviso", "É necessário selecionar algum dia da semana!");
+            return;
+        }
+        if (tv1.getText().toString().length() < 1) {
+            showAlert("Aviso", "É necessário definir um horário para ligar!");
+            return;
+        }
+        if (tv2.getText().toString().length() < 1) {
+            showAlert("Aviso", "É necessário definir um horário para desligar!");
+            return;
+        }
+        SimpleDateFormat d1 = new SimpleDateFormat("HH:mm");
+        try {
+            Date date1 = d1.parse(tv1.getText().toString());
+            Date date2 = d1.parse(tv2.getText().toString());
+            if (date1.getTime() > date2.getTime()) {
+                showAlert("Aviso", "O horário de ligar deve ser inferior ao de desligar!");
+                return;
+            }
+        } catch (Exception e) {
+        }
+        if (ambientesSelecionados.size() < 1) {
+            showAlert("Aviso", "É necessário selecionar algum ambiente!");
+            return;
+        }
+
+
+        database.getReference("cliente/").child(prefs.getString("chave", "null")).child("/").runTransaction(new Transaction.Handler() {
+            @Override
+            public Transaction.Result doTransaction(MutableData mutableData) {
+                if (mutableData.getValue() != null) {
+
+                    Log.d("mutable string", mutableData.toString());
+                    Log.d("child count", Long.toString(mutableData.getChildrenCount()));
+
+                    for (int i = 0; i < ambientesSelecionados.size(); i++) {
+                        if (mutableData.hasChild(ambientesSelecionados.get(i).toLowerCase())) {
+                            Log.d("tem o ambinete", "selecionado");
+                            for (int z = 0; z < diasSelecionados.size(); z++) {
+                                if (mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").hasChild(String.valueOf(diasSelecionados.get(z)).concat("a"))) {
+                                    if(mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(String.valueOf(diasSelecionados.get(z)).concat("a")).getChildrenCount()>4){
+                                        Log.d("pausei tem muito", "vdd");
+                                        maximum.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
+                                        break;
+                                    }
+
+                                    for (MutableData child : mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(String.valueOf(diasSelecionados.get(z)).concat("a")).getChildren()) {
+                                        Log.d("childdd", child.getKey());
+                                        Log.d("liga", child.child("liga").getValue().toString());
+                                        Log.d("ddesliga", child.child("desliga").getValue().toString());
+                                        Log.d("temp", child.child("tempPROG").getValue().toString());
+
+                                        SimpleDateFormat df = new SimpleDateFormat("HH:mm");
+                                        try {
+                                            Date bancoLiga = df.parse(child.child("liga").getValue().toString());
+                                            Date bancoDesliga = df.parse(child.child("desliga").getValue().toString());
+                                            Date vaiLigar = df.parse(tv1.getText().toString());
+                                            Date vaiDesligar = df.parse(tv2.getText().toString());
+
+                                            if (vaiLigar.after(bancoLiga) && vaiLigar.before(bancoDesliga)) {
+                                                Log.d("abortou", "no primeiro");
+                                                conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
+                                            }
+                                            if (vaiDesligar.getTime() - 1 > bancoLiga.getTime() && vaiDesligar.getTime() - 1 < bancoDesliga.getTime()) {
+                                                Log.d("abortou", "no segundo");
+                                                conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
+                                            }
+
+                                            if (vaiLigar.getTime() < bancoLiga.getTime() && vaiDesligar.getTime() > bancoDesliga.getTime()) {
+                                                conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
+                                            }
+
+                                            if (vaiDesligar.after(bancoLiga) && vaiDesligar.before(bancoDesliga)) {
+                                                conflito.add(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))));
+                                            }
+                                            Log.d("passou", "no segundo");
+                                        } catch (Exception e) {
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    LinkedHashSet<String> hashSet = new LinkedHashSet<>(conflito);
+                    conflito = new ArrayList<>(hashSet);
+                    LinkedHashSet<String> hash = new LinkedHashSet<>(maximum);
+                    maximum = new ArrayList<>(hash);
+                    Log.d("conflitooo", conflito.toString());
+                    Log.d("dias slecionados", diasSelecionados.toString());
+                    String adicionado = "\nAdicionado com sucesso para:\n";
+                    String res = "\nNão foi possível adicionar esta programação para o dispositivo nos dias a seguir pois já há alguma programação neste horário:\n";
+                    boolean add = false;
+                    boolean addError = false;
+                    boolean limitMax = false;
+                    String resposta = "";
+
+                    if (mutableData.getChildrenCount() > 0) {
+                        for (int i = 0; i < ambientesSelecionados.size(); i++) {
+                            for (int z = 0; z < diasSelecionados.size(); z++) {
+                                if (!conflito.contains(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z)))) && !maximum.contains(ambientesSelecionados.get(i).concat(String.valueOf(diasSelecionados.get(z))))) {
+                                    Log.d("trueee hehe", "vdd");
+                                    add = true;
+                                    adicionado += ambientesSelecionados.get(i).toUpperCase().concat(" - ").concat(getDayWeek(diasSelecionados.get(z))).concat("\n");
+                                    mutableData.child(ambientesSelecionados.get(i).toLowerCase()).child("R").child("programacoes").child(diasSelecionados.get(z).toString().concat("a")).child(generator.generate(10)).setValue(hrs);
+                                }
+                            }
+                        }
+                    }
+
+                    if (conflito.size() > 0) {
+                        addError = true;
+                        for (String z : conflito) {
+                            res += z.substring(0, z.length() - 1).concat(" - ").concat(getDayWeek(Integer.parseInt(z.substring(z.length() - 1, z.length())))).concat("\n");
+                        }
+                    }
+                    if (add) {
+                        resposta = resposta + adicionado;
+                    }
+                    if (addError) {
+                        resposta = resposta + res;
+                    }
+                    String limit = "\nVocê só pode ter cinco programações por dispositivo, os seguintes já possuem cinco, remova ou edite a programação:\n";
+                    if(maximum.size()>0){
+                        limitMax = true;
+                        for (String z : maximum) {
+                            limit += z.substring(0, z.length() - 1).concat(" - ").concat(getDayWeek(Integer.parseInt(z.substring(z.length() - 1, z.length())))).concat("\n");
+                        }
+                    }
+                    if (limitMax) {
+                        resposta = resposta + limit;
+                    }
+                    Message message = mHandler.obtainMessage(1, resposta);
+                    message.sendToTarget();
+
+                    Log.d("estou retornando", "do capiroto");
+                }
+                return Transaction.success(mutableData);
+            }
+
+            @Override
+            public void onComplete(@Nullable DatabaseError error, boolean committed, @Nullable DataSnapshot currentData) {
+                Log.d("on complete", currentData.toString());
+            }
+        });
+    }
+}
+        });*/
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -660,6 +1055,36 @@ public class NovaProgramacao extends AppCompatActivity {
         cSex.setChecked(false);
         cSab.setChecked(false);
         cDom.setChecked(false);
+    }
+
+    private void comm(JSONObject params, String url) {
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, getResources().getString(R.string.server).concat(url), params, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                Log.d("sucessso", response.toString());
+                try{
+                    if(params.has("req")){
+                        if(params.getString("req").equalsIgnoreCase("carregaProgramacoes"))
+                            programacoes = response;
+                    }
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                error.printStackTrace();
+                Log.d("erroooo", error.getMessage());
+
+            }
+        });
+        jsonObjectRequest.setRetryPolicy(new DefaultRetryPolicy(
+                15000,
+                0,
+                0));
+
+        requestQueue.add(jsonObjectRequest);
     }
 
 
