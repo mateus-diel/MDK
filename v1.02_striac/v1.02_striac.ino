@@ -5,7 +5,6 @@
 #include <WiFi.h>
 #include "ESPAsyncWebServer.h"
 #include <Arduino_JSON.h>
-#include <dimmable_light.h>
 #include <ESPmDNS.h>
 #include "FirebaseESP32.h"
 #include <ESP32httpUpdate.h>
@@ -42,7 +41,7 @@ typedef struct
 #define CONFIGURATION "/configs.json"
 #define DEVICESINFO "/devices.json"
 #define DAYSINFO "/days.json"
-#define VERSION "1.02"
+#define VERSION "1.02_striac"
 #define MODEL "casa"
 #define NSEMANAS 35
 
@@ -373,7 +372,7 @@ void setup() {
     Rtc.SetIsRunning(true);
   }
   if (myMutex != NULL) {
-    xTaskCreatePinnedToCore( taskConn, "taskConn",  10000,  NULL,  2,  NULL,  1);
+  xTaskCreatePinnedToCore( taskConn, "taskConn",  10000,  NULL,  2,  NULL,  1);
     delay(500);
     xTaskCreatePinnedToCore( taskDim, "taskDim", 10000, NULL, 1, NULL, 0);
     delay(500);
@@ -385,26 +384,13 @@ void loop() {
 }
 
 void taskDim( void * pvParameters ) {
-
-
-
-  DimmableLight DIMMER_1(PINO_DIM_1);
-  DimmableLight::setSyncPin(PINO_ZC);
-  DimmableLight::begin();
   potencia_1 = 0;
-  DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
-
-
   desligaRELE(RELE_1);
-
-
-
+  
   while ((bool) configs["default"]) {
     vTaskDelete(NULL);
   }
-
-
-
+  
   while (true) {
     unsigned long mil = 0;
     xSemaphoreTake(myMutex, portMAX_DELAY);
@@ -416,7 +402,6 @@ void taskDim( void * pvParameters ) {
     }
 
     if (isUpdate) {
-      DimmableLight::pauseStop();
       delay(200);
       vTaskDelete(NULL);
     }
@@ -427,8 +412,10 @@ void taskDim( void * pvParameters ) {
     t = sensors.getTempCByIndex(0);
     
     while (t < - 100 || t > 84) {
+      Serial.print("Erro sensor, temp lida: ");
+      Serial.println(t);
       sensors.requestTemperatures();
-      delay(800);
+      delay(1000);
       t = sensors.getTempCByIndex(0);
       numError++;
     }
@@ -476,7 +463,6 @@ void taskDim( void * pvParameters ) {
       devices["tempPROG"] = tempPROG;
       Serial.println("ºC");
       Serial.print("Potencia -> " + String(potencia_1) + " :");
-      Serial.println(DIMMER_1.getBrightness());
       Serial.print("date: ");
       printDateTime(Rtc.GetDateTime());
       Serial.println();
@@ -486,7 +472,6 @@ void taskDim( void * pvParameters ) {
       ultimo_millis1 = millis();
       devices["linha_1"] = LINHA_1;
       devices["tempPROG_1"] = tempPROG;
-      DimmableLight::pauseStop();
       delay(10);
       writeFile(JSON.stringify(devices), DEVICESINFO);
       delay(10);
@@ -508,45 +493,18 @@ void taskDim( void * pvParameters ) {
       delay(10);
       saveHrs = undefined;
       itemHrs = undefined;
-      DIMMER_1.setBrightness(10);
-      DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
+     
     }
 
 
-    if (tempATUAL < tempPROG - 0.5 && LINHA_1) {
+    if (tempATUAL < tempPROG && LINHA_1) {
       potencia_1 = 50;
-      DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
       ligaRELE(RELE_1);
-      //Serial.println("rele ligado");
       rele = true;
-    } else if (LINHA_1) {
-      rele = false;
-      desligaRELE(RELE_1);
-      if (tempATUAL != lastTempATUAL) {
-        //Serial.println("Temp diff");
-        if (tempATUAL < lastTempATUAL && tempATUAL < tempPROG - 0.0) {
-          potencia_1 = potencia_1 + 10;
-          potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
-          DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
-          //Serial.println("aumentando potencia");
-        } else if (tempATUAL > tempPROG - 0.1) {
-          /*potencia_1 = potencia_1 - 10;
-            potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
-            DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
-            //Serial.println("baixando potencia");*/
-          potencia_1 = 0;
-          potencia_1 = constrain(potencia_1, 0, 100);// limita a variavel
-          DIMMER_1.setBrightness( (int) map(potencia_1, 0, 100, MINPOT, MAXPOT));
-        }
-        lastTempATUAL = tempATUAL;
-      }
-      //Serial.println("rele desligado");
     } else {
       rele = false;
       desligaRELE(RELE_1);
       potencia_1 = 0;
-      DIMMER_1.setBrightness( map(potencia_1, 0, 100, MINPOT, MAXPOT));
-      //Serial.println("desliga rele e lampada");
     }
 
     delay(5000);
@@ -559,6 +517,8 @@ void taskConn( void * pvParameters ) {
   LiquidCrystal_I2C lcd(0x27, 16, 2);
   lcd.begin();
   lcd.backlight();
+
+ 
 
   if ((bool) configs["default"]) {
     lcd.clear();
@@ -592,10 +552,12 @@ void taskConn( void * pvParameters ) {
     lcd.print("Iniciando...");
     WiFi.mode(WIFI_MODE_STA);
     delay(1000);
+    
     WiFi.begin((const char*) configs["ssid"], (const char*) configs["password"]);
     Serial.print("Wifi e senha: ");
     Serial.print((const char*) configs["ssid"]);
-    //Serial.println((const char*) configs["password"]);
+
+    Serial.println((const char*) configs["password"]);
     delay(1000);
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -609,7 +571,7 @@ void taskConn( void * pvParameters ) {
       if (wifi > 180) {
         ESP.restart();
       }
-      if (digitalRead(PINORESET) == LOW) {
+      /*if (digitalRead(PINORESET) == LOW) {
         while (digitalRead(PINORESET) == LOW) {
           delay(1000);
           isReset++;
@@ -620,7 +582,7 @@ void taskConn( void * pvParameters ) {
         writeFile(JSON.stringify(configs), CONFIGURATION);
         Serial.println("RESET BY PIN");
         ESP.restart();
-      }
+      }*/
       wifi++;
     }
     delay(500);
@@ -821,7 +783,7 @@ void taskConn( void * pvParameters ) {
     }
 
 
-    if (digitalRead(PINORESET) == LOW) {
+    /*if (digitalRead(PINORESET) == LOW) {
       while (digitalRead(PINORESET) == LOW) {
         delay(1000);
         isReset++;
@@ -832,7 +794,7 @@ void taskConn( void * pvParameters ) {
       writeFile(JSON.stringify(configs), CONFIGURATION);
       Serial.println("RESET BY PIN");
       ESP.restart();
-    }
+    }*/
 
     if ((millis() - millis_lcd) > 1000) {
       millis_lcd = millis();
